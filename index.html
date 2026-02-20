@@ -5,16 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Renova Lotes — Dashboard</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b0f19">
-  <link rel="icon" type="image/png" sizes="192x192" href="renova-icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="renova-icon-512.png">
-  <link rel="apple-touch-icon" href="renova-icon-192.png">
-
-  <!-- ✅ Supabase (sem autenticação) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     :root{
       --bg: #0b0f19;
@@ -404,7 +394,7 @@
         </div>
         <div class="title">
           <h1>Renova Lotes</h1>
-          <p>Controle de lotes, estoque, vendas e indicadores. Salva local e no Supabase (sem login).</p>
+          <p>Controle de lotes, estoque, vendas e indicadores. Tudo salvo no seu navegador.</p>
         </div>
       </div>
 
@@ -482,6 +472,7 @@
             <table>
               <thead>
                 <tr>
+                  <!-- ✅ Código agora ordena NUMÉRICO -->
                   <th class="sortable" data-table="estoque" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="estoque:codigo">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="estoque:nomeProduto">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="localEstoque" data-sort-type="text">Local <span class="sort-ind" data-ind="estoque:localEstoque">↕</span></th>
@@ -512,6 +503,7 @@
             <table>
               <thead>
                 <tr>
+                  <!-- ✅ Código agora ordena NUMÉRICO -->
                   <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="vendas:nomeProduto">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="valorVenda" data-sort-type="number">Venda <span class="sort-ind" data-ind="vendas:valorVenda">↕</span></th>
@@ -568,10 +560,7 @@
     </section>
 
     <div class="footer">
-      <div>
-        <span id="cloudStatus" class="muted2">—</span>
-        &nbsp;•&nbsp; Backup local em <code>localStorage</code> • Use Exportar/Importar para cópia.
-      </div>
+      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar para backup.</div>
       <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos</div>
     </div>
   </div>
@@ -587,6 +576,7 @@
       <div class="mbody">
         <div class="section-title">DADOS DO PRODUTO</div>
         <div class="form">
+          <!-- ✅ Sugestão incluída: botão "Próximo" e auto-preenchimento -->
           <div class="field">
             <label>Código</label>
             <div style="display:flex; gap:8px; align-items:center;">
@@ -730,70 +720,1600 @@
   <script>
     const STORAGE_KEY = "renova_lotes_html_v5";
 
-    // ============================
-    // ✅ SUPABASE (SEM LOGIN)
-    // ============================
-    // IMPORTANTE: cole sua URL e sua ANON KEY aqui.
-    // (A anon key é pública por design, mas não vou replicar a sua aqui no chat.)
-    const SUPABASE_URL = "COLE_SUA_SUPABASE_URL_AQUI";
-    const SUPABASE_ANON_KEY = "COLE_SUA_SUPABASE_ANON_KEY_AQUI";
-
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // todos mexem no mesmo "banco" público
-    const PUBLIC_KEY = "renova-lotes-public";
-
-    function setStatus(msg){
-      const el = document.getElementById("cloudStatus");
-      if(el) el.textContent = msg;
-    }
-
-    async function cloudLoadItems(){
-      try{
-        const { data, error } = await sb
-          .from("renova_lotes")
-          .select("data")
-          .eq("key", PUBLIC_KEY)
-          .maybeSingle();
-
-        if(error) throw error;
-        if(!data?.data) return null;
-        return Array.isArray(data.data) ? data.data : null;
-      }catch(e){
-        console.warn("cloudLoadItems:", e?.message || e);
-        return null;
-      }
-    }
-
-    let cloudSaveTimer = null;
-    function scheduleCloudSave(){
-      clearTimeout(cloudSaveTimer);
-      cloudSaveTimer = setTimeout(async ()=>{
-        try{
-          const payload = { key: PUBLIC_KEY, data: items, updated_at: new Date().toISOString() };
-          const { error } = await sb.from("renova_lotes").upsert(payload, { onConflict: "key" });
-          if(error) throw error;
-          setStatus("☁️ salvo no Supabase");
-        }catch(e){
-          console.warn("cloudSave:", e?.message || e);
-          setStatus("⚠️ erro ao salvar no Supabase");
-        }
-      }, 500);
-    }
-
     const CANAIS = ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"];
     const VENDEDORES = ["Dennis","Calebe","David","Outro"];
     const ENTREGAS = ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"];
 
-    // ✅ SEED (mantenha o seu array aqui igual você já tinha)
+    // Seed (vai ser substituído pelos seus dados quando você importar o JSON)
     const SEED = [
-      /* COLE AQUI O SEU ARRAY COMPLETO (SEED) QUE VOCÊ JÁ TINHA.
-         Eu não repliquei aqui porque era enorme, mas o seu site continua igual:
-         - Se tiver dado no Supabase, ele carrega do Supabase
-         - Se não tiver, cai pro localStorage
-         - Se não tiver nada, cai no SEED
-      */
-    ];
+      {
+    "id": "fa73740e32fbd819c78bd7abf",
+    "codigo": "69",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "74cf716278764819c78bcfd60",
+    "codigo": "68",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "556197771bc8b19c78bcd51d",
+    "codigo": "67",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "164dc1ffc89be19c78bab6bc",
+    "codigo": "66",
+    "nomeProduto": "Estabilizador Ulanzi - Air Tube Light",
+    "localEstoque": "Calebe",
+    "custoProduto": 0,
+    "valorAnuncio": 250,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "6d3afa6508caa19c78ab9762",
+    "codigo": "65",
+    "nomeProduto": "Lacinho de cabeça",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 10,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "57916db65efa2819c78aa2424",
+    "codigo": "64",
+    "nomeProduto": "Almofada inflável - Infantil",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 45,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "4c9101ec1c68e19c789d9214",
+    "codigo": "63",
+    "nomeProduto": "Colágeno - Produto de beleza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Colágeno - Produto de beleza - Rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "741cd6614655319c789d04f6",
+    "codigo": "62",
+    "nomeProduto": "Colágeno - Produto de beleza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Colágeno - Produto de beleza - Rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "19862532305fa819c789a04e3",
+    "codigo": "61",
+    "nomeProduto": "Shiseido men - Hydrate",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 300,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "f605aeda4f04919c7897055c",
+    "codigo": "60",
+    "nomeProduto": "Kit Centella - Produtos de beleza",
+    "localEstoque": "Calebe",
+    "custoProduto": 0,
+    "valorAnuncio": 550,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "539775afb65519c7894010d",
+    "codigo": "59",
+    "nomeProduto": "Biodence - Collageno",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 300,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "ca9b0fa06e55719c7893f5ca",
+    "codigo": "58",
+    "nomeProduto": "Biodence - Collageno",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 300,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "8c5a98482422a819c78926097",
+    "codigo": "57",
+    "nomeProduto": "Kit de Batom - Handaiyan",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "1214f89a3294919c78911a3b",
+    "codigo": "56",
+    "nomeProduto": "Óleo essencial - Lavanda",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 10,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "a9883af106442819c78910c73",
+    "codigo": "55",
+    "nomeProduto": "Óleo essencial - Lavanda",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 10,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "624a1f7eff40f19c788fc570",
+    "codigo": "54",
+    "nomeProduto": "Fone de Ouvido sem fio M25",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "31431da4caa9319c788e75ef",
+    "codigo": "53",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "8e73743a782a3819c788ca1b8",
+    "codigo": "52",
+    "nomeProduto": "Óleo reparador Honey Melty",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 400,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "2fb3eb6b59169819c788a592e",
+    "codigo": "51",
+    "nomeProduto": "Colágeno - Produto de beleza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Colágeno - Produto de beleza - Rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "827c8ba6883f8819c788a0e6f",
+    "codigo": "50",
+    "nomeProduto": "Colágeno - Produto de beleza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Colágeno - Produto de beleza - Rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "8d13203c05e54819c7889c91e",
+    "codigo": "49",
+    "nomeProduto": "Shampoo RYO",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 65,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "2d1c43b9373de819c7888686a",
+    "codigo": "48",
+    "nomeProduto": "Necessaire - Washbag",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "3dbe1985fdb0e19c7884a268",
+    "codigo": "47",
+    "nomeProduto": "Maquina de barbear",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 180,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Maquina de barbear - Boa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "2c7e3bb5b55bc19c7881a05b",
+    "codigo": "46",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "c3bf4cf34984e819c78812c58",
+    "codigo": "45",
+    "nomeProduto": "Limpador de chão",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 25,
+    "canalAnuncio": "Facebook",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Limpador de chão JUE FISH - FLOOR CLEANER ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "35e61ea48d48e19c787e3ab1",
+    "codigo": "44",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "ecc572aec488219c787b0e81",
+    "codigo": "43",
+    "nomeProduto": "Fone de ouvido com fio",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Fone de ouvido com fio ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "1d25877b04c17819c7879ef6b",
+    "codigo": "42",
+    "nomeProduto": "Chinelo EVA",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 35,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Chinelo EVA - Branco ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "9ac21d8a901e9819c78782474",
+    "codigo": "40",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "3322a8a159306819c7878047d",
+    "codigo": "41",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "55a79f131e5c919c7877ede7",
+    "codigo": "39",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "5327ad78e7531819c7877d362",
+    "codigo": "38",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "67f03865313cc819c7877b018",
+    "codigo": "37",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "48543ce0172b9819c7877a670",
+    "codigo": "36",
+    "nomeProduto": "Relógio Smart Bracelet",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "8d0b088e5855f19c78758a2a",
+    "codigo": "35",
+    "nomeProduto": "Caixa de som - Mini star led",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 30,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Caixa de som - Mini star led",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "b4a353097a46119c78745cbf",
+    "codigo": "34",
+    "nomeProduto": "Colágeno - Produto de beleza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Colágeno - Produto de beleza - Rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "2ab422577195f19c787434ec",
+    "codigo": "33",
+    "nomeProduto": "Colágeno - Produto de beleza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Colágeno - Produto de beleza - Rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "cadc0440a03cb819c786dd9ce",
+    "codigo": "32",
+    "nomeProduto": "Tênis Marrom - Masculino",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 100,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "4bdf592afdcd5819c786c8ed7",
+    "codigo": "31",
+    "nomeProduto": "Lacinhos de cabelo coloridos",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 5,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Lacinhos de cabelo coloridos",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "21330c4b7a288819c786b8643",
+    "codigo": "30",
+    "nomeProduto": "Xuxinhas de cabelo",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 5,
+    "canalAnuncio": "Facebook",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Xuxinhas de cabelo - Coloridas ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "41d28bfd67da9819c786adfb3",
+    "codigo": "29",
+    "nomeProduto": "Estojo de pinceis com esponja",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Estojo de pinceis com esponja ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "fed80d716c8c0819c7868a752",
+    "codigo": "28",
+    "nomeProduto": "Chinelo infantil rosa",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Chinelo com luzes de LED - número 33",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "7bd676e48be1719c7866f209",
+    "codigo": "27",
+    "nomeProduto": "Camiseta Vermelha Prada",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Facebook",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Camiseta Vermelha Prada  - XL ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "9f44ef165efbb19c7866e9a5",
+    "codigo": "26",
+    "nomeProduto": "Camiseta Vermelha Prada",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Facebook",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Camiseta Vermelha Prada  - XL ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "65a0cc80eb09e819c78645661",
+    "codigo": "25",
+    "nomeProduto": "Fita de led",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 30,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "552efbd9383d519c7862fc5f",
+    "codigo": "24",
+    "nomeProduto": "Ganchos",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 5,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "311a96500c4e719c7860702f",
+    "codigo": "23",
+    "nomeProduto": "Kit para unhas",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Facebook",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Kit para unhas rosa",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "314779a5a59319c785f091b",
+    "codigo": "22",
+    "nomeProduto": "Suéter de lã listrado",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "1836ffb69560d19c785df2c1",
+    "codigo": "21",
+    "nomeProduto": "Fone sem Fio rosa - MI",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Orgânico",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "64be6abc1d4ac819c785d3f7f",
+    "codigo": "20",
+    "nomeProduto": "Fone sem fio - Preto",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 40,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "29c07deb727c1819c785cbd0c",
+    "codigo": "19",
+    "nomeProduto": "Vestido Rosa - Myra",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "a6f2ecf803a4119c785c4593",
+    "codigo": "18",
+    "nomeProduto": "Vestido Myra - Verde",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "9b990ccff484419c78592cbc",
+    "codigo": "17",
+    "nomeProduto": "Saída de praia Brunelle",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 80,
+    "canalAnuncio": "Facebook",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Saída de praia Brunelle ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "70a7e25e0a3cb819c7857a8e4",
+    "codigo": "16",
+    "nomeProduto": "Short da Nike cinza",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Short da Nike cinza",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "cd0425adf5781819c78562bb8",
+    "codigo": "14",
+    "nomeProduto": "Short da Nike preto",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "2026-02-20",
+    "vendido": true,
+    "valorVenda": 50,
+    "canalVenda": "Outro",
+    "dataVendaISO": "2026-02-20",
+    "quemVendeu": "Dennis",
+    "formaEntrega": "Retirada",
+    "custoEntrega": 0,
+    "observacoes": "Short da Nike Preto\n\nVendido para Victor (imobiliária Razão) - Pagamento dia 28/02/2026",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "4b5d8b0748d5719c785417cd",
+    "codigo": "13",
+    "nomeProduto": "Casaco de lã batida",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 100,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Casaco de lã batida bege claro",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "455e3e44ba5519c78533b77",
+    "codigo": "15",
+    "nomeProduto": "Chave de torque",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 10,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Chave de torque pequena ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "7616f7e0530f0819c785260f9",
+    "codigo": "12",
+    "nomeProduto": "Relógio infantil feminino",
+    "localEstoque": "David",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Relógio infantil feminino roxo",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "0a156d0ff0f1a819c78513d67",
+    "codigo": "11",
+    "nomeProduto": "Caixa de som",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Caixa de som ZQS1202",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "8441dfdf6863a19c7850a668",
+    "codigo": "10",
+    "nomeProduto": "Lente Nikkor",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 3500,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Lentes da Nikkor - Nikon - f/1.8 s - 50mm",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "e223bd235a0dc819c784ea211",
+    "codigo": "9",
+    "nomeProduto": "Óculos de sol da Miu Miu",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "2e16051775b2a19c784d8402",
+    "codigo": "8",
+    "nomeProduto": "Óculos de sol branco/preto",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "de4126b6a0c84819c784c40cb",
+    "codigo": "7",
+    "nomeProduto": "Bolsa feminina",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 20,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Bolsa feminina preta",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "1bede858f922719c784b5799",
+    "codigo": "6",
+    "nomeProduto": "Cinta para Coluna",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 35,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Pegar foto da internet ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "9a805c8e52992819c78498b15",
+    "codigo": "5",
+    "nomeProduto": "Suéter de Lã",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 50,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Suéter de Lã Marron ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "cb14fbb765fee19c7848d0c7",
+    "codigo": "4",
+    "nomeProduto": "Suéter listrado",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 35,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Suéter branco com preto",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "3729b1f17ec54819c7847889e",
+    "codigo": "3",
+    "nomeProduto": "Blusa Tottenham",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 250,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Corta vento do Tottenham - Branca",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "0fc99a7178d7819c784690e2",
+    "codigo": "2",
+    "nomeProduto": "Camiseta PSG",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 150,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Camiseta PSG - Número 17 - Jogador Fiapera",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  },
+  {
+    "id": "bfdf9bc3d924119c7845a86e",
+    "codigo": "1",
+    "nomeProduto": "Camiseta Milan",
+    "localEstoque": "Dennis",
+    "custoProduto": 0,
+    "valorAnuncio": 150,
+    "canalAnuncio": "Outro",
+    "dataAnuncioISO": "",
+    "vendido": false,
+    "valorVenda": 0,
+    "canalVenda": "",
+    "dataVendaISO": "",
+    "quemVendeu": "",
+    "formaEntrega": "",
+    "custoEntrega": 0,
+    "observacoes": "Camiseta do Milan - Número 80 Ronaldinho Gaúcho ",
+    "photos": [
+      "",
+      "",
+      ""
+    ]
+  }
+]
 
     const $ = (id) => document.getElementById(id);
     function uid(){ return (Math.random().toString(16).slice(2) + Date.now().toString(16)); }
@@ -840,8 +2360,12 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
+    // ============================
+    // ✅ CÓDIGO AUTO + NUMÉRICO
+    // ============================
     function extractCodigoNumber(codigo){
       const raw = String(codigo ?? "").trim();
+      // pega apenas o começo numérico (ex: "12-1" vira 12)
       const m = raw.match(/^\d+/);
       if(!m) return null;
       const n = Number(m[0]);
@@ -864,6 +2388,7 @@
 
     const filterState = { mode: "all" };
 
+    // ✅ padrão de ordenação do estoque agora é numérico por código
     const sortState = {
       estoque: { key: "codigo", dir: "asc", type: "number" },
       vendas:  { key: "dataVendaISO", dir: "desc", type: "date" }
@@ -898,42 +2423,17 @@
       };
     }
 
-    // ============================
-    // ✅ LOAD/SAVE (local + Supabase)
-    // ============================
-    async function load(){
-      setStatus("☁️ carregando...");
-      // 1) tenta Supabase primeiro
-      const cloud = await cloudLoadItems();
-      if(cloud){
-        items = cloud.map(normalizeItemShape);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-        setStatus("☁️ carregado do Supabase");
-        return;
-      }
-
-      // 2) se não tiver, tenta localStorage
+    function load(){
       try{
         const raw = localStorage.getItem(STORAGE_KEY);
         if(raw){
           const parsed = JSON.parse(raw);
-          if(Array.isArray(parsed)){
-            items = parsed.map(normalizeItemShape);
-            setStatus("(local) sem dados no Supabase");
-            return;
-          }
+          if(Array.isArray(parsed)){ items = parsed.map(normalizeItemShape); return; }
         }
       }catch(e){}
-
-      // 3) seed
       items = SEED.map(normalizeItemShape);
-      setStatus("(seed/local) sem dados no Supabase");
     }
-
-    function save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-      scheduleCloudSave();
-    }
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
@@ -1030,6 +2530,7 @@
       `;
     }
 
+    // ===== filtros =====
     function setChipActive(){
       $("fltAll").classList.toggle("active", filterState.mode==="all");
       $("fltStock").classList.toggle("active", filterState.mode==="stock");
@@ -1052,6 +2553,7 @@
       });
     }
 
+    // ===== ordenação =====
     function normText(v){ return String(v ?? "").toLowerCase(); }
 
     function getSortValue(item, key, type){
@@ -1059,9 +2561,10 @@
       if(key === "lucroFinal") return safe(item.valorVenda) - safe(item.custoProduto) - safe(item.custoEntrega);
       if(key === "tempoVenda") return daysBetweenISO(item.dataAnuncioISO, item.dataVendaISO) ?? -1;
 
+      // ✅ código numérico (evita 1..9..10 virar errado)
       if(key === "codigo"){
         const n = extractCodigoNumber(item.codigo);
-        return n === null ? 1e15 : n;
+        return n === null ? 1e15 : n; // não-numérico vai pro final
       }
 
       const v = item[key];
@@ -1097,6 +2600,7 @@
       return arr.filter(Boolean).length;
     }
 
+    // ===== DUPLICAR =====
     function nextCopyCode(baseCode){
       const b = String(baseCode || "").trim();
       if(!b) return "COPIA-1";
@@ -1135,6 +2639,7 @@
       window.openEdit(copy.id);
     }
 
+    // ===== tabelas =====
     function renderTables(filtered){
       const estoqueBase = filtered.filter(i=>!i.vendido);
       const vendasBase  = filtered.filter(i=>i.vendido);
@@ -1213,6 +2718,7 @@
       }
     }
 
+    // ===== modal =====
     function fillSelect(id, list, allowEmpty=false){
       const s = $(id);
       s.innerHTML = "";
@@ -1275,6 +2781,7 @@
       $("deleteBtn").style.display = "none";
       resetForm();
 
+      // ✅ código auto sugerido
       $("fCodigo").disabled = false;
       $("nextCodeBtn").disabled = false;
       setNextCodigoIntoField();
@@ -1289,6 +2796,7 @@
       editingId = id;
       $("deleteBtn").style.display = "inline-flex";
 
+      // ✅ trava o código ao editar (evita bagunça)
       $("fCodigo").disabled = true;
       $("nextCodeBtn").disabled = true;
 
@@ -1352,6 +2860,7 @@
       };
     }
 
+    // ✅ Validação: impede CÓDIGO duplicado
     function validateProduct(it){
       if(!it.codigo) return "Preencha o Código.";
       if(!it.nomeProduto) return "Preencha o Nome do produto.";
@@ -1359,6 +2868,7 @@
       const codeNorm = String(it.codigo).trim().toLowerCase();
       const dup = items.some(x => x.id !== it.id && String(x.codigo||"").trim().toLowerCase() === codeNorm);
       if(dup) return "Este Código já existe. Use outro (ou clique em 🔁 Próximo no Novo item).";
+
       return null;
     }
 
@@ -1411,7 +2921,7 @@
     window.markSold = function(id, sold){
       items = items.map(x=>{
         if(x.id!==id) return x;
-        if(sold) return x;
+        if(sold) return x; // bloqueado: vender só pelo fluxo startSellFlow
         return { ...x, vendido:false, valorVenda:0, canalVenda:"", dataVendaISO:"", quemVendeu:"", formaEntrega:"", custoEntrega:0 };
       });
       save(); render();
@@ -1771,7 +3281,9 @@
       btn.addEventListener("click", () => setTab(btn.dataset.tab));
     });
 
+    // Logo volta pra Visão geral
     $("homeLogo").addEventListener("click", ()=> setTab("visao"));
+
     $("q").addEventListener("input", render);
 
     $("fltAll").addEventListener("click", ()=>{
@@ -1792,6 +3304,7 @@
 
     $("newBtn").addEventListener("click", openCreate);
 
+    // ✅ Botão "Próximo" (só no modo Novo)
     $("nextCodeBtn").addEventListener("click", ()=>{
       if(editingId) return;
       setNextCodigoIntoField();
@@ -1898,19 +3411,10 @@
     fillSelect("fVendedor", VENDEDORES, true);
     fillSelect("fEntrega", ENTREGAS, true);
 
-    // ✅ init
-    (async ()=>{
-      await load();
-      setChipActive();
-      updateCalcPreview();
-      render();
-    })();
-  </script>
-
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js");
-    }
+    load();
+    setChipActive();
+    updateCalcPreview();
+    render();
   </script>
 </body>
 </html>
