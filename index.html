@@ -1,16 +1,18 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0f19">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Renova Lotes — Dashboard</title>
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b0f19">
-
   <link rel="icon" type="image/png" sizes="192x192" href="renova-icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="renova-icon-512.png">
   <link rel="apple-touch-icon" href="renova-icon-192.png">
+
+  <!-- ✅ Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root{
@@ -31,6 +33,7 @@
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
     }
+
     *{ box-sizing:border-box; }
     body{
       margin:0; font-family:var(--sans);
@@ -42,8 +45,10 @@
       color:var(--text);
       min-height:100vh;
     }
+
     .muted { color: var(--muted); }
     .muted2 { color: var(--muted2); }
+
     .container{ max-width:1180px; margin:0 auto; padding:22px 16px 30px; }
 
     .topbar{ display:flex; gap:14px; align-items:flex-start; justify-content:space-between; margin-bottom: 14px; }
@@ -100,7 +105,10 @@
     }
     .btn:hover{ background: var(--btn2); transform: translateY(-1px); }
     .btn:active{ transform: translateY(0px); }
-    .btn.primary{ background: rgba(140,160,255,.16); border-color: rgba(140,160,255,.35); }
+    .btn.primary{
+      background: rgba(140,160,255,.16);
+      border-color: rgba(140,160,255,.35);
+    }
     .btn.primary:hover{ background: rgba(140,160,255,.22); }
     .btn.danger{ background: var(--danger); border-color: rgba(255,70,70,.25); }
     .btn.ok{ background: var(--ok); border-color: rgba(90,255,170,.25); }
@@ -310,8 +318,14 @@
     }
     .prod-link:hover{ opacity: .88; }
 
-    .photo-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
-    @media (max-width: 720px){ .photo-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .photo-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    @media (max-width: 720px){
+      .photo-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
     .photo-slot{
       border: 1px solid rgba(255,255,255,.12);
       border-radius: 14px;
@@ -325,21 +339,45 @@
       outline: 2px solid rgba(140,160,255,.55);
       box-shadow: 0 0 0 4px rgba(140,160,255,.12);
     }
-    .photo-slot img{ width:100%; height:170px; object-fit:cover; display:block; }
+    .photo-slot img{
+      width:100%;
+      height:170px;
+      object-fit:cover;
+      display:block;
+    }
     .photo-slot .empty{
-      height:170px; display:grid; place-items:center;
-      color: var(--muted2); font-size: 12px;
+      height:170px;
+      display:grid;
+      place-items:center;
+      color: var(--muted2);
+      font-size: 12px;
     }
     .photo-slot .badge{
-      position:absolute; top:8px; left:8px;
-      font-size: 12px; padding: 4px 8px;
-      border-radius: 999px; border:1px solid rgba(255,255,255,.14);
+      position:absolute;
+      top:8px; left:8px;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(18,22,32,.78);
     }
-    .photo-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; align-items:center; justify-content:space-between; }
+    .photo-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 12px;
+      align-items:center;
+      justify-content:space-between;
+    }
 
-    .charts-grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 980px){ .charts-grid{ grid-template-columns: 1fr 1fr; } }
+    .charts-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 980px){
+      .charts-grid{ grid-template-columns: 1fr 1fr; }
+    }
     canvas.chart{
       width: 100%;
       height: 260px;
@@ -363,7 +401,7 @@
         </div>
         <div class="title">
           <h1>Renova Lotes</h1>
-          <p id="cloudStatus">Conectando à nuvem...</p>
+          <p>Controle de lotes, estoque, vendas e indicadores. Salvo no navegador + nuvem (Supabase).</p>
         </div>
       </div>
 
@@ -373,61 +411,85 @@
             <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8"/>
             <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
-          <input id="q" placeholder="Buscar..." />
+          <input id="q" placeholder="Buscar por código, produto, canal, vendedor, local..." />
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="chip active" id="fltAll" type="button">Tudo</button>
-          <button class="chip" id="fltStock" type="button">Estoque</button>
-          <button class="chip" id="fltSold" type="button">Vendas</button>
+          <button class="chip" id="fltStock" type="button">Só estoque</button>
+          <button class="chip" id="fltSold" type="button">Só vendas</button>
         </div>
 
         <button class="btn" id="exportBtn" type="button">Exportar JSON</button>
-        <button class="btn" id="syncBtn" type="button">Sincronizar Agora</button>
+        <button class="btn" id="exportCsvBtn" type="button">Exportar CSV</button>
+
+        <label class="btn" style="gap:8px;">
+          Importar
+          <input id="importFile" type="file" accept="application/json" style="display:none;">
+        </label>
+
+        <button class="btn" id="syncBtn" type="button" title="Forçar sincronização com a nuvem">☁️ Sincronizar</button>
+        <button class="btn warn" id="logoutBtn" type="button" title="Sair da conta">Sair</button>
+
         <button class="btn primary" id="newBtn" type="button">Novo item</button>
       </div>
     </div>
 
-    <div class="tabs" role="tablist">
+    <div class="tabs" role="tablist" aria-label="Navegação">
       <button class="tab active" data-tab="visao" type="button">Visão geral</button>
       <button class="tab" data-tab="estoque" type="button">Estoque</button>
       <button class="tab" data-tab="vendas" type="button">Vendas</button>
       <button class="tab" data-tab="graficos" type="button">Gráficos</button>
     </div>
 
+    <!-- VISÃO GERAL -->
     <section id="visao" class="tabpane">
       <div class="card">
-        <div class="head"><h3>Vendas</h3><span class="muted2">Resultado</span></div>
+        <div class="head"><h3>Vendas</h3><span class="muted2">Resultado e desempenho</span></div>
         <div class="body"><div class="kpis" id="kpiVendas"></div></div>
       </div>
+
       <div class="card" style="margin-top:12px;">
-        <div class="head"><h3>Custos</h3><span class="muted2">Eficiência</span></div>
+        <div class="head"><h3>Custos & Eficiência</h3><span class="muted2">Custos e eficiência</span></div>
         <div class="body"><div class="kpis" id="kpiCustos"></div></div>
       </div>
+
       <div class="card" style="margin-top:12px;">
-        <div class="head"><h3>Estoque</h3><span class="muted2">Saúde</span></div>
+        <div class="head"><h3>Estoque</h3><span class="muted2">Saúde do estoque</span></div>
         <div class="body"><div class="kpis" id="kpiEstoque"></div></div>
       </div>
+
       <div class="card" style="margin-top:12px;">
-        <div class="head"><h3>Operação</h3><span class="muted2">Geral</span></div>
+        <div class="head"><h3>Operação</h3><span class="muted2">Velocidade e volume</span></div>
         <div class="body"><div class="kpis" id="kpiOperacao"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
+        <div class="body" id="quickSummary"></div>
       </div>
     </section>
 
+    <!-- ESTOQUE -->
     <section id="estoque" class="tabpane hidden">
       <div class="card">
-        <div class="head"><h3>Itens em estoque</h3></div>
+        <div class="head">
+          <h3>Itens em estoque</h3>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena numérico • Clique no produto: fotos</span>
+        </div>
         <div class="body">
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th class="sortable" data-table="estoque" data-sort-key="codigo" data-sort-type="number">Cód <span class="sort-ind" data-ind="estoque:codigo">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="estoque:codigo">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="estoque:nomeProduto">↕</span></th>
-                  <th>Local</th>
-                  <th>Anúncio</th>
-                  <th>Custo</th>
-                  <th>Valor</th>
+                  <th class="sortable" data-table="estoque" data-sort-key="localEstoque" data-sort-type="text">Local <span class="sort-ind" data-ind="estoque:localEstoque">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="canalAnuncio" data-sort-type="text">Canal anúncio <span class="sort-ind" data-ind="estoque:canalAnuncio">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="dataAnuncioISO" data-sort-type="date">Data anúncio <span class="sort-ind" data-ind="estoque:dataAnuncioISO">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="valorAnuncio" data-sort-type="number">Valor anúncio <span class="sort-ind" data-ind="estoque:valorAnuncio">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="lucroProj" data-sort-type="number">Lucro proj. <span class="sort-ind" data-ind="estoque:lucroProj">↕</span></th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -438,21 +500,28 @@
       </div>
     </section>
 
+    <!-- VENDAS -->
     <section id="vendas" class="tabpane hidden">
       <div class="card">
-        <div class="head"><h3>Histórico de Vendas</h3></div>
+        <div class="head">
+          <h3>Vendas</h3>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena numérico • Clique no produto: fotos</span>
+        </div>
         <div class="body">
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Cód <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="vendas:nomeProduto">↕</span></th>
-                  <th>Venda</th>
-                  <th>Custo</th>
-                  <th>Lucro</th>
-                  <th>Data</th>
-                  <th>Vendedor</th>
+                  <th class="sortable" data-table="vendas" data-sort-key="valorVenda" data-sort-type="number">Venda <span class="sort-ind" data-ind="vendas:valorVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoEntrega" data-sort-type="number">Entrega <span class="sort-ind" data-ind="vendas:custoEntrega">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="lucroFinal" data-sort-type="number">Lucro <span class="sort-ind" data-ind="vendas:lucroFinal">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="canalVenda" data-sort-type="text">Canal <span class="sort-ind" data-ind="vendas:canalVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="dataVendaISO" data-sort-type="date">Data venda <span class="sort-ind" data-ind="vendas:dataVendaISO">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="tempoVenda" data-sort-type="number">Tempo (dias) <span class="sort-ind" data-ind="vendas:tempoVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="quemVendeu" data-sort-type="text">Vendedor <span class="sort-ind" data-ind="vendas:quemVendeu">↕</span></th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -463,284 +532,1451 @@
       </div>
     </section>
 
+    <!-- GRÁFICOS -->
     <section id="graficos" class="tabpane hidden">
       <div class="card">
-        <div class="head"><h3>Tendências</h3></div>
+        <div class="head"><h3>Gráficos</h3><span class="muted2">Tendências e comparativos</span></div>
         <div class="body">
           <div class="charts-grid">
             <div class="card">
-              <div class="head"><h3>Vendas (30 dias)</h3></div>
-              <div class="body"><canvas id="cSales30" class="chart"></canvas></div>
+              <div class="head"><h3>Vendas por dia (últimos 30)</h3><span class="muted2">Quantidade</span></div>
+              <div class="body"><canvas id="cSales30" class="chart" width="900" height="260"></canvas></div>
             </div>
             <div class="card">
-              <div class="head"><h3>Faturamento (30 dias)</h3></div>
-              <div class="body"><canvas id="cRevenue30" class="chart"></canvas></div>
+              <div class="head"><h3>Faturamento por dia (últimos 30)</h3><span class="muted2">R$</span></div>
+              <div class="body"><canvas id="cRevenue30" class="chart" width="900" height="260"></canvas></div>
             </div>
+            <div class="card">
+              <div class="head"><h3>Vendas por canal</h3><span class="muted2">Quantidade</span></div>
+              <div class="body"><canvas id="cSalesByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Lucro por canal</h3><span class="muted2">R$</span></div>
+              <div class="body"><canvas id="cProfitByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="head"><h3>Aging do estoque</h3><span class="muted2">0–6d / 7–14d / 15–30d / 30+d</span></div>
+              <div class="body"><canvas id="cStockAging" class="chart" width="900" height="260"></canvas></div>
+            </div>
+          </div>
+
+          <div class="muted2" style="margin-top:10px; font-size:12px;">
+            Observação: os gráficos são recalculados automaticamente ao editar itens, marcar venda, importar ou duplicar.
           </div>
         </div>
       </div>
     </section>
 
     <div class="footer">
-      <div id="footerStorage">Sincronização automática via Supabase (Sem senha).</div>
-      <div class="muted2">Versão Pública — Grupo Renova</div>
+      <div>Dados salvos em <code>localStorage</code> + nuvem (<code>Supabase</code>). Use Exportar/Importar para backup.</div>
+      <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos</div>
     </div>
   </div>
 
+  <!-- MODAL: CADASTRO/EDIÇÃO -->
   <div class="modal-backdrop" id="backdrop">
-    <div class="modal">
-      <div class="mhead"><h3 id="modalTitle">Item</h3><button class="btn small" id="closeModal">X</button></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="mhead">
+        <h3 id="modalTitle">Novo item</h3>
+        <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
+      </div>
+
       <div class="mbody">
+        <div class="section-title">DADOS DO PRODUTO</div>
         <div class="form">
-          <div class="field"><label>Código</label><input id="fCodigo"></div>
-          <div class="field" style="grid-column: span 2;"><label>Produto</label><input id="fProduto"></div>
-          <div class="field"><label>Local</label><input id="fLocalEstoque"></div>
-          <div class="field"><label>Custo</label><input id="fCusto"></div>
-          <div class="field"><label>Vlr Anúncio</label><input id="fAnuncio"></div>
-          <div class="field"><label>Canal</label><select id="fCanalAnuncio"></select></div>
-          <div class="field"><label>Data Anúncio</label><input id="fDataAnuncio" type="date"></div>
-          <div class="field"><label>Vendido?</label><select id="fVendido"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
-          <div class="field" style="grid-column: 1/-1;"><label>Obs</label><textarea id="fObs"></textarea></div>
+          <div class="field">
+            <label>Código</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="fCodigo" placeholder="Ex: 70" style="flex:1;">
+              <button class="btn small" id="nextCodeBtn" type="button" title="Gerar próximo código">🔁 Próximo</button>
+            </div>
+          </div>
+
+          <div class="field" style="grid-column: span 2;">
+            <label>Nome do produto</label>
+            <input id="fProduto" placeholder="Ex: Camiseta Barcelona">
+          </div>
+
+          <div class="field">
+            <label>Local de estoque</label>
+            <input id="fLocalEstoque" placeholder="Ex: Prateleira A / Caixa 2 / Loja">
+          </div>
+
+          <div class="field">
+            <label>Custo do produto</label>
+            <input id="fCusto" placeholder="Ex: 6,33">
+          </div>
+
+          <div class="field">
+            <label>Valor anúncio</label>
+            <input id="fAnuncio" placeholder="Ex: 150">
+          </div>
+
+          <div class="field">
+            <label>Canal do anúncio</label>
+            <select id="fCanalAnuncio"></select>
+          </div>
+
+          <div class="field">
+            <label>Data do anúncio</label>
+            <input id="fDataAnuncio" type="date">
+          </div>
+
+          <div class="field">
+            <label>Vendido?</label>
+            <select id="fVendido">
+              <option value="nao">Não</option>
+              <option value="sim">Sim</option>
+            </select>
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Observações</label>
+            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, etc."></textarea>
+          </div>
         </div>
+
         <div id="salesBlock" style="display:none;">
           <div class="hr"></div>
+          <div class="section-title">DADOS DA VENDA (obrigatórios quando Vendido = Sim)</div>
+
           <div class="form">
-            <div class="field"><label>Valor Venda</label><input id="fVenda"></div>
-            <div class="field"><label>Canal Venda</label><select id="fCanalVenda"></select></div>
-            <div class="field"><label>Data Venda</label><input id="fDataVenda" type="date"></div>
-            <div class="field"><label>Vendedor</label><select id="fVendedor"></select></div>
-            <div class="field"><label>Entrega</label><select id="fEntrega"></select></div>
-            <div class="field"><label>Custo Entrega</label><input id="fCustoEntrega"></div>
+            <div class="field">
+              <label>Valor da venda *</label>
+              <input id="fVenda" placeholder="Ex: 145">
+            </div>
+
+            <div class="field">
+              <label>Canal da venda *</label>
+              <select id="fCanalVenda"></select>
+            </div>
+
+            <div class="field">
+              <label>Data da venda *</label>
+              <input id="fDataVenda" type="date">
+            </div>
+
+            <div class="field">
+              <label>Quem vendeu *</label>
+              <select id="fVendedor"></select>
+            </div>
+
+            <div class="field">
+              <label>Forma de entrega *</label>
+              <select id="fEntrega"></select>
+            </div>
+
+            <div class="field">
+              <label>Custo entrega *</label>
+              <input id="fCustoEntrega" placeholder="Ex: 5,00">
+            </div>
           </div>
+
+          <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
+            Preencha todos os campos obrigatórios da venda para salvar como “Vendido”.
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="head"><h3>Prévia de cálculos</h3><span class="muted2">Atualiza conforme você digita</span></div>
+          <div class="body" id="calcPreview"></div>
+        </div>
+      </div>
+
+      <div class="mfoot">
+        <button class="btn" id="cancelBtn" type="button">Cancelar</button>
+        <button class="btn danger" id="deleteBtn" type="button" style="display:none;">Excluir</button>
+        <button class="btn primary" id="saveBtn" type="button">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FOTOS (3 por produto) -->
+  <div class="modal-backdrop" id="photoBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
+      <div class="mhead">
+        <h3 id="photoTitle">Fotos do produto</h3>
+        <button class="btn small" id="closePhoto" type="button" title="Fechar">X</button>
+      </div>
+      <div class="mbody">
+        <div class="muted2" id="photoMetaLine">—</div>
+
+        <div style="margin-top:12px;" class="photo-grid" id="photoGrid"></div>
+
+        <div class="photo-actions">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <label class="btn primary">
+              Anexar na foto selecionada
+              <input id="photoFile" type="file" accept="image/*" style="display:none;">
+            </label>
+            <button class="btn danger" id="removeSelectedPhotoBtn" type="button">Remover foto selecionada</button>
+          </div>
+          <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
+        </div>
+
+        <div class="muted2" style="margin-top:10px; font-size:12px;">
+          As fotos ficam salvas no seu navegador (junto do item) e sincronizadas na nuvem.
         </div>
       </div>
       <div class="mfoot">
-        <button class="btn" id="cancelBtn">Cancelar</button>
-        <button class="btn danger" id="deleteBtn" style="display:none;">Excluir</button>
-        <button class="btn primary" id="saveBtn">Salvar</button>
+        <button class="btn" id="closePhoto2" type="button">Fechar</button>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script>
-    /*********************
-     * ✅ CONFIGURAÇÃO SEM SENHA
-     *********************/
-    const SUPABASE_URL = "https://qjkjtqioizvuqextiqch.supabase.co";
-    const SUPABASE_ANON_KEY = "COLE_SUA_ANON_KEY_AQUI"; // <-- Mantenha sua anon key aqui
-    const ID_GLOBAL = "renova_lotes_db"; // ID único para a tabela na nuvem
+    const STORAGE_KEY = "renova_lotes_html_v5";
 
-    let sb = null;
-    try {
-      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch(e) { alert("Erro ao carregar banco de dados."); }
+    // ✅ SUPABASE
+    const SB_URL  = "https://qjkjtqioizvuqextiqch.supabase.co";
+    const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqa2p0cWlvaXp2dXFleHRpcWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDA1MDAsImV4cCI6MjA4NzE3NjUwMH0.WPHfYpvmk7V0JFNRsmdJIwJmQK_Mp0LGXSsNWQrdCIs";
+    const sb = window.supabase.createClient(SB_URL, SB_ANON);
 
-    const STORAGE_KEY = "renova_lotes_local";
-    const CANAIS = ["Instagram","Facebook","WhatsApp","Marketplace","Olx","Indicação","Outro"];
+    const CANAIS = ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"];
     const VENDEDORES = ["Dennis","Calebe","David","Outro"];
-    const ENTREGAS = ["Retirada","Motoboy","Correios","Uber","Outro"];
+    const ENTREGAS = ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"];
+
+    // ✅ Seed vazio (usa localStorage ou nuvem)
+    const SEED = [];
+
+    const $ = (id) => document.getElementById(id);
+    function uid(){ return (Math.random().toString(16).slice(2) + Date.now().toString(16)); }
+    function safe(n){ return Number.isFinite(n) ? n : 0; }
+
+    function parseMoney(v){
+      if (v === null || v === undefined) return 0;
+      if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+      const s = String(v).replace(/R\$\s?/g,"").replace(/\./g,"").replace(/,/g,".").trim();
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function brl(n){
+      const num = Number.isFinite(n) ? n : 0;
+      return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(num);
+    }
+    function pct(p){
+      const num = Number.isFinite(p) ? p : 0;
+      return new Intl.NumberFormat("pt-BR",{style:"percent",maximumFractionDigits:1}).format(num);
+    }
+    function daysBetweenISO(a,b){
+      if(!a || !b) return null;
+      const da = new Date(a + "T00:00:00");
+      const db = new Date(b + "T00:00:00");
+      const diff = db.getTime() - da.getTime();
+      if(!Number.isFinite(diff)) return null;
+      return Math.round(diff / (1000*60*60*24));
+    }
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+    function dateValue(iso){
+      if(!iso) return null;
+      const d = new Date(iso + "T00:00:00");
+      return Number.isFinite(d.getTime()) ? d.getTime() : null;
+    }
+    function nowISO(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // ============================
+    // ✅ CÓDIGO AUTO + NUMÉRICO
+    // ============================
+    function extractCodigoNumber(codigo){
+      const raw = String(codigo ?? "").trim();
+      const m = raw.match(/^\d+/);
+      if(!m) return null;
+      const n = Number(m[0]);
+      return Number.isFinite(n) ? n : null;
+    }
+    function getNextCodigo(){
+      const nums = items.map(i => extractCodigoNumber(i.codigo)).filter(n => n !== null);
+      const max = nums.length ? Math.max(...nums) : 0;
+      return String(max + 1);
+    }
+    function setNextCodigoIntoField(){
+      $("fCodigo").value = getNextCodigo();
+    }
 
     let items = [];
     let editingId = null;
 
-    const $ = (id) => document.getElementById(id);
-    function uid(){ return Math.random().toString(16).slice(2) + Date.now().toString(16); }
-    function safe(n){ return Number.isFinite(n) ? n : 0; }
-    function brl(n){ return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(safe(n)); }
-    function pct(n){ return new Intl.NumberFormat("pt-BR",{style:"percent"}).format(safe(n)); }
-    function parseMoney(v){
-      if(!v) return 0;
-      const s = String(v).replace(/R\$\s?/g,"").replace(/\./g,"").replace(/,/g,".").trim();
-      return safe(Number(s));
-    }
+    let photoEditingId = null;
+    let activePhotoSlot = 0;
 
-    /*********************
-     * ✅ CLOUD SYNC (SEM LOGIN)
-     *********************/
-    function setStatus(txt){ $("cloudStatus").textContent = txt; }
+    const filterState = { mode: "all" };
 
-    async function cloudPull() {
-      if(!sb) return;
-      setStatus("☁️ Sincronizando...");
-      const { data, error } = await sb.from("renova_state").select("data").eq("user_id", ID_GLOBAL).single();
-      
-      if (error && !error.message.includes("0 rows")) {
-        setStatus("❌ Erro ao conectar");
-        return;
-      }
-      if (data?.data) {
-        items = data.data;
-        saveLocalOnly();
-        render();
-        setStatus("☁️ Nuvem Atualizada");
-      } else {
-        setStatus("☁️ Nuvem Pronta");
-      }
-    }
+    const sortState = {
+      estoque: { key: "codigo", dir: "asc", type: "number" },
+      vendas:  { key: "dataVendaISO", dir: "desc", type: "date" }
+    };
 
-    async function cloudPush() {
-      if(!sb) return;
-      setStatus("☁️ Salvando...");
-      const payload = { user_id: ID_GLOBAL, data: items, updated_at: new Date().toISOString() };
-      const { error } = await sb.from("renova_state").upsert(payload, { onConflict: "user_id" });
-      if (error) setStatus("❌ Erro ao salvar");
-      else setStatus("☁️ Sincronizado ✅");
-    }
-
-    function saveLocalOnly(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
-
-    let debounceSave = null;
-    function save() {
-      saveLocalOnly();
-      if(debounceSave) clearTimeout(debounceSave);
-      debounceSave = setTimeout(cloudPush, 1500);
-    }
-
-    /*********************
-     * ✅ LÓGICA DO APP
-     *********************/
     function normalizeItemShape(x){
+      const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+      while(photos.length < 3) photos.push("");
+
+      if(x.photoDataUrl && !photos.some(Boolean)){
+        photos[0] = String(x.photoDataUrl || "");
+      }
+
       return {
         id: x.id || uid(),
-        codigo: String(x.codigo || ""),
-        nomeProduto: String(x.nomeProduto || ""),
-        localEstoque: String(x.localEstoque || ""),
-        custoProduto: safe(x.custoProduto),
-        valorAnuncio: safe(x.valorAnuncio),
-        canalAnuncio: x.canalAnuncio || "",
-        dataAnuncioISO: x.dataAnuncioISO || "",
-        vendido: !!x.vendido,
-        valorVenda: safe(x.valorVenda),
-        canalVenda: x.canalVenda || "",
-        dataVendaISO: x.dataVendaISO || "",
-        quemVendeu: x.quemVendeu || "",
-        formaEntrega: x.formaEntrega || "",
-        custoEntrega: safe(x.custoEntrega),
-        observacoes: x.observacoes || ""
+        codigo: String(x.codigo ?? "").trim(),
+        nomeProduto: String(x.nomeProduto ?? "").trim(),
+        localEstoque: String(x.localEstoque ?? ""),
+        custoProduto: safe(Number(x.custoProduto)),
+        valorAnuncio: safe(Number(x.valorAnuncio)),
+        canalAnuncio: String(x.canalAnuncio ?? ""),
+        dataAnuncioISO: String(x.dataAnuncioISO ?? ""),
+        vendido: Boolean(x.vendido),
+        valorVenda: safe(Number(x.valorVenda)),
+        canalVenda: String(x.canalVenda ?? ""),
+        dataVendaISO: String(x.dataVendaISO ?? ""),
+        quemVendeu: String(x.quemVendeu ?? ""),
+        formaEntrega: String(x.formaEntrega ?? ""),
+        custoEntrega: safe(Number(x.custoEntrega)),
+        observacoes: String(x.observacoes ?? ""),
+        photos
       };
     }
 
-    function compute() {
-      const sold = items.filter(i => i.vendido);
-      const fat = sold.reduce((a,i)=>a+i.valorVenda, 0);
-      const custo = sold.reduce((a,i)=>a+i.custoProduto, 0);
-      const entrega = sold.reduce((a,i)=>a+i.custoEntrega, 0);
-      const lucro = fat - custo - entrega;
-      return { fat, lucro, countV: sold.length, countE: items.length - sold.length };
+    // ==============================
+    // ✅ SUPABASE: LOGIN + USER ID
+    // ==============================
+    let __userIdCache = null;
+
+    async function sbLoginPrompt(){
+      const { data: sess } = await sb.auth.getSession();
+      if(sess?.session) return true;
+
+      const email = prompt("Login Renova Lotes (email):");
+      const password = prompt("Senha:");
+      if(!email || !password) throw new Error("Login cancelado.");
+
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+
+      return true;
     }
 
-    function renderKPIs(m) {
-      $("kpiVendas").innerHTML = `<div class="kpi"><div class="label">Faturamento</div><div class="value">${brl(m.fat)}</div></div>
-                                  <div class="kpi"><div class="label">Lucro Total</div><div class="value">${brl(m.lucro)}</div></div>`;
-      $("kpiEstoque").innerHTML = `<div class="kpi"><div class="label">Itens Estoque</div><div class="value">${m.countE}</div></div>`;
-      $("kpiOperacao").innerHTML = `<div class="kpi"><div class="label">Total Vendas</div><div class="value">${m.countV}</div></div>`;
+    async function getUserId(){
+      if(__userIdCache) return __userIdCache;
+      const { data, error } = await sb.auth.getUser();
+      if(error) throw error;
+      __userIdCache = data?.user?.id || null;
+      if(!__userIdCache) throw new Error("Sem usuário logado.");
+      return __userIdCache;
     }
 
-    function renderTables() {
-      const tbE = $("tbEstoque"); tbE.innerHTML = "";
-      const tbV = $("tbVendas"); tbV.innerHTML = "";
-      
-      items.forEach(i => {
-        const tr = document.createElement("tr");
-        if(!i.vendido) {
-          tr.innerHTML = `<td>${i.codigo}</td><td>${i.nomeProduto}</td><td>${i.localEstoque}</td><td>${i.canalAnuncio}</td>
-                          <td>${brl(i.custoProduto)}</td><td>${brl(i.valorAnuncio)}</td>
-                          <td><button class="btn small" onclick="openEdit('${i.id}')">✏️</button></td>`;
-          tbE.appendChild(tr);
-        } else {
-          const lucro = i.valorVenda - i.custoProduto - i.custoEntrega;
-          tr.innerHTML = `<td>${i.codigo}</td><td>${i.nomeProduto}</td><td>${brl(i.valorVenda)}</td><td>${brl(i.custoProduto)}</td>
-                          <td><b>${brl(lucro)}</b></td><td>${i.dataVendaISO}</td><td>${i.quemVendeu}</td>
-                          <td><button class="btn small" onclick="openEdit('${i.id}')">✏️</button></td>`;
-          tbV.appendChild(tr);
+    function itemToRow(it, userId){
+      return {
+        id: it.id,
+        user_id: userId,
+        data: {
+          codigo: it.codigo,
+          nomeProduto: it.nomeProduto,
+          localEstoque: it.localEstoque,
+          custoProduto: it.custoProduto,
+          valorAnuncio: it.valorAnuncio,
+          canalAnuncio: it.canalAnuncio,
+          dataAnuncioISO: it.dataAnuncioISO,
+          vendido: it.vendido,
+          valorVenda: it.valorVenda,
+          canalVenda: it.canalVenda,
+          dataVendaISO: it.dataVendaISO,
+          quemVendeu: it.quemVendeu,
+          formaEntrega: it.formaEntrega,
+          custoEntrega: it.custoEntrega,
+          observacoes: it.observacoes,
+          photos: it.photos
+        },
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    async function cloudLoadItems(){
+      await sbLoginPrompt();
+      const userId = await getUserId();
+
+      const { data, error } = await sb
+        .from("items")
+        .select("id,data,updated_at")
+        .eq("user_id", userId);
+
+      if(error) throw error;
+
+      const arr = (data || []).map(r => normalizeItemShape({ id: r.id, ...(r.data||{}) }));
+      arr.sort((a,b)=> (extractCodigoNumber(b.codigo)||0) - (extractCodigoNumber(a.codigo)||0));
+      return arr;
+    }
+
+    async function cloudUpsertItem(it){
+      await sbLoginPrompt();
+      const userId = await getUserId();
+      const row = itemToRow(it, userId);
+      const { error } = await sb.from("items").upsert(row);
+      if(error) throw error;
+    }
+
+    async function cloudDeleteItem(id){
+      await sbLoginPrompt();
+      const userId = await getUserId();
+      const { error } = await sb.from("items").delete().eq("id", id).eq("user_id", userId);
+      if(error) throw error;
+    }
+
+    async function cloudBulkUpsert(list){
+      await sbLoginPrompt();
+      const userId = await getUserId();
+      const payload = list.map(it => itemToRow(it, userId));
+      const { error } = await sb.from("items").upsert(payload);
+      if(error) throw error;
+    }
+
+    async function cloudSyncNow(){
+      const cloud = await cloudLoadItems();
+
+      // se nuvem tem itens, usa nuvem
+      if(cloud.length){
+        items = cloud;
+        save();
+        render();
+        alert("Sincronizado: dados carregados da nuvem ✅");
+        return;
+      }
+
+      // se nuvem está vazia e local tem itens, sobe local
+      if(items.length){
+        await cloudBulkUpsert(items);
+        alert("Sincronizado: dados locais enviados para a nuvem ✅");
+        return;
+      }
+
+      alert("Sincronizado: nada para enviar/baixar.");
+    }
+
+    async function logout(){
+      __userIdCache = null;
+      await sb.auth.signOut();
+      alert("Você saiu da conta. Ao sincronizar, vai pedir login novamente.");
+    }
+
+    // ==============================
+    // ✅ LOAD / SAVE
+    // ==============================
+    async function load(){
+      // 1) tenta nuvem
+      try{
+        const cloud = await cloudLoadItems();
+        if(Array.isArray(cloud) && cloud.length){
+          items = cloud;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+          return;
         }
+      }catch(e){
+        console.warn("Nuvem indisponível/sem login. Usando localStorage/seed.", e);
+      }
+
+      // 2) localStorage
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(Array.isArray(parsed)){ items = parsed.map(normalizeItemShape); return; }
+        }
+      }catch(e){}
+
+      // 3) seed
+      items = SEED.map(normalizeItemShape);
+    }
+
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+
+    function setTab(tab){
+      document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      ["visao","estoque","vendas","graficos"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      render();
+    }
+
+    function compute(){
+      const sold = items.filter(i => i.vendido && safe(i.valorVenda) > 0);
+      const totalVendas = sold.length;
+
+      const faturamento = sold.reduce((a,i)=>a+safe(i.valorVenda),0);
+      const custoProdutos = sold.reduce((a,i)=>a+safe(i.custoProduto),0);
+      const custoEntregas = sold.reduce((a,i)=>a+safe(i.custoEntrega),0);
+      const lucroFinal = sold.reduce((a,i)=>a + safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega),0);
+
+      const ticketMedio = totalVendas ? faturamento/totalVendas : 0;
+      const lucroMedio = totalVendas ? lucroFinal/totalVendas : 0;
+
+      const margemLucro = faturamento ? lucroFinal/faturamento : 0;
+      const entregaPct = faturamento ? custoEntregas/faturamento : 0;
+      const roiProdutos = custoProdutos ? lucroFinal/custoProdutos : 0;
+
+      const tempos = sold.map(i => daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO)).filter(d => typeof d==="number");
+      const tempoMedio = tempos.length ? (tempos.reduce((a,b)=>a+b,0)/tempos.length) : null;
+
+      const totalItens = items.length;
+      const totalEstoque = items.filter(i => !i.vendido).length;
+      const taxaVenda = totalItens ? totalVendas/totalItens : 0;
+
+      const valorAnunciadoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.valorAnuncio),0);
+      const custoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.custoProduto),0);
+      const potencialLucroEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
+
+      return {
+        totalVendas,faturamento,custoProdutos,custoEntregas,lucroFinal,
+        ticketMedio,lucroMedio,margemLucro,entregaPct,roiProdutos,
+        tempoMedio,totalItens,totalEstoque,taxaVenda,
+        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque
+      };
+    }
+
+    function renderKPIs(m){
+      const groups = {
+        kpiVendas: [
+          { label:"Faturamento", value:brl(m.faturamento), hint:"Soma do valor de venda" },
+          { label:"Lucro final", value:brl(m.lucroFinal), hint:"Venda − custo − entrega" },
+          { label:"Margem", value:pct(m.margemLucro), hint:"Lucro / faturamento" },
+          { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Faturamento / vendas" },
+          { label:"Lucro médio", value:brl(m.lucroMedio), hint:"Lucro / vendas" },
+        ],
+        kpiCustos: [
+          { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Soma do custo (vendidos)" },
+          { label:"Custo entregas", value:brl(m.custoEntregas), hint:"Soma entrega (vendidos)" },
+          { label:"% entrega", value:pct(m.entregaPct), hint:"Entrega / faturamento" },
+          { label:"ROI", value:pct(m.roiProdutos), hint:"Lucro / custo produtos" },
+        ],
+        kpiEstoque: [
+          { label:"Em estoque", value:String(m.totalEstoque), hint:"Itens não vendidos" },
+          { label:"Custo do estoque", value:brl(m.custoEstoque), hint:"Soma do custo (estoque)" },
+          { label:"Valor anunciado (estoque)", value:brl(m.valorAnunciadoEstoque), hint:"Soma do anúncio (estoque)" },
+          { label:"Potencial lucro (estoque)", value:brl(m.potencialLucroEstoque), hint:"(Anúncio − custo) no estoque" },
+        ],
+        kpiOperacao: [
+          { label:"Total de vendas", value:String(m.totalVendas), hint:"Itens vendidos com valor" },
+          { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas / itens" },
+          { label:"Tempo médio", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:"Anúncio → venda" },
+          { label:"Itens cadastrados", value:String(m.totalItens), hint:"Total na base" },
+        ],
+      };
+
+      Object.entries(groups).forEach(([gridId, list])=>{
+        const grid = $(gridId);
+        grid.innerHTML = "";
+        list.forEach(k=>{
+          const div = document.createElement("div");
+          div.className = "kpi";
+          div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+          grid.appendChild(div);
+        });
       });
     }
 
-    function render() {
-      renderKPIs(compute());
-      renderTables();
+    function renderQuick(m){
+      const estoque = items.filter(i=>!i.vendido).length;
+      $("quickSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="chip ok">🧾 Vendas: <b>${m.totalVendas}</b></span>
+          <span class="chip">💰 Faturamento: <b>${brl(m.faturamento)}</b></span>
+          <span class="chip">✅ Lucro: <b>${brl(m.lucroFinal)}</b></span>
+          <span class="chip">📦 Estoque: <b>${estoque}</b></span>
+          <span class="chip">⏱ Tempo médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
+        </div>
+      `;
     }
 
-    /*********************
-     * ✅ MODAL E FORM
-     *********************/
-    function openEdit(id) {
+    function setChipActive(){
+      $("fltAll").classList.toggle("active", filterState.mode==="all");
+      $("fltStock").classList.toggle("active", filterState.mode==="stock");
+      $("fltSold").classList.toggle("active", filterState.mode==="sold");
+    }
+
+    function getFiltered(){
+      const q = ($("q").value || "").trim().toLowerCase();
+      let base = items;
+
+      if(filterState.mode === "stock") base = base.filter(i=>!i.vendido);
+      if(filterState.mode === "sold") base = base.filter(i=>i.vendido);
+
+      if(!q) return base;
+
+      return base.filter(i=>{
+        const hay = [i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,i.observacoes]
+          .filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    function normText(v){ return String(v ?? "").toLowerCase(); }
+
+    function getSortValue(item, key, type){
+      if(key === "lucroProj") return safe(item.valorAnuncio) - safe(item.custoProduto);
+      if(key === "lucroFinal") return safe(item.valorVenda) - safe(item.custoProduto) - safe(item.custoEntrega);
+      if(key === "tempoVenda") return daysBetweenISO(item.dataAnuncioISO, item.dataVendaISO) ?? -1;
+
+      if(key === "codigo"){
+        const n = extractCodigoNumber(item.codigo);
+        return n === null ? 1e15 : n;
+      }
+
+      const v = item[key];
+      if(type === "number") return safe(Number(v));
+      if(type === "date") return dateValue(v) ?? -1;
+      return normText(v);
+    }
+
+    function sortList(list, tableName){
+      const st = sortState[tableName];
+      const dirMul = st.dir === "asc" ? 1 : -1;
+      return [...list].sort((a,b)=>{
+        const va = getSortValue(a, st.key, st.type);
+        const vb = getSortValue(b, st.key, st.type);
+        if(st.type === "text"){
+          if(va < vb) return -1*dirMul;
+          if(va > vb) return  1*dirMul;
+          return 0;
+        }
+        return (va - vb) * dirMul;
+      });
+    }
+
+    function setSortIndicator(tableName){
+      document.querySelectorAll(`[data-ind^="${tableName}:"]`).forEach(el => el.textContent = "↕");
+      const st = sortState[tableName];
+      const ind = document.querySelector(`[data-ind="${tableName}:${st.key}"]`);
+      if(ind) ind.textContent = st.dir === "asc" ? "▲" : "▼";
+    }
+
+    function photoCount(it){
+      const arr = Array.isArray(it.photos) ? it.photos : ["","",""];
+      return arr.filter(Boolean).length;
+    }
+
+    function nextCopyCode(baseCode){
+      const b = String(baseCode || "").trim();
+      if(!b) return "COPIA-1";
+      const prefix = b + "-";
+      const existing = items
+        .map(x=>String(x.codigo||""))
+        .filter(c=>c.startsWith(prefix))
+        .map(c=>{
+          const tail = c.slice(prefix.length);
+          const n = Number(tail);
+          return Number.isFinite(n) ? n : null;
+        })
+        .filter(n=>n!==null);
+      const next = (existing.length ? Math.max(...existing) : 0) + 1;
+      return `${b}-${next}`;
+    }
+
+    window.duplicateItem = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+
+      const copy = JSON.parse(JSON.stringify(it));
+      copy.id = uid();
+      copy.codigo = nextCopyCode(it.codigo);
+
+      copy.vendido = false;
+      copy.valorVenda = 0;
+      copy.canalVenda = "";
+      copy.dataVendaISO = "";
+      copy.quemVendeu = "";
+      copy.formaEntrega = "";
+      copy.custoEntrega = 0;
+
+      items.unshift(normalizeItemShape(copy));
+      save(); render();
+      window.openEdit(copy.id);
+
+      cloudUpsertItem(items[0]).catch(err=>console.warn("Falha nuvem (duplicar):", err));
+    }
+
+    function renderTables(filtered){
+      const estoqueBase = filtered.filter(i=>!i.vendido);
+      const vendasBase  = filtered.filter(i=>i.vendido);
+
+      const estoque = sortList(estoqueBase, "estoque");
+      const vendas  = sortList(vendasBase, "vendas");
+
+      setSortIndicator("estoque");
+      setSortIndicator("vendas");
+
+      const tbE = $("tbEstoque");
+      tbE.innerHTML = "";
+      if(!estoque.length){
+        tbE.innerHTML = `<tr><td colspan="9" class="muted">Nenhum item em estoque com o filtro atual.</td></tr>`;
+      } else {
+        estoque.forEach(i=>{
+          const lucroProj = safe(i.valorAnuncio) - safe(i.custoProduto);
+          const pc = photoCount(i);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(i.codigo)}</b></td>
+            <td>
+              <button class="prod-link" type="button" onclick="openPhoto('${i.id}')">${escapeHtml(i.nomeProduto)}</button>
+              ${pc ? `<span class="muted2" style="margin-left:8px;">📷 ${pc}/3</span>` : ``}
+            </td>
+            <td>${escapeHtml(i.localEstoque || "—")}</td>
+            <td>${escapeHtml(i.canalAnuncio || "—")}</td>
+            <td>${i.dataAnuncioISO || "—"}</td>
+            <td>${brl(safe(i.custoProduto))}</td>
+            <td>${brl(safe(i.valorAnuncio))}</td>
+            <td>${brl(lucroProj)}</td>
+            <td>
+              <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
+              <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
+              <button class="btn small ok" type="button" onclick="startSellFlow('${i.id}')">✅ Vendido</button>
+              <button class="btn small danger" type="button" onclick="removeItem('${i.id}')">🗑</button>
+            </td>
+          `;
+          tbE.appendChild(tr);
+        });
+      }
+
+      const tbV = $("tbVendas");
+      tbV.innerHTML = "";
+      if(!vendas.length){
+        tbV.innerHTML = `<tr><td colspan="11" class="muted">Nenhuma venda com o filtro atual.</td></tr>`;
+      } else {
+        vendas.forEach(i=>{
+          const lucroFinal = safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega);
+          const tempo = daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO);
+          const pc = photoCount(i);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(i.codigo)}</b></td>
+            <td>
+              <button class="prod-link" type="button" onclick="openPhoto('${i.id}')">${escapeHtml(i.nomeProduto)}</button>
+              ${pc ? `<span class="muted2" style="margin-left:8px;">📷 ${pc}/3</span>` : ``}
+            </td>
+            <td>${brl(safe(i.valorVenda))}</td>
+            <td>${brl(safe(i.custoProduto))}</td>
+            <td>${brl(safe(i.custoEntrega))}</td>
+            <td><b>${brl(lucroFinal)}</b></td>
+            <td>${escapeHtml(i.canalVenda || "—")}</td>
+            <td>${i.dataVendaISO || "—"}</td>
+            <td>${tempo===null ? "—" : tempo}</td>
+            <td>${escapeHtml(i.quemVendeu || "—")}</td>
+            <td>
+              <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
+              <button class="btn small" type="button" onclick="markSold('${i.id}', false)">↩️ Estoque</button>
+              <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
+              <button class="btn small danger" type="button" onclick="removeItem('${i.id}')">🗑</button>
+            </td>
+          `;
+          tbV.appendChild(tr);
+        });
+      }
+    }
+
+    function fillSelect(id, list, allowEmpty=false){
+      const s = $(id);
+      s.innerHTML = "";
+      if(allowEmpty){
+        const opt = document.createElement("option");
+        opt.value = ""; opt.textContent = "—";
+        s.appendChild(opt);
+      }
+      list.forEach(v=>{
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = v;
+        s.appendChild(opt);
+      });
+    }
+
+    function openModal(title){
+      $("modalTitle").textContent = title;
+      $("backdrop").style.display = "grid";
+    }
+    function closeModal(){
+      $("backdrop").style.display = "none";
+      editingId = null;
+      $("deleteBtn").style.display = "none";
+      $("requiredHint").style.display = "none";
+    }
+
+    function clearSaleFields(){
+      $("fVenda").value = "";
+      $("fCanalVenda").value = "";
+      $("fDataVenda").value = "";
+      $("fVendedor").value = "";
+      $("fEntrega").value = "";
+      $("fCustoEntrega").value = "";
+    }
+
+    function toggleSalesBlock(show){
+      $("salesBlock").style.display = show ? "block" : "none";
+      ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega"].forEach(id=>{
+        $(id).disabled = !show;
+      });
+    }
+
+    function resetForm(){
+      $("fCodigo").value = "";
+      $("fProduto").value = "";
+      $("fLocalEstoque").value = "";
+      $("fCusto").value = "";
+      $("fAnuncio").value = "";
+      $("fCanalAnuncio").value = "Facebook";
+      $("fDataAnuncio").value = "";
+      $("fVendido").value = "nao";
+      $("fObs").value = "";
+      clearSaleFields();
+      toggleSalesBlock(false);
+      updateCalcPreview();
+    }
+
+    function openCreate(){
+      editingId = null;
+      $("deleteBtn").style.display = "none";
+      resetForm();
+
+      $("fCodigo").disabled = false;
+      $("nextCodeBtn").disabled = false;
+      setNextCodigoIntoField();
+
+      openModal("Novo item");
+      setTimeout(()=>$("fProduto").focus(), 50);
+    }
+
+    window.openEdit = function(id){
       const it = items.find(x=>x.id===id);
       if(!it) return;
       editingId = id;
-      $("modalTitle").textContent = "Editar Item";
-      $("fCodigo").value = it.codigo;
-      $("fProduto").value = it.nomeProduto;
-      $("fCusto").value = it.custoProduto;
-      $("fAnuncio").value = it.valorAnuncio;
-      $("fVendido").value = it.vendido ? "sim" : "nao";
-      $("salesBlock").style.display = it.vendido ? "block" : "none";
       $("deleteBtn").style.display = "inline-flex";
-      $("backdrop").style.display = "grid";
+
+      $("fCodigo").disabled = true;
+      $("nextCodeBtn").disabled = true;
+
+      $("fCodigo").value = it.codigo || "";
+      $("fProduto").value = it.nomeProduto || "";
+      $("fLocalEstoque").value = it.localEstoque || "";
+      $("fCusto").value = String(safe(it.custoProduto)).replace(".",",");
+      $("fAnuncio").value = String(safe(it.valorAnuncio)).replace(".",",");
+      $("fCanalAnuncio").value = it.canalAnuncio || "Facebook";
+      $("fDataAnuncio").value = it.dataAnuncioISO || "";
+      $("fObs").value = it.observacoes || "";
+
+      const sold = !!it.vendido;
+      $("fVendido").value = sold ? "sim" : "nao";
+      toggleSalesBlock(sold);
+
+      if(sold){
+        $("fVenda").value = it.valorVenda ? String(safe(it.valorVenda)).replace(".",",") : "";
+        $("fCanalVenda").value = it.canalVenda || "";
+        $("fDataVenda").value = it.dataVendaISO || "";
+        $("fVendedor").value = it.quemVendeu || "";
+        $("fEntrega").value = it.formaEntrega || "";
+        $("fCustoEntrega").value = String(safe(it.custoEntrega)).replace(".",",");
+      } else {
+        clearSaleFields();
+      }
+
+      $("requiredHint").style.display = "none";
+      updateCalcPreview();
+      openModal("Editar item");
     }
 
-    $("newBtn").onclick = () => {
-      editingId = null;
-      $("modalTitle").textContent = "Novo Item";
-      $("fVendido").value = "nao";
-      $("salesBlock").style.display = "none";
-      $("deleteBtn").style.display = "none";
-      $("backdrop").style.display = "grid";
-    };
+    function readForm(){
+      const custo = parseMoney($("fCusto").value);
+      const anuncio = parseMoney($("fAnuncio").value);
+      const vendido = $("fVendido").value === "sim";
 
-    $("saveBtn").onclick = () => {
-      const it = normalizeItemShape({
+      const venda = parseMoney($("fVenda").value);
+      const custoEntrega = parseMoney($("fCustoEntrega").value);
+
+      const itemAtual = editingId ? items.find(x=>x.id===editingId) : null;
+
+      return {
         id: editingId || uid(),
-        codigo: $("fCodigo").value,
-        nomeProduto: $("fProduto").value,
-        custoProduto: parseMoney($("fCusto").value),
-        valorAnuncio: parseMoney($("fAnuncio").value),
-        vendido: $("fVendido").value === "sim",
-        valorVenda: parseMoney($("fVenda").value),
-        canalVenda: $("fCanalVenda").value,
-        dataVendaISO: $("fDataVenda").value,
-        quemVendeu: $("fVendedor").value,
-        formaEntrega: $("fEntrega").value,
-        custoEntrega: parseMoney($("fCustoEntrega").value),
+        codigo: ($("fCodigo").value || "").trim(),
+        nomeProduto: ($("fProduto").value || "").trim(),
+        localEstoque: ($("fLocalEstoque").value || "").trim(),
+        custoProduto: custo,
+        valorAnuncio: anuncio,
+        canalAnuncio: ($("fCanalAnuncio").value || "").trim(),
+        dataAnuncioISO: ($("fDataAnuncio").value || "").trim(),
+        observacoes: ($("fObs").value || ""),
+        vendido,
+        valorVenda: vendido ? venda : 0,
+        canalVenda: vendido ? ($("fCanalVenda").value || "").trim() : "",
+        dataVendaISO: vendido ? ($("fDataVenda").value || "").trim() : "",
+        quemVendeu: vendido ? ($("fVendedor").value || "").trim() : "",
+        formaEntrega: vendido ? ($("fEntrega").value || "").trim() : "",
+        custoEntrega: vendido ? custoEntrega : 0,
+        photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : ["","",""]
+      };
+    }
+
+    function validateProduct(it){
+      if(!it.codigo) return "Preencha o Código.";
+      if(!it.nomeProduto) return "Preencha o Nome do produto.";
+
+      const codeNorm = String(it.codigo).trim().toLowerCase();
+      const dup = items.some(x => x.id !== it.id && String(x.codigo||"").trim().toLowerCase() === codeNorm);
+      if(dup) return "Este Código já existe. Use outro (ou clique em 🔁 Próximo no Novo item).";
+
+      return null;
+    }
+
+    function validateSaleIfNeeded(it){
+      if(!it.vendido) return null;
+      if(!(it.valorVenda > 0)) return "Preencha o Valor da venda.";
+      if(!it.canalVenda) return "Preencha o Canal da venda.";
+      if(!it.dataVendaISO) return "Preencha a Data da venda.";
+      if(!it.quemVendeu) return "Preencha Quem vendeu.";
+      if(!it.formaEntrega) return "Preencha a Forma de entrega.";
+      const raw = ($("fCustoEntrega").value || "").trim();
+      if(raw === "") return "Preencha o Custo entrega (pode ser 0).";
+      return null;
+    }
+
+    function updateCalcPreview(){
+      const custo = parseMoney($("fCusto").value);
+      const anuncio = parseMoney($("fAnuncio").value);
+      const venda = parseMoney($("fVenda").value);
+      const custoEntrega = parseMoney($("fCustoEntrega").value);
+
+      const lucroProj = anuncio - custo;
+      const lucroFinal = venda - custo - custoEntrega;
+      const tempo = daysBetweenISO($("fDataAnuncio").value, $("fDataVenda").value);
+
+      $("calcPreview").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span class="chip">📣 Lucro projetado: <b>${brl(lucroProj)}</b></span>
+          <span class="chip">✅ Lucro final: <b>${brl(lucroFinal)}</b></span>
+          <span class="chip">⏱ Tempo venda: <b>${tempo===null ? "—" : (tempo+" dias")}</b></span>
+        </div>
+        <div class="muted2" style="margin-top:10px;">
+          Fórmulas: lucro projetado = anúncio − custo • lucro final = venda − custo − entrega
+        </div>
+      `;
+    }
+
+    async function upsert(it){
+      const norm = normalizeItemShape(it);
+      const idx = items.findIndex(x=>x.id===norm.id);
+      if(idx>=0) items[idx]=norm; else items.unshift(norm);
+
+      save();
+      render();
+
+      cloudUpsertItem(norm).catch(err=>console.warn("Falha ao salvar na nuvem:", err));
+    }
+
+    window.removeItem = function(id){
+      items = items.filter(x=>x.id!==id);
+      save(); render();
+      cloudDeleteItem(id).catch(err=>console.warn("Falha ao deletar na nuvem:", err));
+    }
+
+    window.markSold = function(id, sold){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        if(sold) return x;
+        return { ...x, vendido:false, valorVenda:0, canalVenda:"", dataVendaISO:"", quemVendeu:"", formaEntrega:"", custoEntrega:0 };
       });
 
-      if(editingId) items = items.map(x=>x.id===editingId ? it : x);
-      else items.unshift(it);
+      save(); render();
 
-      save(); render(); $("backdrop").style.display = "none";
-    };
-
-    $("fVendido").onchange = () => $("salesBlock").style.display = $("fVendido").value === "sim" ? "block" : "none";
-    $("closeModal").onclick = $("cancelBtn").onclick = () => $("backdrop").style.display = "none";
-    $("syncBtn").onclick = cloudPull;
-
-    // INIT
-    function fillSelect(id, list) {
-      const s = $(id); s.innerHTML = "";
-      list.forEach(v => { const o = document.createElement("option"); o.value=v; o.textContent=v; s.appendChild(o); });
+      const it = items.find(x=>x.id===id);
+      if(it) cloudUpsertItem(it).catch(err=>console.warn("Falha ao salvar na nuvem:", err));
     }
 
-    fillSelect("fCanalAnuncio", CANAIS);
-    fillSelect("fCanalVenda", CANAIS);
-    fillSelect("fVendedor", VENDEDORES);
-    fillSelect("fEntrega", ENTREGAS);
+    window.startSellFlow = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      window.openEdit(id);
+      $("fVendido").value = "sim";
+      toggleSalesBlock(true);
+      if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+      updateCalcPreview();
+      setTimeout(()=>$("fVenda").focus(), 50);
+    }
 
-    const local = localStorage.getItem(STORAGE_KEY);
-    if(local) items = JSON.parse(local);
-    render();
-    cloudPull(); // Puxa da nuvem ao abrir
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(items,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "renova-lotes-backup-" + new Date().toISOString().slice(0,10) + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
 
-    document.querySelectorAll(".tab").forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".tabpane").forEach(p => p.classList.add("hidden"));
-        btn.classList.add("active");
-        $(btn.dataset.tab).classList.remove("hidden");
+    function toCSVRow(arr){
+      return arr.map(v=>{
+        const s = String(v ?? "");
+        const escaped = s.replaceAll('"','""');
+        return `"${escaped}"`;
+      }).join(",");
+    }
+
+    function exportCSV(){
+      const header = [
+        "id","codigo","nomeProduto","localEstoque","custoProduto","valorAnuncio","canalAnuncio","dataAnuncioISO",
+        "vendido","valorVenda","canalVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega","observacoes",
+        "photo1","photo2","photo3"
+      ];
+      const rows = items.map(i=>[
+        i.id, i.codigo, i.nomeProduto, i.localEstoque,
+        safe(i.custoProduto), safe(i.valorAnuncio), i.canalAnuncio, i.dataAnuncioISO,
+        i.vendido ? "sim" : "nao",
+        safe(i.valorVenda), i.canalVenda, i.dataVendaISO, i.quemVendeu, i.formaEntrega, safe(i.custoEntrega),
+        (i.observacoes || "").replaceAll("\n"," "),
+        i.photos?.[0] ? "[base64]" : "",
+        i.photos?.[1] ? "[base64]" : "",
+        i.photos?.[2] ? "[base64]" : ""
+      ]);
+      const csv = [toCSVRow(header), ...rows.map(toCSVRow)].join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "renova-lotes-" + new Date().toISOString().slice(0,10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSON(file){
+      if(!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try{
+          const parsed = JSON.parse(String(r.result||""));
+          if(Array.isArray(parsed)){
+            items = parsed.map(normalizeItemShape);
+            save(); render();
+            cloudBulkUpsert(items).catch(err=>console.warn("Falha ao subir importação para a nuvem:", err));
+          } else {
+            alert("JSON inválido: precisa ser uma lista (array) de itens.");
+          }
+        }catch(e){
+          alert("Falha ao importar JSON.");
+        }
+      };
+      r.readAsText(file);
+    }
+
+    function openPhotoModal(){ $("photoBackdrop").style.display = "grid"; }
+    function closePhotoModal(){
+      $("photoBackdrop").style.display = "none";
+      $("photoFile").value = "";
+      photoEditingId = null;
+      activePhotoSlot = 0;
+    }
+
+    function renderPhotoGrid(it){
+      const grid = $("photoGrid");
+      grid.innerHTML = "";
+      const photos = it.photos || ["","",""];
+
+      for(let idx=0; idx<3; idx++){
+        const slot = document.createElement("div");
+        slot.className = "photo-slot" + (idx===activePhotoSlot ? " active" : "");
+        slot.onclick = () => { activePhotoSlot = idx; renderPhotoGrid(it); };
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = `Foto ${idx+1}`;
+        slot.appendChild(badge);
+
+        if(photos[idx]){
+          const img = document.createElement("img");
+          img.src = photos[idx];
+          img.alt = `Foto ${idx+1}`;
+          slot.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Sem foto";
+          slot.appendChild(empty);
+        }
+
+        grid.appendChild(slot);
+      }
+    }
+
+    window.openPhoto = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      photoEditingId = id;
+      activePhotoSlot = 0;
+
+      $("photoTitle").textContent = `Fotos — ${it.nomeProduto || "Produto"}`;
+      $("photoMetaLine").textContent = `Código: ${it.codigo || "—"} • Local: ${it.localEstoque || "—"}`;
+
+      renderPhotoGrid(it);
+      openPhotoModal();
+    }
+
+    function setPhotoAtSlot(id, slotIndex, dataUrl){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = dataUrl;
+        return { ...x, photos };
+      });
+
+      save(); render();
+
+      const it = items.find(x=>x.id===id);
+      if(it) cloudUpsertItem(it).catch(err=>console.warn("Falha ao salvar foto na nuvem:", err));
+    }
+
+    function removePhotoAtSlot(id, slotIndex){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = "";
+        return { ...x, photos };
+      });
+
+      save(); render();
+
+      const it = items.find(x=>x.id===id);
+      if(it) cloudUpsertItem(it).catch(err=>console.warn("Falha ao remover foto na nuvem:", err));
+    }
+
+    function getSoldItems(){
+      return items.filter(i=>i.vendido && safe(i.valorVenda)>0 && i.dataVendaISO);
+    }
+
+    function salesSeriesLast30(){
+      const sold = getSoldItems();
+      const mapCount = new Map();
+      const mapRevenue = new Map();
+      sold.forEach(i=>{
+        mapCount.set(i.dataVendaISO, (mapCount.get(i.dataVendaISO)||0) + 1);
+        mapRevenue.set(i.dataVendaISO, (mapRevenue.get(i.dataVendaISO)||0) + safe(i.valorVenda));
+      });
+
+      const n=30;
+      const labels = [];
+      const counts = [];
+      const revenue = [];
+      const today = new Date(nowISO()+"T00:00:00");
+      for(let i=n-1;i>=0;i--){
+        const d = new Date(today);
+        d.setDate(d.getDate()-i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        const iso = `${yyyy}-${mm}-${dd}`;
+        labels.push(`${dd}/${mm}`);
+        counts.push(mapCount.get(iso)||0);
+        revenue.push(mapRevenue.get(iso)||0);
+      }
+      return { labels, counts, revenue };
+    }
+
+    function groupBy(list, keyFn, valFn){
+      const m = new Map();
+      list.forEach(x=>{
+        const k = keyFn(x) || "—";
+        const v = valFn(x);
+        m.set(k, (m.get(k)||0) + v);
+      });
+      return m;
+    }
+
+    function stockAgingBuckets(){
+      const today = new Date(nowISO()+"T00:00:00").getTime();
+      const stock = items.filter(i=>!i.vendido && i.dataAnuncioISO);
+      const buckets = { "0–6d":0, "7–14d":0, "15–30d":0, "30+d":0 };
+      stock.forEach(i=>{
+        const t = dateValue(i.dataAnuncioISO);
+        if(!t) return;
+        const days = Math.round((today - t)/(1000*60*60*24));
+        if(days <= 6) buckets["0–6d"]++;
+        else if(days <= 14) buckets["7–14d"]++;
+        else if(days <= 30) buckets["15–30d"]++;
+        else buckets["30+d"]++;
+      });
+      return buckets;
+    }
+
+    function clearCanvas(ctx, w, h){
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = "rgba(0,0,0,.0)";
+      ctx.fillRect(0,0,w,h);
+    }
+
+    function drawAxes(ctx, w, h, pad){
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad, pad);
+      ctx.lineTo(pad, h-pad);
+      ctx.lineTo(w-pad, h-pad);
+      ctx.stroke();
+    }
+
+    function drawLineChart(canvasId, labels, values){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+
+      const max = Math.max(1, ...values);
+      const min = Math.min(0, ...values);
+
+      const xStep = (w - pad*2) / Math.max(1, (values.length-1));
+      const yScale = (h - pad*2) / (max - min || 1);
+
+      ctx.strokeStyle = "rgba(140,160,255,.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      values.forEach((v,i)=>{
+        const x = pad + i*xStep;
+        const y = (h-pad) - (v - min)*yScale;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      values.forEach((v,i)=>{
+        const x = pad + i*xStep;
+        const y = (h-pad) - (v - min)*yScale;
+        ctx.beginPath();
+        ctx.arc(x,y,2.2,0,Math.PI*2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      for(let i=0;i<labels.length;i+=5){
+        const x = pad + i*xStep;
+        ctx.fillText(labels[i], x-12, h-12);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText(String(Math.round(min*100)/100), 6, h-pad);
+    }
+
+    function drawBarChart(canvasId, labels, values){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+
+      const max = Math.max(1, ...values);
+      const barW = (w - pad*2) / Math.max(1, labels.length);
+
+      for(let i=0;i<labels.length;i++){
+        const v = values[i];
+        const x = pad + i*barW + 6;
+        const bh = (h - pad*2) * (v / max);
+        const y = (h - pad) - bh;
+
+        ctx.fillStyle = "rgba(90,255,170,.35)";
+        ctx.fillRect(x, y, Math.max(6, barW-12), bh);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      labels.forEach((lab,i)=>{
+        const x = pad + i*barW + 6;
+        if(labels.length <= 8){
+          ctx.fillText(lab, x, h-12);
+        } else if(i % 2 === 0){
+          ctx.fillText(lab, x, h-12);
+        }
+      });
+
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText("0", 10, h-pad);
+    }
+
+    function renderCharts(){
+      const sold = getSoldItems();
+      const { labels, counts, revenue } = salesSeriesLast30();
+
+      drawLineChart("cSales30", labels, counts);
+      drawLineChart("cRevenue30", labels, revenue);
+
+      const salesByChannel = groupBy(sold, x=>x.canalVenda||"—", _=>1);
+      const channels1 = [...salesByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cSalesByChannel", channels1.map(x=>x[0]), channels1.map(x=>x[1]));
+
+      const profitByChannel = groupBy(sold, x=>x.canalVenda||"—", x=> safe(x.valorVenda) - safe(x.custoProduto) - safe(x.custoEntrega));
+      const channels2 = [...profitByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cProfitByChannel", channels2.map(x=>x[0]), channels2.map(x=>Math.round(x[1]*100)/100));
+
+      const aging = stockAgingBuckets();
+      drawBarChart("cStockAging", Object.keys(aging), Object.values(aging));
+    }
+
+    function render(){
+      const filtered = getFiltered();
+      const m = compute();
+
+      if(!$("visao").classList.contains("hidden")){
+        renderKPIs(m);
+        renderQuick(m);
+      }
+
+      renderTables(filtered);
+
+      if(!$("graficos").classList.contains("hidden")){
+        renderCharts();
+      }
+    }
+
+    document.querySelectorAll(".tab").forEach(btn=>{
+      btn.addEventListener("click", () => setTab(btn.dataset.tab));
+    });
+
+    $("homeLogo").addEventListener("click", ()=> setTab("visao"));
+    $("q").addEventListener("input", render);
+
+    $("fltAll").addEventListener("click", ()=>{ filterState.mode="all"; setChipActive(); render(); });
+    $("fltStock").addEventListener("click", ()=>{ filterState.mode="stock"; setChipActive(); render(); });
+    $("fltSold").addEventListener("click", ()=>{ filterState.mode="sold"; setChipActive(); render(); });
+
+    $("newBtn").addEventListener("click", openCreate);
+    $("nextCodeBtn").addEventListener("click", ()=>{ if(editingId) return; setNextCodigoIntoField(); });
+
+    $("exportBtn").addEventListener("click", exportJSON);
+    $("exportCsvBtn").addEventListener("click", exportCSV);
+    $("importFile").addEventListener("change", (e)=> importJSON(e.target.files?.[0]));
+
+    $("syncBtn").addEventListener("click", ()=> cloudSyncNow().catch(e=>alert("Falha ao sincronizar: " + (e?.message || e))));
+    $("logoutBtn").addEventListener("click", ()=> logout().catch(e=>alert("Falha ao sair: " + (e?.message || e))));
+
+    document.addEventListener("click", (e)=>{
+      const th = e.target.closest("th.sortable");
+      if(!th) return;
+      const table = th.dataset.table;
+      const key = th.dataset.sortKey;
+      const type = th.dataset.sortType;
+
+      const st = sortState[table];
+      if(st.key === key){
+        st.dir = st.dir === "asc" ? "desc" : "asc";
+      } else {
+        st.key = key;
+        st.type = type;
+        st.dir = (type === "date") ? "desc" : "asc";
+      }
+      render();
+    });
+
+    $("closeModal").addEventListener("click", closeModal);
+    $("cancelBtn").addEventListener("click", closeModal);
+
+    $("fVendido").addEventListener("change", ()=>{
+      const isSold = $("fVendido").value === "sim";
+      toggleSalesBlock(isSold);
+      if(!isSold){
+        clearSaleFields();
+        $("requiredHint").style.display = "none";
+      }
+      updateCalcPreview();
+    });
+
+    $("saveBtn").addEventListener("click", async () => {
+      const it = readForm();
+      const errP = validateProduct(it);
+      if(errP){ alert(errP); return; }
+
+      const errS = validateSaleIfNeeded(it);
+      if(errS){
+        $("requiredHint").style.display = "block";
+        alert(errS);
+        return;
+      }
+
+      $("requiredHint").style.display = "none";
+      await upsert(it);
+      closeModal();
+    });
+
+    $("deleteBtn").addEventListener("click", () => {
+      if(!editingId) return;
+      if(confirm("Excluir este item?")){
+        window.removeItem(editingId);
+        closeModal();
       }
     });
+
+    ["fCusto","fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
+      $(id).addEventListener("input", updateCalcPreview);
+      $(id).addEventListener("change", updateCalcPreview);
+    });
+
+    $("backdrop").addEventListener("click", (e)=>{
+      if(e.target === $("backdrop")) closeModal();
+    });
+
+    $("closePhoto").addEventListener("click", closePhotoModal);
+    $("closePhoto2").addEventListener("click", closePhotoModal);
+    $("photoBackdrop").addEventListener("click", (e)=>{
+      if(e.target === $("photoBackdrop")) closePhotoModal();
+    });
+
+    $("photoFile").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file || !photoEditingId) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        setPhotoAtSlot(photoEditingId, activePhotoSlot, dataUrl);
+        const it = items.find(x=>x.id===photoEditingId);
+        if(it) renderPhotoGrid(it);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $("removeSelectedPhotoBtn").addEventListener("click", ()=>{
+      if(!photoEditingId) return;
+      removePhotoAtSlot(photoEditingId, activePhotoSlot);
+      const it = items.find(x=>x.id===photoEditingId);
+      if(it) renderPhotoGrid(it);
+    });
+
+    fillSelect("fCanalAnuncio", CANAIS);
+    fillSelect("fCanalVenda", CANAIS, true);
+    fillSelect("fVendedor", VENDEDORES, true);
+    fillSelect("fEntrega", ENTREGAS, true);
+
+    (async ()=>{
+      await load();
+      setChipActive();
+      updateCalcPreview();
+      render();
+    })();
+  </script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js");
+    }
   </script>
 </body>
 </html>
