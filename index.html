@@ -253,49 +253,50 @@
       z-index: 99;
     }
 
-    /* ✅ MODAL MENOR + ROLAGEM INTERNA (ajuste completo) */
+    /* ✅ MODAL menor + rolagem interna */
     .modal{
       width: min(980px, 100%);
       max-width: 980px;
       max-height: 78vh;
+
       background: rgba(18,22,32,.92);
       border: 1px solid rgba(255,255,255,.12);
       border-radius: 20px;
       box-shadow: var(--shadow);
       overflow:hidden;
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
 
       display:flex;
       flex-direction:column;
 
-      position: relative; /* ✅ necessário pro FAB */
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      position: relative; /* necessário pros botões flutuantes */
     }
     .modal .mhead{
       padding: 14px 14px 10px;
       display:flex; justify-content:space-between; align-items:center;
       border-bottom:1px solid rgba(255,255,255,.06);
       flex: 0 0 auto;
+      gap: 10px;
     }
     .modal .mhead h3{ margin:0; font-size: 14px; }
     .modal .mbody{
       padding: 14px;
-      overflow:auto;  /* ✅ rola aqui */
+      overflow:auto;
       flex: 1;
       scroll-behavior: smooth;
     }
+    .modal .mbody::-webkit-scrollbar{ width: 10px; }
+    .modal .mbody::-webkit-scrollbar-track{ background: rgba(255,255,255,.05); border-radius: 999px; }
+    .modal .mbody::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.18); border-radius: 999px; }
+    .modal .mbody::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.26); }
+
     .modal .mfoot{
       padding: 14px;
       display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;
       border-top:1px solid rgba(255,255,255,.06);
       flex: 0 0 auto;
     }
-
-    /* ✅ barra de rolagem */
-    .modal .mbody::-webkit-scrollbar{ width: 10px; }
-    .modal .mbody::-webkit-scrollbar-track{ background: rgba(255,255,255,.05); border-radius: 999px; }
-    .modal .mbody::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.18); border-radius: 999px; }
-    .modal .mbody::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.26); }
 
     .form{ display:grid; grid-template-columns: 1fr; gap: 10px; }
     @media (min-width: 920px){ .form{ grid-template-columns: repeat(3, 1fr); } }
@@ -431,10 +432,18 @@
     .scroll-fab .fab:hover{ transform: translateY(-1px); background: rgba(255,255,255,.13); }
     .scroll-fab .fab:active{ transform: translateY(0); }
 
-    /* ✅ MODO SIMPLES: esconde venda e fotos no cadastro */
-    .simple-mode #salesBlock,
-    .simple-mode #inlinePhotosCard{
-      display: none !important;
+    /* ✅ barra “atalhos” (Modo simples) */
+    .simple-bar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-start;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(0,0,0,.14);
+      margin: 10px 0 12px;
     }
   </style>
 </head>
@@ -462,12 +471,6 @@
             <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
           <input id="q" placeholder="Buscar por código, produto, canal, vendedor, local..." />
-        </div>
-
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="chip active" id="fltAll" type="button">Tudo</button>
-          <button class="chip" id="fltStock" type="button">Só estoque</button>
-          <button class="chip" id="fltSold" type="button">Só vendas</button>
         </div>
 
         <button class="btn" id="exportBtn" type="button">Exportar JSON</button>
@@ -622,17 +625,28 @@
 
   <!-- MODAL: CADASTRO/EDIÇÃO -->
   <div class="modal-backdrop" id="backdrop">
-    <div class="modal simple-mode" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="mhead">
-        <h3 id="modalTitle">Novo item</h3>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button class="btn small" id="modeBtn" type="button" title="Alternar modo">🧩 Modo simples</button>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <h3 id="modalTitle">Novo item</h3>
+          <button class="btn small" id="modeToggleBtn" type="button" title="Alternar modo">Modo simples</button>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
           <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
         </div>
       </div>
 
       <div class="mbody">
+        <!-- ✅ Âncoras para rolagem -->
         <div id="anchorTop"></div>
+
+        <!-- ✅ Atalhos do modo simples -->
+        <div class="simple-bar" id="simpleBar" style="display:none;">
+          <span class="muted2" style="font-size:12px;">Atalhos:</span>
+          <button class="btn small" type="button" id="simpleGoFotos">📷 Fotos</button>
+          <button class="btn small" type="button" id="simpleGoVenda">💳 Venda</button>
+          <button class="btn small" type="button" id="simpleGoCalc">🧮 Cálculos</button>
+        </div>
 
         <div class="section-title">DADOS DO PRODUTO</div>
         <div class="form">
@@ -688,34 +702,29 @@
           </div>
         </div>
 
-        <!-- ✅ FOTOS NO CADASTRO (opcional) -->
-        <div class="card" style="margin-top:12px;" id="inlinePhotosCard">
-          <div class="head">
-            <h3 id="anchorFotos">Fotos (opcional)</h3>
-            <span class="muted2">Você pode anexar agora ou depois • 3 fotos por produto</span>
-          </div>
-          <div class="body">
-            <div class="photo-grid" id="inlinePhotoGrid"></div>
+        <!-- ✅ FOTOS dentro do cadastro (opcional) -->
+        <div class="hr" id="anchorFotos"></div>
+        <div class="section-title">FOTOS (opcional — já no cadastro)</div>
 
-            <div class="photo-actions">
-              <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <label class="btn primary">
-                  Anexar na foto selecionada
-                  <input id="inlinePhotoFile" type="file" accept="image/*" style="display:none;">
-                </label>
-                <button class="btn danger" id="removeInlineSelectedPhotoBtn" type="button">Remover foto selecionada</button>
-              </div>
-              <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
-            </div>
+        <div id="inlinePhotosSection">
+          <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar e anexar.</div>
 
-            <div class="muted2" style="margin-top:10px; font-size:12px;">
-              As fotos ficam salvas no seu navegador e vão junto no JSON.
+          <div style="margin-top:12px;" class="photo-grid" id="photoGridInline"></div>
+
+          <div class="photo-actions">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <label class="btn primary">
+                Anexar na foto selecionada
+                <input id="photoFileInline" type="file" accept="image/*" style="display:none;">
+              </label>
+              <button class="btn danger" id="removeSelectedPhotoBtnInline" type="button">Remover foto selecionada</button>
             </div>
+            <div class="muted2" style="font-size:12px;">As fotos serão salvas junto do item.</div>
           </div>
         </div>
 
+        <!-- ✅ VENDA -->
         <div id="anchorVenda"></div>
-
         <div id="salesBlock" style="display:none;">
           <div class="hr"></div>
           <div class="section-title">DADOS DA VENDA (obrigatórios quando Vendido = Sim)</div>
@@ -757,7 +766,8 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top:12px;">
+        <!-- ✅ CÁLCULOS -->
+        <div class="card" style="margin-top:12px;" id="anchorCalc">
           <div class="head"><h3>Prévia de cálculos</h3><span class="muted2">Atualiza conforme você digita</span></div>
           <div class="body" id="calcPreview"></div>
         </div>
@@ -765,7 +775,7 @@
         <div id="anchorBottom"></div>
       </div>
 
-      <!-- ✅ botões flutuantes -->
+      <!-- ✅ botões flutuantes de rolagem -->
       <div class="scroll-fab" id="scrollFab" style="display:none;">
         <button class="fab" type="button" id="goTop" title="Topo">⬆️</button>
         <button class="fab" type="button" id="goFotos" title="Fotos">📷</button>
@@ -781,7 +791,7 @@
     </div>
   </div>
 
-  <!-- MODAL: FOTOS (3 por produto) -->
+  <!-- MODAL: FOTOS (continua existindo para cliques na tabela) -->
   <div class="modal-backdrop" id="photoBackdrop">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
       <div class="mhead">
@@ -815,17 +825,15 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "renova_lotes_html_v5";
+    const STORAGE_KEY = "renova_lotes_html_v6";
+    const UI_MODE_KEY = "renova_ui_mode"; // "simple" | "full"
 
     const CANAIS = ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"];
     const VENDEDORES = ["Dennis","Calebe","David","Outro"];
     const ENTREGAS = ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"];
 
-    // Seed (pode importar seu JSON para substituir)
-    const SEED = [
-      // ✅ deixe vazio se quiser começar do zero:
-      // { ... }
-    ];
+    // Seed mínimo (se quiser, importe seu JSON)
+    const SEED = [];
 
     const $ = (id) => document.getElementById(id);
     function uid(){ return (Math.random().toString(16).slice(2) + Date.now().toString(16)); }
@@ -872,9 +880,6 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // ============================
-    // ✅ CÓDIGO AUTO + NUMÉRICO
-    // ============================
     function extractCodigoNumber(codigo){
       const raw = String(codigo ?? "").trim();
       const m = raw.match(/^\d+/);
@@ -894,30 +899,80 @@
     let items = [];
     let editingId = null;
 
-    // ✅ novo: fotos no cadastro + modo simples/completo
+    // ✅ para permitir fotos antes de salvar
     let draftId = null;
-    let draftPhotos = ["","",""];
-    let modalPhotoSlot = 0;
-    let modalMode = "simple"; // simple | full
+    let modalPhotos = ["","",""];
+    let activePhotoSlotInline = 0;
 
+    // fotos modal (tabela)
     let photoEditingId = null;
     let activePhotoSlot = 0;
-
-    const filterState = { mode: "all" };
 
     const sortState = {
       estoque: { key: "codigo", dir: "asc", type: "number" },
       vendas:  { key: "dataVendaISO", dir: "desc", type: "date" }
     };
 
+    // =========================
+    // ✅ UI MODE (simple/full)
+    // =========================
+    function getUIMode(){
+      const m = localStorage.getItem(UI_MODE_KEY);
+      return (m === "full" || m === "simple") ? m : "simple";
+    }
+    function setUIMode(mode){
+      localStorage.setItem(UI_MODE_KEY, mode);
+      applyUIMode(mode);
+    }
+    function applyUIMode(mode){
+      const isSimple = mode === "simple";
+      $("modeToggleBtn").textContent = isSimple ? "Modo simples" : "Modo completo";
+      $("simpleBar").style.display = isSimple ? "flex" : "none";
+
+      // no modo simples: esconde fotos e venda (até o usuário pedir)
+      if(isSimple){
+        $("inlinePhotosSection").style.display = "none";
+        // vendas: só mostra quando Vendido=Sim E usuário abrir, ou quando validar erro
+        // por padrão: deixa o comportamento do vendido, mas recolhe visualmente
+        // (toggleSalesBlock mantém disabled/enabled; aqui só controla display)
+        if($("fVendido").value === "sim"){
+          $("salesBlock").style.display = "none";
+        }
+      } else {
+        $("inlinePhotosSection").style.display = "block";
+        // vendas segue o vendido
+        const isSold = $("fVendido").value === "sim";
+        $("salesBlock").style.display = isSold ? "block" : "none";
+      }
+    }
+    function toggleSectionInSimple(section){
+      const mode = getUIMode();
+      if(mode !== "simple") return;
+
+      if(section === "fotos"){
+        $("inlinePhotosSection").style.display = "block";
+        scrollToAnchor("anchorFotos");
+      }
+      if(section === "venda"){
+        $("fVendido").value = "sim";
+        toggleSalesBlock(true);
+        $("salesBlock").style.display = "block";
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        updateCalcPreview();
+        scrollToAnchor("anchorVenda");
+        setTimeout(()=>$("fVenda").focus(), 50);
+      }
+      if(section === "calc"){
+        scrollToAnchor("anchorCalc");
+      }
+    }
+
     function normalizeItemShape(x){
       const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
       while(photos.length < 3) photos.push("");
-
       if(x.photoDataUrl && !photos.some(Boolean)){
         photos[0] = String(x.photoDataUrl || "");
       }
-
       return {
         id: x.id || uid(),
         codigo: String(x.codigo ?? "").trim(),
@@ -1046,29 +1101,6 @@
       `;
     }
 
-    // ===== filtros =====
-    function setChipActive(){
-      $("fltAll").classList.toggle("active", filterState.mode==="all");
-      $("fltStock").classList.toggle("active", filterState.mode==="stock");
-      $("fltSold").classList.toggle("active", filterState.mode==="sold");
-    }
-
-    function getFiltered(){
-      const q = ($("q").value || "").trim().toLowerCase();
-      let base = items;
-
-      if(filterState.mode === "stock") base = base.filter(i=>!i.vendido);
-      if(filterState.mode === "sold") base = base.filter(i=>i.vendido);
-
-      if(!q) return base;
-
-      return base.filter(i=>{
-        const hay = [i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,i.observacoes]
-          .filter(Boolean).join(" ").toLowerCase();
-        return hay.includes(q);
-      });
-    }
-
     // ===== ordenação =====
     function normText(v){ return String(v ?? "").toLowerCase(); }
 
@@ -1155,6 +1187,17 @@
     }
 
     // ===== tabelas =====
+    function getFiltered(){
+      const q = ($("q").value || "").trim().toLowerCase();
+      if(!q) return items;
+
+      return items.filter(i=>{
+        const hay = [i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,i.observacoes]
+          .filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
     function renderTables(filtered){
       const estoqueBase = filtered.filter(i=>!i.vendido);
       const vendasBase  = filtered.filter(i=>i.vendido);
@@ -1233,7 +1276,7 @@
       }
     }
 
-    // ===== modal =====
+    // ===== modal helpers =====
     function fillSelect(id, list, allowEmpty=false){
       const s = $(id);
       s.innerHTML = "";
@@ -1262,118 +1305,28 @@
       body.scrollTo({ top: body.scrollTop + delta - 8, behavior: "smooth" });
     }
     function showScrollFab(show){
-      const fab = document.getElementById("scrollFab");
+      const fab = $("scrollFab");
       if(!fab) return;
       fab.style.display = show ? "flex" : "none";
-    }
-
-    function applyModalMode(){
-      const modalEl = document.querySelector("#backdrop .modal");
-      if(!modalEl) return;
-      modalEl.classList.toggle("simple-mode", modalMode === "simple");
-      const btn = document.getElementById("modeBtn");
-      if(btn){
-        btn.textContent = modalMode === "simple" ? "🧩 Modo simples" : "🧩 Modo completo";
-      }
-    }
-
-    function renderInlinePhotoGrid(photos){
-      const grid = document.getElementById("inlinePhotoGrid");
-      if(!grid) return;
-
-      grid.innerHTML = "";
-      const arr = Array.isArray(photos) ? photos : ["","",""];
-
-      for(let idx=0; idx<3; idx++){
-        const slot = document.createElement("div");
-        slot.className = "photo-slot" + (idx===modalPhotoSlot ? " active" : "");
-        slot.onclick = () => { modalPhotoSlot = idx; renderInlinePhotoGrid(arr); };
-
-        const badge = document.createElement("div");
-        badge.className = "badge";
-        badge.textContent = `Foto ${idx+1}`;
-        slot.appendChild(badge);
-
-        if(arr[idx]){
-          const img = document.createElement("img");
-          img.src = arr[idx];
-          img.alt = `Foto ${idx+1}`;
-          slot.appendChild(img);
-        } else {
-          const empty = document.createElement("div");
-          empty.className = "empty";
-          empty.textContent = "Sem foto";
-          slot.appendChild(empty);
-        }
-
-        grid.appendChild(slot);
-      }
-    }
-
-    function setPhotoAtSlot(id, slotIndex, dataUrl){
-      items = items.map(x=>{
-        if(x.id!==id) return x;
-        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
-        while(photos.length<3) photos.push("");
-        photos[slotIndex] = dataUrl;
-        return { ...x, photos };
-      });
-      save(); render();
-    }
-
-    function removePhotoAtSlot(id, slotIndex){
-      items = items.map(x=>{
-        if(x.id!==id) return x;
-        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
-        while(photos.length<3) photos.push("");
-        photos[slotIndex] = "";
-        return { ...x, photos };
-      });
-      save(); render();
-    }
-
-    function setCurrentPhotoAtSlot(slotIndex, dataUrl){
-      if(editingId){
-        setPhotoAtSlot(editingId, slotIndex, dataUrl);
-        const it = items.find(x=>x.id===editingId);
-        renderInlinePhotoGrid(it?.photos || ["","",""]);
-        return;
-      }
-      draftPhotos = draftPhotos.slice(0,3);
-      while(draftPhotos.length<3) draftPhotos.push("");
-      draftPhotos[slotIndex] = dataUrl;
-      renderInlinePhotoGrid(draftPhotos);
-    }
-
-    function removeCurrentPhotoAtSlot(slotIndex){
-      if(editingId){
-        removePhotoAtSlot(editingId, slotIndex);
-        const it = items.find(x=>x.id===editingId);
-        renderInlinePhotoGrid(it?.photos || ["","",""]);
-        return;
-      }
-      draftPhotos = draftPhotos.slice(0,3);
-      while(draftPhotos.length<3) draftPhotos.push("");
-      draftPhotos[slotIndex] = "";
-      renderInlinePhotoGrid(draftPhotos);
     }
 
     function openModal(title){
       $("modalTitle").textContent = title;
       $("backdrop").style.display = "grid";
-      applyModalMode();
       showScrollFab(true);
       setTimeout(()=>scrollToAnchor("anchorTop"), 10);
+
+      applyUIMode(getUIMode());
     }
     function closeModal(){
       $("backdrop").style.display = "none";
       editingId = null;
+      draftId = null;
+      modalPhotos = ["","",""];
+      activePhotoSlotInline = 0;
+
       $("deleteBtn").style.display = "none";
       $("requiredHint").style.display = "none";
-
-      draftId = null;
-      draftPhotos = ["","",""];
-      modalPhotoSlot = 0;
 
       showScrollFab(false);
     }
@@ -1388,10 +1341,19 @@
     }
 
     function toggleSalesBlock(show){
-      $("salesBlock").style.display = show ? "block" : "none";
+      // comportamento base: habilita/desabilita inputs
       ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega"].forEach(id=>{
         $(id).disabled = !show;
       });
+
+      // display depende do modo
+      const mode = getUIMode();
+      if(mode === "full"){
+        $("salesBlock").style.display = show ? "block" : "none";
+      } else {
+        // modo simples: mantém recolhido por padrão
+        $("salesBlock").style.display = "none";
+      }
     }
 
     function resetForm(){
@@ -1405,24 +1367,19 @@
       $("fVendido").value = "nao";
       $("fObs").value = "";
       clearSaleFields();
+
       toggleSalesBlock(false);
+
+      modalPhotos = ["","",""];
+      renderInlinePhotoGrid();
       updateCalcPreview();
     }
 
     function openCreate(){
       editingId = null;
+      draftId = uid();
       $("deleteBtn").style.display = "none";
       resetForm();
-
-      // ✅ novo draft
-      draftId = uid();
-      draftPhotos = ["","",""];
-      modalPhotoSlot = 0;
-
-      // ✅ começa no modo simples
-      modalMode = "simple";
-      applyModalMode();
-      setTimeout(()=>renderInlinePhotoGrid(draftPhotos), 10);
 
       $("fCodigo").disabled = false;
       $("nextCodeBtn").disabled = false;
@@ -1436,15 +1393,9 @@
       const it = items.find(x=>x.id===id);
       if(!it) return;
       editingId = id;
-      $("deleteBtn").style.display = "inline-flex";
-
       draftId = null;
-      draftPhotos = ["","",""];
-      modalPhotoSlot = 0;
 
-      modalMode = "simple";
-      applyModalMode();
-      setTimeout(()=>renderInlinePhotoGrid(it?.photos || ["","",""]), 10);
+      $("deleteBtn").style.display = "inline-flex";
 
       $("fCodigo").disabled = true;
       $("nextCodeBtn").disabled = true;
@@ -1458,8 +1409,16 @@
       $("fDataAnuncio").value = it.dataAnuncioISO || "";
       $("fObs").value = it.observacoes || "";
 
+      // fotos no cadastro
+      modalPhotos = (it.photos && Array.isArray(it.photos)) ? it.photos.slice(0,3) : ["","",""];
+      while(modalPhotos.length < 3) modalPhotos.push("");
+      activePhotoSlotInline = 0;
+      renderInlinePhotoGrid();
+
       const sold = !!it.vendido;
       $("fVendido").value = sold ? "sim" : "nao";
+
+      // modo full mostra se vendido; modo simple recolhe
       toggleSalesBlock(sold);
 
       if(sold){
@@ -1486,10 +1445,10 @@
       const venda = parseMoney($("fVenda").value);
       const custoEntrega = parseMoney($("fCustoEntrega").value);
 
-      const itemAtual = editingId ? items.find(x=>x.id===editingId) : null;
+      const id = editingId || draftId || uid();
 
       return {
-        id: editingId || draftId || uid(),
+        id,
         codigo: ($("fCodigo").value || "").trim(),
         nomeProduto: ($("fProduto").value || "").trim(),
         localEstoque: ($("fLocalEstoque").value || "").trim(),
@@ -1505,7 +1464,7 @@
         quemVendeu: vendido ? ($("fVendedor").value || "").trim() : "",
         formaEntrega: vendido ? ($("fEntrega").value || "").trim() : "",
         custoEntrega: vendido ? custoEntrega : 0,
-        photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : (draftPhotos.slice(0,3))
+        photos: modalPhotos.slice(0,3)
       };
     }
 
@@ -1562,6 +1521,8 @@
     }
 
     window.removeItem = function(id){
+      // ✅ já tinha certeza para excluir no pedido anterior; mantive confirm também
+      if(!confirm("Tem certeza que deseja excluir este item?")) return;
       items = items.filter(x=>x.id!==id);
       save(); render();
     }
@@ -1580,18 +1541,18 @@
       if(!it) return;
       window.openEdit(id);
 
-      // ✅ última sugestão: ao clicar em "Vendido" já abre modo completo e vai na venda
-      modalMode = "full";
-      applyModalMode();
-
       $("fVendido").value = "sim";
       toggleSalesBlock(true);
+
+      // no modo simples, abre a seção e rola pra ela
+      if(getUIMode() === "simple"){
+        $("salesBlock").style.display = "block";
+        scrollToAnchor("anchorVenda");
+      }
+
       if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
       updateCalcPreview();
-      setTimeout(()=>{
-        scrollToAnchor("anchorVenda");
-        $("fVenda").focus();
-      }, 80);
+      setTimeout(()=>$("fVenda").focus(), 50);
     }
 
     function exportJSON(){
@@ -1660,7 +1621,57 @@
       r.readAsText(file);
     }
 
-    // ===== FOTOS MODAL DE FOTOS (mantido) =====
+    // ===== FOTOS (inline no cadastro) =====
+    function renderInlinePhotoGrid(){
+      const grid = $("photoGridInline");
+      if(!grid) return;
+      grid.innerHTML = "";
+
+      for(let idx=0; idx<3; idx++){
+        const slot = document.createElement("div");
+        slot.className = "photo-slot" + (idx===activePhotoSlotInline ? " active" : "");
+        slot.onclick = () => { activePhotoSlotInline = idx; renderInlinePhotoGrid(); };
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = `Foto ${idx+1}`;
+
+        slot.appendChild(badge);
+
+        if(modalPhotos[idx]){
+          const img = document.createElement("img");
+          img.src = modalPhotos[idx];
+          img.alt = `Foto ${idx+1}`;
+          slot.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Sem foto";
+          slot.appendChild(empty);
+        }
+        grid.appendChild(slot);
+      }
+    }
+
+    $("photoFileInline").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        modalPhotos[activePhotoSlotInline] = dataUrl;
+        renderInlinePhotoGrid();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $("removeSelectedPhotoBtnInline").addEventListener("click", ()=>{
+      modalPhotos[activePhotoSlotInline] = "";
+      renderInlinePhotoGrid();
+    });
+
+    // ===== FOTOS (modal da tabela) =====
     function openPhotoModal(){ $("photoBackdrop").style.display = "grid"; }
     function closePhotoModal(){
       $("photoBackdrop").style.display = "none";
@@ -1682,7 +1693,6 @@
         const badge = document.createElement("div");
         badge.className = "badge";
         badge.textContent = `Foto ${idx+1}`;
-
         slot.appendChild(badge);
 
         if(photos[idx]){
@@ -1696,7 +1706,6 @@
           empty.textContent = "Sem foto";
           slot.appendChild(empty);
         }
-
         grid.appendChild(slot);
       }
     }
@@ -1714,13 +1723,48 @@
       openPhotoModal();
     }
 
-    function setPhotoAtSlotExternal(id, slotIndex, dataUrl){
-      setPhotoAtSlot(id, slotIndex, dataUrl);
+    function setPhotoAtSlot(id, slotIndex, dataUrl){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = dataUrl;
+        return { ...x, photos };
+      });
+      save(); render();
     }
 
-    function removePhotoAtSlotExternal(id, slotIndex){
-      removePhotoAtSlot(id, slotIndex);
+    function removePhotoAtSlot(id, slotIndex){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = "";
+        return { ...x, photos };
+      });
+      save(); render();
     }
+
+    $("photoFile").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file || !photoEditingId) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        setPhotoAtSlot(photoEditingId, activePhotoSlot, dataUrl);
+        const it = items.find(x=>x.id===photoEditingId);
+        if(it) renderPhotoGrid(it);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $("removeSelectedPhotoBtn").addEventListener("click", ()=>{
+      if(!photoEditingId) return;
+      removePhotoAtSlot(photoEditingId, activePhotoSlot);
+      const it = items.find(x=>x.id===photoEditingId);
+      if(it) renderPhotoGrid(it);
+    });
 
     // ===== GRÁFICOS (Canvas) =====
     function getSoldItems(){
@@ -1918,30 +1962,13 @@
       }
     }
 
-    // ===== eventos =====
+    // ===== eventos gerais =====
     document.querySelectorAll(".tab").forEach(btn=>{
       btn.addEventListener("click", () => setTab(btn.dataset.tab));
     });
-
     $("homeLogo").addEventListener("click", ()=> setTab("visao"));
 
     $("q").addEventListener("input", render);
-
-    $("fltAll").addEventListener("click", ()=>{
-      filterState.mode = "all";
-      setChipActive();
-      render();
-    });
-    $("fltStock").addEventListener("click", ()=>{
-      filterState.mode = "stock";
-      setChipActive();
-      render();
-    });
-    $("fltSold").addEventListener("click", ()=>{
-      filterState.mode = "sold";
-      setChipActive();
-      render();
-    });
 
     $("newBtn").addEventListener("click", openCreate);
 
@@ -1972,64 +1999,79 @@
       render();
     });
 
-    $("closeModal").addEventListener("click", closeModal);
-    $("cancelBtn").addEventListener("click", closeModal);
-
-    // ✅ Modo simples/completo
-    $("modeBtn").addEventListener("click", ()=>{
-      modalMode = (modalMode === "simple") ? "full" : "simple";
-      applyModalMode();
-    });
-
-    // ✅ botões flutuantes
-    document.getElementById("goTop")?.addEventListener("click", ()=>scrollToAnchor("anchorTop"));
-    document.getElementById("goFotos")?.addEventListener("click", ()=>{
-      if(modalMode === "simple"){
-        modalMode = "full";
-        applyModalMode();
-      }
+    // ✅ botões de rolagem do modal
+    $("goTop").addEventListener("click", ()=>scrollToAnchor("anchorTop"));
+    $("goFotos").addEventListener("click", ()=>{
+      if(getUIMode()==="simple") $("inlinePhotosSection").style.display = "block";
       scrollToAnchor("anchorFotos");
     });
-    document.getElementById("goVenda")?.addEventListener("click", ()=>{
-      if(modalMode === "simple"){
-        modalMode = "full";
-        applyModalMode();
+    $("goVenda").addEventListener("click", ()=>{
+      if($("fVendido").value !== "sim"){
+        $("fVendido").value = "sim";
+        toggleSalesBlock(true);
       }
-      $("fVendido").value = "sim";
-      toggleSalesBlock(true);
+      if(getUIMode()==="simple") $("salesBlock").style.display = "block";
       if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
       updateCalcPreview();
       scrollToAnchor("anchorVenda");
+      setTimeout(()=>$("fVenda").focus(), 50);
     });
-    document.getElementById("goBottom")?.addEventListener("click", ()=>scrollToAnchor("anchorBottom"));
+    $("goBottom").addEventListener("click", ()=>scrollToAnchor("anchorBottom"));
 
-    // ✅ última sugestão (inteligente):
-    // quando o usuário mudar "Vendido? = Sim" dentro do cadastro, abre modo completo e leva direto pra venda
+    // ✅ modo simples / completo
+    $("modeToggleBtn").addEventListener("click", ()=>{
+      const next = getUIMode()==="simple" ? "full" : "simple";
+      setUIMode(next);
+
+      // no clique: se for full, mostra as seções imediatamente
+      if(next==="full"){
+        $("inlinePhotosSection").style.display = "block";
+        const isSold = $("fVendido").value === "sim";
+        $("salesBlock").style.display = isSold ? "block" : "none";
+      }
+    });
+
+    // atalhos do modo simples
+    $("simpleGoFotos").addEventListener("click", ()=>toggleSectionInSimple("fotos"));
+    $("simpleGoVenda").addEventListener("click", ()=>toggleSectionInSimple("venda"));
+    $("simpleGoCalc").addEventListener("click", ()=>toggleSectionInSimple("calc"));
+
+    // modal open/close
+    $("closeModal").addEventListener("click", closeModal);
+    $("cancelBtn").addEventListener("click", closeModal);
+
     $("fVendido").addEventListener("change", ()=>{
       const isSold = $("fVendido").value === "sim";
       toggleSalesBlock(isSold);
 
-      if(isSold){
-        modalMode = "full";
-        applyModalMode();
-        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
-        updateCalcPreview();
-        setTimeout(()=>scrollToAnchor("anchorVenda"), 60);
-      } else {
+      if(!isSold){
         clearSaleFields();
         $("requiredHint").style.display = "none";
-        updateCalcPreview();
+        if(getUIMode()==="full") $("salesBlock").style.display = "none";
+      } else {
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        // no modo full, abre; no modo simple, fica recolhido até o usuário pedir
+        if(getUIMode()==="full") $("salesBlock").style.display = "block";
       }
+      updateCalcPreview();
     });
 
     $("saveBtn").addEventListener("click", () => {
       const it = readForm();
+
       const errP = validateProduct(it);
       if(errP){ alert(errP); return; }
 
       const errS = validateSaleIfNeeded(it);
       if(errS){
         $("requiredHint").style.display = "block";
+
+        // ✅ se estiver em modo simples e faltar algo da venda, abre a seção e leva pra ela
+        if(getUIMode()==="simple"){
+          $("salesBlock").style.display = "block";
+          scrollToAnchor("anchorVenda");
+        }
+
         alert(errS);
         return;
       }
@@ -2042,7 +2084,8 @@
     $("deleteBtn").addEventListener("click", () => {
       if(!editingId) return;
       if(confirm("Excluir este item?")){
-        window.removeItem(editingId);
+        items = items.filter(x=>x.id!==editingId);
+        save(); render();
         closeModal();
       }
     });
@@ -2056,60 +2099,21 @@
       if(e.target === $("backdrop")) closeModal();
     });
 
-    // ✅ fotos no cadastro (inline)
-    $("inlinePhotoFile").addEventListener("change", (e)=>{
-      const file = e.target.files?.[0];
-      if(!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = String(reader.result || "");
-        setCurrentPhotoAtSlot(modalPhotoSlot, dataUrl);
-      };
-      reader.readAsDataURL(file);
-
-      e.target.value = "";
-    });
-
-    $("removeInlineSelectedPhotoBtn").addEventListener("click", ()=>{
-      removeCurrentPhotoAtSlot(modalPhotoSlot);
-    });
-
-    // ===== modal fotos (antigo) =====
+    // photo modal (tabela)
     $("closePhoto").addEventListener("click", closePhotoModal);
     $("closePhoto2").addEventListener("click", closePhotoModal);
     $("photoBackdrop").addEventListener("click", (e)=>{
       if(e.target === $("photoBackdrop")) closePhotoModal();
     });
 
-    $("photoFile").addEventListener("change", (e)=>{
-      const file = e.target.files?.[0];
-      if(!file || !photoEditingId) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = String(reader.result || "");
-        setPhotoAtSlot(photoEditingId, activePhotoSlot, dataUrl);
-        const it = items.find(x=>x.id===photoEditingId);
-        if(it) renderPhotoGrid(it);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    $("removeSelectedPhotoBtn").addEventListener("click", ()=>{
-      if(!photoEditingId) return;
-      removePhotoAtSlot(photoEditingId, activePhotoSlot);
-      const it = items.find(x=>x.id===photoEditingId);
-      if(it) renderPhotoGrid(it);
-    });
-
+    // selects
     fillSelect("fCanalAnuncio", CANAIS);
     fillSelect("fCanalVenda", CANAIS, true);
     fillSelect("fVendedor", VENDEDORES, true);
     fillSelect("fEntrega", ENTREGAS, true);
 
+    // init
     load();
-    setChipActive();
     updateCalcPreview();
     render();
   </script>
