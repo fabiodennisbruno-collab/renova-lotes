@@ -298,11 +298,24 @@
     .section-title{
       margin: 8px 0 2px;
       font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      letter-spacing: .15px;
+      color: rgba(255,255,255,.78);
+      letter-spacing: .2px;
+      font-weight: 800;
     }
 
+    .prod-link{
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      color: rgba(200,210,255,.95);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-weight: 700;
+    }
+    .prod-link:hover{ opacity: .88; }
+
+    /* FOTO 3 slots */
     .photo-grid{
       display:grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -355,6 +368,7 @@
       justify-content:space-between;
     }
 
+    /* GRÁFICOS */
     .charts-grid{
       display:grid;
       grid-template-columns: 1fr;
@@ -370,96 +384,6 @@
       background: rgba(0,0,0,.14);
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 14px;
-    }
-
-    /* Lotes */
-    .lotes-selector{
-      display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap;
-    }
-    .lotes-selector .lote-btn{
-      padding: 8px 12px;
-      border-radius: 12px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-      cursor:pointer;
-      font-size: 12px;
-      transition:.15s ease;
-    }
-    .lotes-selector .lote-btn.active{
-      background: rgba(140,160,255,.16);
-      border-color: rgba(140,160,255,.35);
-    }
-    .lotes-selector .lote-btn:hover{
-      background: rgba(255,255,255,.08);
-    }
-
-    /* Lixeira */
-    .trash-item{
-      display:flex; justify-content:space-between; align-items:center;
-      padding:10px; margin:8px 0;
-      background: rgba(255,70,70,.08);
-      border:1px solid rgba(255,70,70,.15);
-      border-radius:12px;
-    }
-    .trash-item-info{
-      flex:1;
-    }
-    .trash-item-info .code{
-      font-size:12px; color:var(--muted);
-    }
-    .trash-item-info .name{
-      font-weight:600; margin:4px 0 0;
-    }
-    .trash-item-info .expira{
-      font-size:11px; color:rgba(255,100,100,.8); margin-top:4px;
-    }
-
-    /* Configurações */
-    .config-list{
-      display:grid; gap:12px;
-    }
-    .config-item{
-      background: rgba(255,255,255,.045);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:12px;
-    }
-    .config-item h4{
-      margin:0 0 10px;
-      font-size:13px;
-      color:var(--text);
-    }
-    .config-item .items-list{
-      display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;
-    }
-    .config-item .item-tag{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px;
-      background:rgba(140,160,255,.16);
-      border:1px solid rgba(140,160,255,.25);
-      border-radius:999px;
-      font-size:12px;
-    }
-    .config-item .item-tag .remove{
-      cursor:pointer; opacity:.7; font-weight:bold;
-    }
-    .config-item .item-tag .remove:hover{
-      opacity:1;
-    }
-    .config-item .add-input{
-      display:flex; gap:6px;
-    }
-    .config-item .add-input input{
-      flex:1; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.22); color:var(--text); font-size:12px;
-    }
-    .config-item .add-input button{
-      padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05); color:var(--text); cursor:pointer; font-size:12px;
-    }
-    .config-item .add-input button:hover{
-      background: rgba(255,255,255,.08);
     }
   </style>
 </head>
@@ -504,5 +428,53 @@
         </label>
 
         <button class="btn" id="configBtn" type="button" title="Configurar canais, vendedores, etc">⚙️ Configurações</button>
-        <button cl
+        <button class="btn" id="trashBtn" type="button" title="Ver itens deletados">🗑️ Lixeira</button>
+        <button class="btn danger" id="clearBtn" type="button" title="Apaga tudo (com confirmação)">🧹 Limpar base</button>
+
+        <button class="btn primary" id="newBtn" type="button">Novo item</button>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Navegação">
+      <button class="tab active" data-tab="visao" type="button">Visão geral</button>
+      <button class="tab" data-tab="estoque" type="button">Estoque</button>
+      <button class="tab" data-tab="vendas" type="button">Vendas</button>
+      <button class="tab" data-tab="graficos" type="button">Gráficos</button>
+    </div>
+
+    <!-- VISÃO GERAL -->
+    <section id="visao" class="tabpane">
+      <div class="card">
+        <div class="head"><h3>Vendas</h3><span class="muted2">Resultado e desempenho</span></div>
+        <div class="body"><div class="kpis" id="kpiVendas"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Custos & Eficiência</h3><span class="muted2">Custos e eficiência</span></div>
+        <div class="body"><div class="kpis" id="kpiCustos"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Estoque</h3><span class="muted2">Saúde do estoque</span></div>
+        <div class="body"><div class="kpis" id="kpiEstoque"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Operação</h3><span class="muted2">Velocidade e volume</span></div>
+        <div class="body"><div class="kpis" id="kpiOperacao"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Custo fixo (automático)</h3><span class="muted2">Sempre recalculado por quantidade</span></div>
+        <div class="body"><div class="kpis" id="kpiCustoFixo"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
+        <div class="body" id="quickSummary"></div>
+      </div>
+    </section>
+
+    <!-- ESTOQUE -->
+    <section id="estoque" class="tabpane hidden
 (Content truncated due to size limit. Use line ranges to read remaining content)
