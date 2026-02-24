@@ -184,7 +184,7 @@
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
     }
-    table{ width:100%; border-collapse: collapse; min-width: 1080px; }
+    table{ width:100%; border-collapse: collapse; min-width: 1180px; }
     thead th{
       position: sticky;
       top: 0;
@@ -227,6 +227,7 @@
     }
     .chip.ok{ background: rgba(90,255,170,.14); border-color: rgba(90,255,170,.22); }
     .chip.no{ background: rgba(255,70,70,.14); border-color: rgba(255,70,70,.22); }
+    .chip.warn{ background: rgba(255,200,80,.14); border-color: rgba(255,200,80,.22); }
 
     .footer{
       margin-top: 14px;
@@ -266,6 +267,7 @@
       padding: 14px 14px 10px;
       display:flex; justify-content:space-between; align-items:center;
       border-bottom:1px solid rgba(255,255,255,.06);
+      gap: 10px;
     }
     .modal .mhead h3{ margin:0; font-size: 14px; }
     .modal .mbody{ padding: 14px; }
@@ -285,6 +287,10 @@
       background: rgba(0,0,0,.22);
       color: var(--text);
       outline:none;
+    }
+    .field input:disabled, .field select:disabled, .field textarea:disabled{
+      opacity: .7;
+      cursor:not-allowed;
     }
     .field textarea{ min-height: 92px; resize: vertical; grid-column: 1 / -1; }
     .hr{ height:1px; background: rgba(255,255,255,.08); margin: 12px 0; }
@@ -404,7 +410,7 @@
             <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8"/>
             <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
-          <input id="q" placeholder="Buscar por código, produto, canal, vendedor, local..." />
+          <input id="q" placeholder="Buscar por código, produto, canal, vendedor, local, pagamento..." />
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -420,6 +426,10 @@
           Importar
           <input id="importFile" type="file" accept="application/json" style="display:none;">
         </label>
+
+        <button class="btn warn" id="snapshotBtn" type="button" title="Cria um ponto de restauração no navegador">🛟 Ponto de restauração</button>
+        <button class="btn" id="restoreBtn" type="button" title="Restaura o último ponto de restauração">↩️ Restaurar</button>
+        <button class="btn danger" id="clearBtn" type="button" title="Apaga tudo (com confirmação)">🧹 Limpar base</button>
 
         <button class="btn primary" id="newBtn" type="button">Novo item</button>
       </div>
@@ -455,6 +465,11 @@
       </div>
 
       <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Custo fixo (automático)</h3><span class="muted2">Sempre recalculado por quantidade</span></div>
+        <div class="body"><div class="kpis" id="kpiCustoFixo"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
         <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
         <div class="body" id="quickSummary"></div>
       </div>
@@ -465,20 +480,19 @@
       <div class="card">
         <div class="head">
           <h3>Itens em estoque</h3>
-          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos</span>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos • Vendido: venda rápida</span>
         </div>
         <div class="body">
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <!-- ✅ Código agora ordena NUMÉRICO -->
                   <th class="sortable" data-table="estoque" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="estoque:codigo">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="estoque:nomeProduto">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="localEstoque" data-sort-type="text">Local <span class="sort-ind" data-ind="estoque:localEstoque">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="canalAnuncio" data-sort-type="text">Canal anúncio <span class="sort-ind" data-ind="estoque:canalAnuncio">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="dataAnuncioISO" data-sort-type="date">Data anúncio <span class="sort-ind" data-ind="estoque:dataAnuncioISO">↕</span></th>
-                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo (auto) <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="valorAnuncio" data-sort-type="number">Valor anúncio <span class="sort-ind" data-ind="estoque:valorAnuncio">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="lucroProj" data-sort-type="number">Lucro proj. <span class="sort-ind" data-ind="estoque:lucroProj">↕</span></th>
                   <th>Ações</th>
@@ -496,24 +510,25 @@
       <div class="card">
         <div class="head">
           <h3>Vendas</h3>
-          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos</span>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos • Pagamento: status e data prevista</span>
         </div>
         <div class="body">
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <!-- ✅ Código agora ordena NUMÉRICO -->
                   <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="vendas:nomeProduto">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="valorVenda" data-sort-type="number">Venda <span class="sort-ind" data-ind="vendas:valorVenda">↕</span></th>
-                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo (auto) <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="custoEntrega" data-sort-type="number">Entrega <span class="sort-ind" data-ind="vendas:custoEntrega">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="lucroFinal" data-sort-type="number">Lucro <span class="sort-ind" data-ind="vendas:lucroFinal">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="canalVenda" data-sort-type="text">Canal <span class="sort-ind" data-ind="vendas:canalVenda">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="dataVendaISO" data-sort-type="date">Data venda <span class="sort-ind" data-ind="vendas:dataVendaISO">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="tempoVenda" data-sort-type="number">Tempo (dias) <span class="sort-ind" data-ind="vendas:tempoVenda">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="quemVendeu" data-sort-type="text">Vendedor <span class="sort-ind" data-ind="vendas:quemVendeu">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoStatus" data-sort-type="text">Pagamento <span class="sort-ind" data-ind="vendas:pagamentoStatus">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoPrevistoISO" data-sort-type="date">Previsto <span class="sort-ind" data-ind="vendas:pagamentoPrevistoISO">↕</span></th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -553,15 +568,15 @@
           </div>
 
           <div class="muted2" style="margin-top:10px; font-size:12px;">
-            Observação: os gráficos são recalculados automaticamente ao editar itens, marcar venda, importar ou duplicar.
+            Observação: os gráficos são recalculados automaticamente ao editar itens, vender, importar ou duplicar.
           </div>
         </div>
       </div>
     </section>
 
     <div class="footer">
-      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar para backup.</div>
-      <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos</div>
+      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar e Ponto de restauração para backup.</div>
+      <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos • Custo é automático</div>
     </div>
   </div>
 
@@ -570,13 +585,15 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="mhead">
         <h3 id="modalTitle">Novo item</h3>
-        <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="chip" id="soldLockChip" style="display:none;" title="Itens vendidos ficam travados para não bagunçar histórico">🔒 Travado (vendido)</span>
+          <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
+        </div>
       </div>
 
       <div class="mbody">
         <div class="section-title">DADOS DO PRODUTO</div>
         <div class="form">
-          <!-- ✅ Sugestão incluída: botão "Próximo" e auto-preenchimento -->
           <div class="field">
             <label>Código</label>
             <div style="display:flex; gap:8px; align-items:center;">
@@ -596,8 +613,8 @@
           </div>
 
           <div class="field">
-            <label>Custo do produto</label>
-            <input id="fCusto" placeholder="Ex: 6,33">
+            <label>Custo do produto (automático)</label>
+            <input id="fCusto" placeholder="Automático" disabled>
           </div>
 
           <div class="field">
@@ -625,7 +642,7 @@
 
           <div class="field" style="grid-column: 1 / -1;">
             <label>Observações</label>
-            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, etc."></textarea>
+            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, pagamento, etc."></textarea>
           </div>
         </div>
 
@@ -663,6 +680,16 @@
               <label>Custo entrega *</label>
               <input id="fCustoEntrega" placeholder="Ex: 5,00">
             </div>
+
+            <div class="field">
+              <label>Status pagamento</label>
+              <select id="fPagStatus"></select>
+            </div>
+
+            <div class="field">
+              <label>Pagamento previsto</label>
+              <input id="fPagPrev" type="date">
+            </div>
           </div>
 
           <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
@@ -680,6 +707,81 @@
         <button class="btn" id="cancelBtn" type="button">Cancelar</button>
         <button class="btn danger" id="deleteBtn" type="button" style="display:none;">Excluir</button>
         <button class="btn primary" id="saveBtn" type="button">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VENDA RÁPIDA -->
+  <div class="modal-backdrop" id="sellBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
+      <div class="mhead">
+        <h3 id="sellTitle">Venda rápida</h3>
+        <button class="btn small" id="closeSell" type="button" title="Fechar">X</button>
+      </div>
+      <div class="mbody">
+        <div class="muted2" id="sellMeta">—</div>
+
+        <div class="hr"></div>
+        <div class="section-title">DADOS DA VENDA</div>
+
+        <div class="form">
+          <div class="field">
+            <label>Valor da venda *</label>
+            <input id="sVenda" placeholder="Ex: 145">
+          </div>
+
+          <div class="field">
+            <label>Canal da venda *</label>
+            <select id="sCanal"></select>
+          </div>
+
+          <div class="field">
+            <label>Data da venda *</label>
+            <input id="sData" type="date">
+          </div>
+
+          <div class="field">
+            <label>Quem vendeu *</label>
+            <select id="sVendedor"></select>
+          </div>
+
+          <div class="field">
+            <label>Forma de entrega *</label>
+            <select id="sEntrega"></select>
+          </div>
+
+          <div class="field">
+            <label>Custo entrega *</label>
+            <input id="sCustoEntrega" placeholder="Ex: 0,00">
+          </div>
+
+          <div class="field">
+            <label>Status pagamento</label>
+            <select id="sPagStatus"></select>
+          </div>
+
+          <div class="field">
+            <label>Pagamento previsto</label>
+            <input id="sPagPrev" type="date">
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Observações (opcional)</label>
+            <textarea id="sObs" placeholder="Ex: Vendido para X, pagamento em tal data..."></textarea>
+          </div>
+        </div>
+
+        <div id="sellHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 8px; display:none;">
+          Preencha os campos obrigatórios (*) para concluir a venda.
+        </div>
+
+        <div class="muted2" style="margin-top:10px; font-size:12px;">
+          Dica: o custo do produto é automático (R$ 6.050,00 ÷ quantidade total de itens).
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="btn" id="cancelSell" type="button">Cancelar</button>
+        <button class="btn ok" id="confirmSell" type="button">✅ Concluir venda</button>
       </div>
     </div>
   </div>
@@ -718,1602 +820,41 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "renova_lotes_html_v5";
+    const STORAGE_KEY = "renova_lotes_html_v6";
+    const SNAP_KEY = STORAGE_KEY + "_snapshots";
+
+    // ✅ CUSTO FIXO TOTAL (divide pela quantidade de produtos cadastrados)
+    const TOTAL_CUSTO_FIXO = 6050.00;
 
     const CANAIS = ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"];
     const VENDEDORES = ["Dennis","Calebe","David","Outro"];
     const ENTREGAS = ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"];
+    const PAG_STATUS = ["Pendente","Pago","Parcial","A combinar","Sem informação"];
 
     // Seed (vai ser substituído pelos seus dados quando você importar o JSON)
     const SEED = [
       {
-    "id": "fa73740e32fbd819c78bd7abf",
-    "codigo": "69",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "74cf716278764819c78bcfd60",
-    "codigo": "68",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "556197771bc8b19c78bcd51d",
-    "codigo": "67",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "164dc1ffc89be19c78bab6bc",
-    "codigo": "66",
-    "nomeProduto": "Estabilizador Ulanzi - Air Tube Light",
-    "localEstoque": "Calebe",
-    "custoProduto": 0,
-    "valorAnuncio": 250,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "6d3afa6508caa19c78ab9762",
-    "codigo": "65",
-    "nomeProduto": "Lacinho de cabeça",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 10,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "57916db65efa2819c78aa2424",
-    "codigo": "64",
-    "nomeProduto": "Almofada inflável - Infantil",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 45,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "4c9101ec1c68e19c789d9214",
-    "codigo": "63",
-    "nomeProduto": "Colágeno - Produto de beleza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Colágeno - Produto de beleza - Rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "741cd6614655319c789d04f6",
-    "codigo": "62",
-    "nomeProduto": "Colágeno - Produto de beleza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Colágeno - Produto de beleza - Rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "19862532305fa819c789a04e3",
-    "codigo": "61",
-    "nomeProduto": "Shiseido men - Hydrate",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 300,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "f605aeda4f04919c7897055c",
-    "codigo": "60",
-    "nomeProduto": "Kit Centella - Produtos de beleza",
-    "localEstoque": "Calebe",
-    "custoProduto": 0,
-    "valorAnuncio": 550,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "539775afb65519c7894010d",
-    "codigo": "59",
-    "nomeProduto": "Biodence - Collageno",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 300,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "ca9b0fa06e55719c7893f5ca",
-    "codigo": "58",
-    "nomeProduto": "Biodence - Collageno",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 300,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "8c5a98482422a819c78926097",
-    "codigo": "57",
-    "nomeProduto": "Kit de Batom - Handaiyan",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "1214f89a3294919c78911a3b",
-    "codigo": "56",
-    "nomeProduto": "Óleo essencial - Lavanda",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 10,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "a9883af106442819c78910c73",
-    "codigo": "55",
-    "nomeProduto": "Óleo essencial - Lavanda",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 10,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "624a1f7eff40f19c788fc570",
-    "codigo": "54",
-    "nomeProduto": "Fone de Ouvido sem fio M25",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "31431da4caa9319c788e75ef",
-    "codigo": "53",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "8e73743a782a3819c788ca1b8",
-    "codigo": "52",
-    "nomeProduto": "Óleo reparador Honey Melty",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 400,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "2fb3eb6b59169819c788a592e",
-    "codigo": "51",
-    "nomeProduto": "Colágeno - Produto de beleza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Colágeno - Produto de beleza - Rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "827c8ba6883f8819c788a0e6f",
-    "codigo": "50",
-    "nomeProduto": "Colágeno - Produto de beleza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Colágeno - Produto de beleza - Rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "8d13203c05e54819c7889c91e",
-    "codigo": "49",
-    "nomeProduto": "Shampoo RYO",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 65,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "2d1c43b9373de819c7888686a",
-    "codigo": "48",
-    "nomeProduto": "Necessaire - Washbag",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "3dbe1985fdb0e19c7884a268",
-    "codigo": "47",
-    "nomeProduto": "Maquina de barbear",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 180,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Maquina de barbear - Boa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "2c7e3bb5b55bc19c7881a05b",
-    "codigo": "46",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "c3bf4cf34984e819c78812c58",
-    "codigo": "45",
-    "nomeProduto": "Limpador de chão",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 25,
-    "canalAnuncio": "Facebook",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Limpador de chão JUE FISH - FLOOR CLEANER ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "35e61ea48d48e19c787e3ab1",
-    "codigo": "44",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "ecc572aec488219c787b0e81",
-    "codigo": "43",
-    "nomeProduto": "Fone de ouvido com fio",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Fone de ouvido com fio ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "1d25877b04c17819c7879ef6b",
-    "codigo": "42",
-    "nomeProduto": "Chinelo EVA",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 35,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Chinelo EVA - Branco ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "9ac21d8a901e9819c78782474",
-    "codigo": "40",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "3322a8a159306819c7878047d",
-    "codigo": "41",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "55a79f131e5c919c7877ede7",
-    "codigo": "39",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "5327ad78e7531819c7877d362",
-    "codigo": "38",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "67f03865313cc819c7877b018",
-    "codigo": "37",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "48543ce0172b9819c7877a670",
-    "codigo": "36",
-    "nomeProduto": "Relógio Smart Bracelet",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "8d0b088e5855f19c78758a2a",
-    "codigo": "35",
-    "nomeProduto": "Caixa de som - Mini star led",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 30,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Caixa de som - Mini star led",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "b4a353097a46119c78745cbf",
-    "codigo": "34",
-    "nomeProduto": "Colágeno - Produto de beleza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Colágeno - Produto de beleza - Rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "2ab422577195f19c787434ec",
-    "codigo": "33",
-    "nomeProduto": "Colágeno - Produto de beleza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Colágeno - Produto de beleza - Rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "cadc0440a03cb819c786dd9ce",
-    "codigo": "32",
-    "nomeProduto": "Tênis Marrom - Masculino",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 100,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "4bdf592afdcd5819c786c8ed7",
-    "codigo": "31",
-    "nomeProduto": "Lacinhos de cabelo coloridos",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 5,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Lacinhos de cabelo coloridos",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "21330c4b7a288819c786b8643",
-    "codigo": "30",
-    "nomeProduto": "Xuxinhas de cabelo",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 5,
-    "canalAnuncio": "Facebook",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Xuxinhas de cabelo - Coloridas ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "41d28bfd67da9819c786adfb3",
-    "codigo": "29",
-    "nomeProduto": "Estojo de pinceis com esponja",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Estojo de pinceis com esponja ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "fed80d716c8c0819c7868a752",
-    "codigo": "28",
-    "nomeProduto": "Chinelo infantil rosa",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Chinelo com luzes de LED - número 33",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "7bd676e48be1719c7866f209",
-    "codigo": "27",
-    "nomeProduto": "Camiseta Vermelha Prada",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Facebook",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Camiseta Vermelha Prada  - XL ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "9f44ef165efbb19c7866e9a5",
-    "codigo": "26",
-    "nomeProduto": "Camiseta Vermelha Prada",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Facebook",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Camiseta Vermelha Prada  - XL ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "65a0cc80eb09e819c78645661",
-    "codigo": "25",
-    "nomeProduto": "Fita de led",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 30,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "552efbd9383d519c7862fc5f",
-    "codigo": "24",
-    "nomeProduto": "Ganchos",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 5,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "311a96500c4e719c7860702f",
-    "codigo": "23",
-    "nomeProduto": "Kit para unhas",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Facebook",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Kit para unhas rosa",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "314779a5a59319c785f091b",
-    "codigo": "22",
-    "nomeProduto": "Suéter de lã listrado",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "1836ffb69560d19c785df2c1",
-    "codigo": "21",
-    "nomeProduto": "Fone sem Fio rosa - MI",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Orgânico",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "64be6abc1d4ac819c785d3f7f",
-    "codigo": "20",
-    "nomeProduto": "Fone sem fio - Preto",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 40,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "29c07deb727c1819c785cbd0c",
-    "codigo": "19",
-    "nomeProduto": "Vestido Rosa - Myra",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "a6f2ecf803a4119c785c4593",
-    "codigo": "18",
-    "nomeProduto": "Vestido Myra - Verde",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "9b990ccff484419c78592cbc",
-    "codigo": "17",
-    "nomeProduto": "Saída de praia Brunelle",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 80,
-    "canalAnuncio": "Facebook",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Saída de praia Brunelle ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "70a7e25e0a3cb819c7857a8e4",
-    "codigo": "16",
-    "nomeProduto": "Short da Nike cinza",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Short da Nike cinza",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "cd0425adf5781819c78562bb8",
-    "codigo": "14",
-    "nomeProduto": "Short da Nike preto",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "2026-02-20",
-    "vendido": true,
-    "valorVenda": 50,
-    "canalVenda": "Outro",
-    "dataVendaISO": "2026-02-20",
-    "quemVendeu": "Dennis",
-    "formaEntrega": "Retirada",
-    "custoEntrega": 0,
-    "observacoes": "Short da Nike Preto\n\nVendido para Victor (imobiliária Razão) - Pagamento dia 28/02/2026",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "4b5d8b0748d5719c785417cd",
-    "codigo": "13",
-    "nomeProduto": "Casaco de lã batida",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 100,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Casaco de lã batida bege claro",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "455e3e44ba5519c78533b77",
-    "codigo": "15",
-    "nomeProduto": "Chave de torque",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 10,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Chave de torque pequena ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "7616f7e0530f0819c785260f9",
-    "codigo": "12",
-    "nomeProduto": "Relógio infantil feminino",
-    "localEstoque": "David",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Relógio infantil feminino roxo",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "0a156d0ff0f1a819c78513d67",
-    "codigo": "11",
-    "nomeProduto": "Caixa de som",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Caixa de som ZQS1202",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "8441dfdf6863a19c7850a668",
-    "codigo": "10",
-    "nomeProduto": "Lente Nikkor",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 3500,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Lentes da Nikkor - Nikon - f/1.8 s - 50mm",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "e223bd235a0dc819c784ea211",
-    "codigo": "9",
-    "nomeProduto": "Óculos de sol da Miu Miu",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "2e16051775b2a19c784d8402",
-    "codigo": "8",
-    "nomeProduto": "Óculos de sol branco/preto",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "de4126b6a0c84819c784c40cb",
-    "codigo": "7",
-    "nomeProduto": "Bolsa feminina",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 20,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Bolsa feminina preta",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "1bede858f922719c784b5799",
-    "codigo": "6",
-    "nomeProduto": "Cinta para Coluna",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 35,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Pegar foto da internet ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "9a805c8e52992819c78498b15",
-    "codigo": "5",
-    "nomeProduto": "Suéter de Lã",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 50,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Suéter de Lã Marron ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "cb14fbb765fee19c7848d0c7",
-    "codigo": "4",
-    "nomeProduto": "Suéter listrado",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 35,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Suéter branco com preto",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "3729b1f17ec54819c7847889e",
-    "codigo": "3",
-    "nomeProduto": "Blusa Tottenham",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 250,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Corta vento do Tottenham - Branca",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "0fc99a7178d7819c784690e2",
-    "codigo": "2",
-    "nomeProduto": "Camiseta PSG",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 150,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Camiseta PSG - Número 17 - Jogador Fiapera",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  },
-  {
-    "id": "bfdf9bc3d924119c7845a86e",
-    "codigo": "1",
-    "nomeProduto": "Camiseta Milan",
-    "localEstoque": "Dennis",
-    "custoProduto": 0,
-    "valorAnuncio": 150,
-    "canalAnuncio": "Outro",
-    "dataAnuncioISO": "",
-    "vendido": false,
-    "valorVenda": 0,
-    "canalVenda": "",
-    "dataVendaISO": "",
-    "quemVendeu": "",
-    "formaEntrega": "",
-    "custoEntrega": 0,
-    "observacoes": "Camiseta do Milan - Número 80 Ronaldinho Gaúcho ",
-    "photos": [
-      "",
-      "",
-      ""
-    ]
-  }
-]
+        "id":"bfdf9bc3d924119c7845a86e",
+        "codigo":"1",
+        "nomeProduto":"Camiseta Milan",
+        "localEstoque":"Dennis",
+        "custoProduto":0,
+        "valorAnuncio":150,
+        "canalAnuncio":"Outro",
+        "dataAnuncioISO":"",
+        "vendido":false,
+        "valorVenda":0,
+        "canalVenda":"",
+        "dataVendaISO":"",
+        "quemVendeu":"",
+        "formaEntrega":"",
+        "custoEntrega":0,
+        "pagamentoStatus":"Pendente",
+        "pagamentoPrevistoISO":"",
+        "observacoes":"Camiseta do Milan - Número 80 Ronaldinho Gaúcho ",
+        "photos":["","",""]
+      }
+    ];
 
     const $ = (id) => document.getElementById(id);
     function uid(){ return (Math.random().toString(16).slice(2) + Date.now().toString(16)); }
@@ -2361,11 +902,22 @@
     }
 
     // ============================
+    // ✅ CUSTO FIXO AUTOMÁTICO
+    // ============================
+    function custoUnitarioAtual(){
+      const qtd = Math.max(1, items.length);
+      return TOTAL_CUSTO_FIXO / qtd;
+    }
+    function aplicarCustoFixoEmTodos(){
+      const cu = custoUnitarioAtual();
+      items = items.map(x => ({ ...x, custoProduto: cu }));
+    }
+
+    // ============================
     // ✅ CÓDIGO AUTO + NUMÉRICO
     // ============================
     function extractCodigoNumber(codigo){
       const raw = String(codigo ?? "").trim();
-      // pega apenas o começo numérico (ex: "12-1" vira 12)
       const m = raw.match(/^\d+/);
       if(!m) return null;
       const n = Number(m[0]);
@@ -2386,9 +938,10 @@
     let photoEditingId = null;
     let activePhotoSlot = 0;
 
+    let sellEditingId = null;
+
     const filterState = { mode: "all" };
 
-    // ✅ padrão de ordenação do estoque agora é numérico por código
     const sortState = {
       estoque: { key: "codigo", dir: "asc", type: "number" },
       vendas:  { key: "dataVendaISO", dir: "desc", type: "date" }
@@ -2418,9 +971,16 @@
         quemVendeu: String(x.quemVendeu ?? ""),
         formaEntrega: String(x.formaEntrega ?? ""),
         custoEntrega: safe(Number(x.custoEntrega)),
+        pagamentoStatus: String(x.pagamentoStatus ?? "Pendente"),
+        pagamentoPrevistoISO: String(x.pagamentoPrevistoISO ?? ""),
         observacoes: String(x.observacoes ?? ""),
         photos
       };
+    }
+
+    function save(){
+      aplicarCustoFixoEmTodos();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
 
     function load(){
@@ -2428,12 +988,17 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if(raw){
           const parsed = JSON.parse(raw);
-          if(Array.isArray(parsed)){ items = parsed.map(normalizeItemShape); return; }
+          if(Array.isArray(parsed)){
+            items = parsed.map(normalizeItemShape);
+            aplicarCustoFixoEmTodos();
+            return;
+          }
         }
       }catch(e){}
       items = SEED.map(normalizeItemShape);
+      aplicarCustoFixoEmTodos();
+      save();
     }
-    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
@@ -2468,11 +1033,15 @@
       const custoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.custoProduto),0);
       const potencialLucroEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
 
+      const pagos = sold.filter(i => (i.pagamentoStatus||"").toLowerCase() === "pago").length;
+      const pendentes = sold.filter(i => (i.pagamentoStatus||"").toLowerCase() === "pendente").length;
+
       return {
         totalVendas,faturamento,custoProdutos,custoEntregas,lucroFinal,
         ticketMedio,lucroMedio,margemLucro,entregaPct,roiProdutos,
         tempoMedio,totalItens,totalEstoque,taxaVenda,
-        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque
+        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque,
+        pagos, pendentes
       };
     }
 
@@ -2484,6 +1053,8 @@
           { label:"Margem", value:pct(m.margemLucro), hint:"Lucro / faturamento" },
           { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Faturamento / vendas" },
           { label:"Lucro médio", value:brl(m.lucroMedio), hint:"Lucro / vendas" },
+          { label:"Pagamentos (pago)", value:String(m.pagos), hint:"Vendas com status = Pago" },
+          { label:"Pagamentos (pendente)", value:String(m.pendentes), hint:"Vendas com status = Pendente" },
         ],
         kpiCustos: [
           { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Soma do custo (vendidos)" },
@@ -2502,6 +1073,12 @@
           { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas / itens" },
           { label:"Tempo médio", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:"Anúncio → venda" },
           { label:"Itens cadastrados", value:String(m.totalItens), hint:"Total na base" },
+        ],
+        kpiCustoFixo: [
+          { label:"Total fixo", value: brl(TOTAL_CUSTO_FIXO), hint:"Valor total gasto" },
+          { label:"Quantidade de produtos", value: String(Math.max(1, items.length)), hint:"Total de itens cadastrados" },
+          { label:"Custo unitário (auto)", value: brl(custoUnitarioAtual()), hint:"Total ÷ quantidade" },
+          { label:"Impacto do custo", value: (items.length<=1?"—":"↓ ao aumentar itens"), hint:"Quanto mais itens, menor o custo unitário" },
         ],
       };
 
@@ -2525,6 +1102,7 @@
           <span class="chip">💰 Faturamento: <b>${brl(m.faturamento)}</b></span>
           <span class="chip">✅ Lucro: <b>${brl(m.lucroFinal)}</b></span>
           <span class="chip">📦 Estoque: <b>${estoque}</b></span>
+          <span class="chip warn">🧱 Custo unitário (auto): <b>${brl(custoUnitarioAtual())}</b></span>
           <span class="chip">⏱ Tempo médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
         </div>
       `;
@@ -2547,8 +1125,10 @@
       if(!q) return base;
 
       return base.filter(i=>{
-        const hay = [i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,i.observacoes]
-          .filter(Boolean).join(" ").toLowerCase();
+        const hay = [
+          i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,
+          i.pagamentoStatus,i.pagamentoPrevistoISO,i.observacoes
+        ].filter(Boolean).join(" ").toLowerCase();
         return hay.includes(q);
       });
     }
@@ -2560,11 +1140,9 @@
       if(key === "lucroProj") return safe(item.valorAnuncio) - safe(item.custoProduto);
       if(key === "lucroFinal") return safe(item.valorVenda) - safe(item.custoProduto) - safe(item.custoEntrega);
       if(key === "tempoVenda") return daysBetweenISO(item.dataAnuncioISO, item.dataVendaISO) ?? -1;
-
-      // ✅ código numérico (evita 1..9..10 virar errado)
       if(key === "codigo"){
         const n = extractCodigoNumber(item.codigo);
-        return n === null ? 1e15 : n; // não-numérico vai pro final
+        return n === null ? 1e15 : n;
       }
 
       const v = item[key];
@@ -2633,8 +1211,11 @@
       copy.quemVendeu = "";
       copy.formaEntrega = "";
       copy.custoEntrega = 0;
+      copy.pagamentoStatus = "Pendente";
+      copy.pagamentoPrevistoISO = "";
 
       items.unshift(normalizeItemShape(copy));
+      aplicarCustoFixoEmTodos();
       save(); render();
       window.openEdit(copy.id);
     }
@@ -2674,7 +1255,7 @@
             <td>
               <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
               <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
-              <button class="btn small ok" type="button" onclick="startSellFlow('${i.id}')">✅ Vendido</button>
+              <button class="btn small ok" type="button" onclick="openQuickSell('${i.id}')">✅ Vendido</button>
               <button class="btn small danger" type="button" onclick="removeItem('${i.id}')">🗑</button>
             </td>
           `;
@@ -2685,12 +1266,17 @@
       const tbV = $("tbVendas");
       tbV.innerHTML = "";
       if(!vendas.length){
-        tbV.innerHTML = `<tr><td colspan="11" class="muted">Nenhuma venda com o filtro atual.</td></tr>`;
+        tbV.innerHTML = `<tr><td colspan="13" class="muted">Nenhuma venda com o filtro atual.</td></tr>`;
       } else {
         vendas.forEach(i=>{
           const lucroFinal = safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega);
           const tempo = daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO);
           const pc = photoCount(i);
+
+          const ps = (i.pagamentoStatus || "—");
+          const psLower = ps.toLowerCase();
+          const psChipClass = psLower === "pago" ? "ok" : (psLower === "pendente" ? "no" : "warn");
+
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><b>${escapeHtml(i.codigo)}</b></td>
@@ -2706,6 +1292,8 @@
             <td>${i.dataVendaISO || "—"}</td>
             <td>${tempo===null ? "—" : tempo}</td>
             <td>${escapeHtml(i.quemVendeu || "—")}</td>
+            <td><span class="chip ${psChipClass}" style="cursor:default;">${escapeHtml(ps)}</span></td>
+            <td>${i.pagamentoPrevistoISO || "—"}</td>
             <td>
               <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
               <button class="btn small" type="button" onclick="markSold('${i.id}', false)">↩️ Estoque</button>
@@ -2743,6 +1331,23 @@
       editingId = null;
       $("deleteBtn").style.display = "none";
       $("requiredHint").style.display = "none";
+      $("soldLockChip").style.display = "none";
+      applySoldLockUI(false);
+    }
+
+    function openSellModal(){
+      $("sellBackdrop").style.display = "grid";
+    }
+    function closeSellModal(){
+      $("sellBackdrop").style.display = "none";
+      sellEditingId = null;
+      $("sellHint").style.display = "none";
+      ["sVenda","sCanal","sData","sVendedor","sEntrega","sCustoEntrega","sPagStatus","sPagPrev","sObs"].forEach(id=>{
+        const el = $(id);
+        if(!el) return;
+        if(el.tagName === "SELECT") el.value = "";
+        else el.value = "";
+      });
     }
 
     function clearSaleFields(){
@@ -2752,20 +1357,36 @@
       $("fVendedor").value = "";
       $("fEntrega").value = "";
       $("fCustoEntrega").value = "";
+      $("fPagStatus").value = "Pendente";
+      $("fPagPrev").value = "";
     }
 
     function toggleSalesBlock(show){
       $("salesBlock").style.display = show ? "block" : "none";
-      ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega"].forEach(id=>{
+      ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagStatus","fPagPrev"].forEach(id=>{
         $(id).disabled = !show;
       });
+    }
+
+    function applySoldLockUI(isSoldLocked){
+      // ✅ trava campos do produto quando vendido (para não bagunçar histórico)
+      const lockIds = ["fProduto","fLocalEstoque","fAnuncio","fCanalAnuncio","fDataAnuncio"];
+      lockIds.forEach(id => $(id).disabled = isSoldLocked);
+
+      // custo é sempre travado
+      $("fCusto").disabled = true;
+
+      // vendido? (se já está vendido, não deixa voltar pra "não" aqui — isso é feito pelo botão "↩️ Estoque")
+      $("fVendido").disabled = isSoldLocked;
+
+      // código já é travado ao editar
     }
 
     function resetForm(){
       $("fCodigo").value = "";
       $("fProduto").value = "";
       $("fLocalEstoque").value = "";
-      $("fCusto").value = "";
+      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
       $("fAnuncio").value = "";
       $("fCanalAnuncio").value = "Facebook";
       $("fDataAnuncio").value = "";
@@ -2773,6 +1394,8 @@
       $("fObs").value = "";
       clearSaleFields();
       toggleSalesBlock(false);
+      $("soldLockChip").style.display = "none";
+      applySoldLockUI(false);
       updateCalcPreview();
     }
 
@@ -2781,10 +1404,11 @@
       $("deleteBtn").style.display = "none";
       resetForm();
 
-      // ✅ código auto sugerido
       $("fCodigo").disabled = false;
       $("nextCodeBtn").disabled = false;
       setNextCodigoIntoField();
+
+      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
 
       openModal("Novo item");
       setTimeout(()=>$("fProduto").focus(), 50);
@@ -2796,14 +1420,17 @@
       editingId = id;
       $("deleteBtn").style.display = "inline-flex";
 
-      // ✅ trava o código ao editar (evita bagunça)
+      // trava código ao editar
       $("fCodigo").disabled = true;
       $("nextCodeBtn").disabled = true;
 
       $("fCodigo").value = it.codigo || "";
       $("fProduto").value = it.nomeProduto || "";
       $("fLocalEstoque").value = it.localEstoque || "";
-      $("fCusto").value = String(safe(it.custoProduto)).replace(".",",");
+
+      // custo sempre automático
+      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
+
       $("fAnuncio").value = String(safe(it.valorAnuncio)).replace(".",",");
       $("fCanalAnuncio").value = it.canalAnuncio || "Facebook";
       $("fDataAnuncio").value = it.dataAnuncioISO || "";
@@ -2820,8 +1447,15 @@
         $("fVendedor").value = it.quemVendeu || "";
         $("fEntrega").value = it.formaEntrega || "";
         $("fCustoEntrega").value = String(safe(it.custoEntrega)).replace(".",",");
+        $("fPagStatus").value = it.pagamentoStatus || "Pendente";
+        $("fPagPrev").value = it.pagamentoPrevistoISO || "";
+
+        $("soldLockChip").style.display = "inline-flex";
+        applySoldLockUI(true);
       } else {
         clearSaleFields();
+        $("soldLockChip").style.display = "none";
+        applySoldLockUI(false);
       }
 
       $("requiredHint").style.display = "none";
@@ -2830,7 +1464,8 @@
     }
 
     function readForm(){
-      const custo = parseMoney($("fCusto").value);
+      // custo SEMPRE automático
+      const custo = custoUnitarioAtual();
       const anuncio = parseMoney($("fAnuncio").value);
       const vendido = $("fVendido").value === "sim";
 
@@ -2856,11 +1491,12 @@
         quemVendeu: vendido ? ($("fVendedor").value || "").trim() : "",
         formaEntrega: vendido ? ($("fEntrega").value || "").trim() : "",
         custoEntrega: vendido ? custoEntrega : 0,
+        pagamentoStatus: vendido ? ($("fPagStatus").value || "Pendente") : "Pendente",
+        pagamentoPrevistoISO: vendido ? (($("fPagPrev").value || "").trim()) : "",
         photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : ["","",""]
       };
     }
 
-    // ✅ Validação: impede CÓDIGO duplicado
     function validateProduct(it){
       if(!it.codigo) return "Preencha o Código.";
       if(!it.nomeProduto) return "Preencha o Nome do produto.";
@@ -2885,7 +1521,9 @@
     }
 
     function updateCalcPreview(){
-      const custo = parseMoney($("fCusto").value);
+      const custo = custoUnitarioAtual();
+      $("fCusto").value = String(custo).replace(".",",");
+
       const anuncio = parseMoney($("fAnuncio").value);
       const venda = parseMoney($("fVenda").value);
       const custoEntrega = parseMoney($("fCustoEntrega").value);
@@ -2896,12 +1534,13 @@
 
       $("calcPreview").innerHTML = `
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span class="chip">🧱 Custo (auto): <b>${brl(custo)}</b></span>
           <span class="chip">📣 Lucro projetado: <b>${brl(lucroProj)}</b></span>
           <span class="chip">✅ Lucro final: <b>${brl(lucroFinal)}</b></span>
           <span class="chip">⏱ Tempo venda: <b>${tempo===null ? "—" : (tempo+" dias")}</b></span>
         </div>
         <div class="muted2" style="margin-top:10px;">
-          Fórmulas: lucro projetado = anúncio − custo • lucro final = venda − custo − entrega
+          Fórmulas: custo = 6.050 ÷ itens • lucro proj. = anúncio − custo • lucro final = venda − custo − entrega
         </div>
       `;
     }
@@ -2909,35 +1548,119 @@
     function upsert(it){
       const idx = items.findIndex(x=>x.id===it.id);
       if(idx>=0) items[idx]=normalizeItemShape(it); else items.unshift(normalizeItemShape(it));
+      aplicarCustoFixoEmTodos();
       save();
       render();
     }
 
     window.removeItem = function(id){
       items = items.filter(x=>x.id!==id);
+      aplicarCustoFixoEmTodos();
       save(); render();
     }
 
     window.markSold = function(id, sold){
       items = items.map(x=>{
         if(x.id!==id) return x;
-        if(sold) return x; // bloqueado: vender só pelo fluxo startSellFlow
-        return { ...x, vendido:false, valorVenda:0, canalVenda:"", dataVendaISO:"", quemVendeu:"", formaEntrega:"", custoEntrega:0 };
+        if(sold) return x; // vender é pelo fluxo (venda rápida ou modal)
+        return {
+          ...x,
+          vendido:false,
+          valorVenda:0, canalVenda:"", dataVendaISO:"",
+          quemVendeu:"", formaEntrega:"", custoEntrega:0,
+          pagamentoStatus:"Pendente", pagamentoPrevistoISO:""
+        };
       });
+      aplicarCustoFixoEmTodos();
       save(); render();
     }
 
-    window.startSellFlow = function(id){
-      const it = items.find(x=>x.id===id);
-      if(!it) return;
-      window.openEdit(id);
-      $("fVendido").value = "sim";
-      toggleSalesBlock(true);
-      if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
-      updateCalcPreview();
-      setTimeout(()=>$("fVenda").focus(), 50);
+    // ============================
+    // ✅ VENDA RÁPIDA
+    // ============================
+    function validateQuickSellPayload(p){
+      if(!(p.valorVenda > 0)) return "Preencha o Valor da venda.";
+      if(!p.canalVenda) return "Preencha o Canal da venda.";
+      if(!p.dataVendaISO) return "Preencha a Data da venda.";
+      if(!p.quemVendeu) return "Preencha Quem vendeu.";
+      if(!p.formaEntrega) return "Preencha a Forma de entrega.";
+      if(p.custoEntrega === null) return "Preencha o Custo entrega (pode ser 0).";
+      return null;
     }
 
+    window.openQuickSell = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      sellEditingId = id;
+
+      $("sellTitle").textContent = `Venda rápida — ${it.nomeProduto || "Produto"}`;
+      $("sellMeta").textContent = `Código: ${it.codigo || "—"} • Local: ${it.localEstoque || "—"} • Custo (auto): ${brl(custoUnitarioAtual())}`;
+
+      $("sData").value = nowISO();
+      $("sPagStatus").value = "Pendente";
+      $("sellHint").style.display = "none";
+
+      openSellModal();
+      setTimeout(() => $("sVenda").focus(), 60);
+    }
+
+    function applyQuickSell(){
+      const it = items.find(x=>x.id===sellEditingId);
+      if(!it) return;
+
+      const payload = {
+        valorVenda: parseMoney($("sVenda").value),
+        canalVenda: ($("sCanal").value || "").trim(),
+        dataVendaISO: ($("sData").value || "").trim(),
+        quemVendeu: ($("sVendedor").value || "").trim(),
+        formaEntrega: ($("sEntrega").value || "").trim(),
+        custoEntrega: (() => {
+          const raw = ($("sCustoEntrega").value || "").trim();
+          if(raw === "") return null;
+          return parseMoney(raw);
+        })(),
+        pagamentoStatus: ($("sPagStatus").value || "Pendente"),
+        pagamentoPrevistoISO: ($("sPagPrev").value || "").trim(),
+        obsExtra: ($("sObs").value || "")
+      };
+
+      const err = validateQuickSellPayload(payload);
+      if(err){
+        $("sellHint").style.display = "block";
+        alert(err);
+        return;
+      }
+
+      items = items.map(x=>{
+        if(x.id !== sellEditingId) return x;
+
+        const baseObs = String(x.observacoes || "").trim();
+        const extra = String(payload.obsExtra || "").trim();
+        const mergedObs = extra ? (baseObs ? (baseObs + "\n\n" + extra) : extra) : baseObs;
+
+        return {
+          ...x,
+          vendido: true,
+          valorVenda: payload.valorVenda,
+          canalVenda: payload.canalVenda,
+          dataVendaISO: payload.dataVendaISO,
+          quemVendeu: payload.quemVendeu,
+          formaEntrega: payload.formaEntrega,
+          custoEntrega: payload.custoEntrega,
+          pagamentoStatus: payload.pagamentoStatus,
+          pagamentoPrevistoISO: payload.pagamentoPrevistoISO,
+          observacoes: mergedObs
+        };
+      });
+
+      aplicarCustoFixoEmTodos();
+      save();
+      closeSellModal();
+      setTab("vendas");
+      render();
+    }
+
+    // ===== Export/Import =====
     function exportJSON(){
       const blob = new Blob([JSON.stringify(items,null,2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
@@ -2960,14 +1683,16 @@
     function exportCSV(){
       const header = [
         "id","codigo","nomeProduto","localEstoque","custoProduto","valorAnuncio","canalAnuncio","dataAnuncioISO",
-        "vendido","valorVenda","canalVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega","observacoes",
-        "photo1","photo2","photo3"
+        "vendido","valorVenda","canalVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega",
+        "pagamentoStatus","pagamentoPrevistoISO","observacoes","photo1","photo2","photo3"
       ];
       const rows = items.map(i=>[
         i.id, i.codigo, i.nomeProduto, i.localEstoque,
         safe(i.custoProduto), safe(i.valorAnuncio), i.canalAnuncio, i.dataAnuncioISO,
         i.vendido ? "sim" : "nao",
         safe(i.valorVenda), i.canalVenda, i.dataVendaISO, i.quemVendeu, i.formaEntrega, safe(i.custoEntrega),
+        i.pagamentoStatus || "",
+        i.pagamentoPrevistoISO || "",
         (i.observacoes || "").replaceAll("\n"," "),
         i.photos?.[0] ? "[base64]" : "",
         i.photos?.[1] ? "[base64]" : "",
@@ -2993,6 +1718,7 @@
           const parsed = JSON.parse(String(r.result||""));
           if(Array.isArray(parsed)){
             items = parsed.map(normalizeItemShape);
+            aplicarCustoFixoEmTodos();
             save(); render();
           } else {
             alert("JSON inválido: precisa ser uma lista (array) de itens.");
@@ -3002,6 +1728,56 @@
         }
       };
       r.readAsText(file);
+    }
+
+    // ============================
+    // ✅ BACKUP AUTOMÁTICO (SNAPSHOT)
+    // ============================
+    function getSnapshots(){
+      try{
+        const raw = localStorage.getItem(SNAP_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      }catch(e){
+        return [];
+      }
+    }
+    function saveSnapshots(list){
+      localStorage.setItem(SNAP_KEY, JSON.stringify(list));
+    }
+    function createSnapshot(){
+      const snaps = getSnapshots();
+      snaps.unshift({
+        ts: new Date().toISOString(),
+        items: items
+      });
+      // limita a 10 snapshots
+      while(snaps.length > 10) snaps.pop();
+      saveSnapshots(snaps);
+      alert("Ponto de restauração criado com sucesso.");
+    }
+    function restoreLastSnapshot(){
+      const snaps = getSnapshots();
+      if(!snaps.length){
+        alert("Nenhum ponto de restauração encontrado.");
+        return;
+      }
+      const s = snaps[0];
+      if(confirm("Restaurar o último ponto de restauração? Isso sobrescreve o estado atual.")){
+        items = (s.items || []).map(normalizeItemShape);
+        aplicarCustoFixoEmTodos();
+        save();
+        render();
+        alert("Restaurado com sucesso.");
+      }
+    }
+    function clearAll(){
+      if(confirm("Tem certeza que deseja LIMPAR toda a base? (Recomendado criar um ponto de restauração antes)")){
+        items = [];
+        aplicarCustoFixoEmTodos();
+        save();
+        render();
+      }
     }
 
     // ===== FOTOS (3) =====
@@ -3281,7 +2057,6 @@
       btn.addEventListener("click", () => setTab(btn.dataset.tab));
     });
 
-    // Logo volta pra Visão geral
     $("homeLogo").addEventListener("click", ()=> setTab("visao"));
 
     $("q").addEventListener("input", render);
@@ -3304,7 +2079,6 @@
 
     $("newBtn").addEventListener("click", openCreate);
 
-    // ✅ Botão "Próximo" (só no modo Novo)
     $("nextCodeBtn").addEventListener("click", ()=>{
       if(editingId) return;
       setNextCodigoIntoField();
@@ -3313,6 +2087,10 @@
     $("exportBtn").addEventListener("click", exportJSON);
     $("exportCsvBtn").addEventListener("click", exportCSV);
     $("importFile").addEventListener("change", (e)=> importJSON(e.target.files?.[0]));
+
+    $("snapshotBtn").addEventListener("click", createSnapshot);
+    $("restoreBtn").addEventListener("click", restoreLastSnapshot);
+    $("clearBtn").addEventListener("click", clearAll);
 
     document.addEventListener("click", (e)=>{
       const th = e.target.closest("th.sortable");
@@ -3341,6 +2119,9 @@
       if(!isSold){
         clearSaleFields();
         $("requiredHint").style.display = "none";
+      } else {
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        if(!$("fPagStatus").value) $("fPagStatus").value = "Pendente";
       }
       updateCalcPreview();
     });
@@ -3370,7 +2151,7 @@
       }
     });
 
-    ["fCusto","fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
+    ["fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
       $(id).addEventListener("input", updateCalcPreview);
       $(id).addEventListener("change", updateCalcPreview);
     });
@@ -3379,6 +2160,15 @@
       if(e.target === $("backdrop")) closeModal();
     });
 
+    // venda rápida
+    $("closeSell").addEventListener("click", closeSellModal);
+    $("cancelSell").addEventListener("click", closeSellModal);
+    $("confirmSell").addEventListener("click", applyQuickSell);
+    $("sellBackdrop").addEventListener("click", (e)=>{
+      if(e.target === $("sellBackdrop")) closeSellModal();
+    });
+
+    // fotos
     $("closePhoto").addEventListener("click", closePhotoModal);
     $("closePhoto2").addEventListener("click", closePhotoModal);
     $("photoBackdrop").addEventListener("click", (e)=>{
@@ -3406,10 +2196,17 @@
       if(it) renderPhotoGrid(it);
     });
 
+    // selects
     fillSelect("fCanalAnuncio", CANAIS);
     fillSelect("fCanalVenda", CANAIS, true);
     fillSelect("fVendedor", VENDEDORES, true);
     fillSelect("fEntrega", ENTREGAS, true);
+    fillSelect("fPagStatus", PAG_STATUS);
+
+    fillSelect("sCanal", CANAIS, true);
+    fillSelect("sVendedor", VENDEDORES, true);
+    fillSelect("sEntrega", ENTREGAS, true);
+    fillSelect("sPagStatus", PAG_STATUS);
 
     load();
     setChipActive();
@@ -3418,4 +2215,3 @@
   </script>
 </body>
 </html>
-
