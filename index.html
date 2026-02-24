@@ -427,8 +427,8 @@
           <input id="importFile" type="file" accept="application/json" style="display:none;">
         </label>
 
-        <button class="btn" id="configBtn" type="button" title="Configurar canais, vendedores, etc">⚙️ Configurações</button>
-        <button class="btn" id="trashBtn" type="button" title="Ver itens deletados">🗑️ Lixeira</button>
+        <button class="btn warn" id="snapshotBtn" type="button" title="Cria um ponto de restauração no navegador">🛟 Ponto de restauração</button>
+        <button class="btn" id="restoreBtn" type="button" title="Restaura o último ponto de restauração">↩️ Restaurar</button>
         <button class="btn danger" id="clearBtn" type="button" title="Apaga tudo (com confirmação)">🧹 Limpar base</button>
 
         <button class="btn primary" id="newBtn" type="button">Novo item</button>
@@ -476,5 +476,1743 @@
     </section>
 
     <!-- ESTOQUE -->
-    <section id="estoque" class="tabpane hidden
-(Content truncated due to size limit. Use line ranges to read remaining content)
+    <section id="estoque" class="tabpane hidden">
+      <div class="card">
+        <div class="head">
+          <h3>Itens em estoque</h3>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos • Vendido: venda rápida</span>
+        </div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-table="estoque" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="estoque:codigo">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="estoque:nomeProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="localEstoque" data-sort-type="text">Local <span class="sort-ind" data-ind="estoque:localEstoque">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="canalAnuncio" data-sort-type="text">Canal anúncio <span class="sort-ind" data-ind="estoque:canalAnuncio">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="dataAnuncioISO" data-sort-type="date">Data anúncio <span class="sort-ind" data-ind="estoque:dataAnuncioISO">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo (auto) <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="valorAnuncio" data-sort-type="number">Valor anúncio <span class="sort-ind" data-ind="estoque:valorAnuncio">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="lucroProj" data-sort-type="number">Lucro proj. <span class="sort-ind" data-ind="estoque:lucroProj">↕</span></th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbEstoque"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VENDAS -->
+    <section id="vendas" class="tabpane hidden">
+      <div class="card">
+        <div class="head">
+          <h3>Vendas</h3>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos • Pagamento: status e data prevista</span>
+        </div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="vendas:nomeProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="valorVenda" data-sort-type="number">Venda <span class="sort-ind" data-ind="vendas:valorVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo (auto) <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoEntrega" data-sort-type="number">Entrega <span class="sort-ind" data-ind="vendas:custoEntrega">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="lucroFinal" data-sort-type="number">Lucro <span class="sort-ind" data-ind="vendas:lucroFinal">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="canalVenda" data-sort-type="text">Canal <span class="sort-ind" data-ind="vendas:canalVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="dataVendaISO" data-sort-type="date">Data venda <span class="sort-ind" data-ind="vendas:dataVendaISO">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="tempoVenda" data-sort-type="number">Tempo (dias) <span class="sort-ind" data-ind="vendas:tempoVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="quemVendeu" data-sort-type="text">Vendedor <span class="sort-ind" data-ind="vendas:quemVendeu">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoStatus" data-sort-type="text">Pagamento <span class="sort-ind" data-ind="vendas:pagamentoStatus">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoPrevistoISO" data-sort-type="date">Previsto <span class="sort-ind" data-ind="vendas:pagamentoPrevistoISO">↕</span></th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbVendas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRÁFICOS -->
+    <section id="graficos" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Gráficos</h3><span class="muted2">Tendências e comparativos</span></div>
+        <div class="body">
+          <div class="charts-grid">
+            <div class="card">
+              <div class="head"><h3>Vendas por dia (últimos 30)</h3><span class="muted2">Quantidade</span></div>
+              <div class="body"><canvas id="cSales30" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Faturamento por dia (últimos 30)</h3><span class="muted2">R$</span></div>
+              <div class="body"><canvas id="cRevenue30" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Vendas por canal</h3><span class="muted2">Quantidade</span></div>
+              <div class="body"><canvas id="cSalesByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Lucro por canal</h3><span class="muted2">R$</span></div>
+              <div class="body"><canvas id="cProfitByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="head"><h3>Aging do estoque</h3><span class="muted2">0–6d / 7–14d / 15–30d / 30+d</span></div>
+              <div class="body"><canvas id="cStockAging" class="chart" width="900" height="260"></canvas></div>
+            </div>
+          </div>
+
+          <div class="muted2" style="margin-top:10px; font-size:12px;">
+            Observação: os gráficos são recalculados automaticamente ao editar itens, vender, importar ou duplicar.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar e Ponto de restauração para backup.</div>
+      <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos • Custo é automático</div>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRO/EDIÇÃO -->
+  <div class="modal-backdrop" id="backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="mhead">
+        <h3 id="modalTitle">Novo item</h3>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="chip" id="soldLockChip" style="display:none;" title="Itens vendidos ficam travados para não bagunçar histórico">🔒 Travado (vendido)</span>
+          <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
+        </div>
+      </div>
+
+      <div class="mbody">
+        <div class="section-title">DADOS DO PRODUTO</div>
+        <div class="form">
+          <div class="field">
+            <label>Código</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="fCodigo" placeholder="Ex: 70" style="flex:1;">
+              <button class="btn small" id="nextCodeBtn" type="button" title="Gerar próximo código">🔁 Próximo</button>
+            </div>
+          </div>
+
+          <div class="field" style="grid-column: span 2;">
+            <label>Nome do produto</label>
+            <input id="fProduto" placeholder="Ex: Camiseta Barcelona">
+          </div>
+
+          <div class="field">
+            <label>Local de estoque</label>
+            <input id="fLocalEstoque" placeholder="Ex: Prateleira A / Caixa 2 / Loja">
+          </div>
+
+          <div class="field">
+            <label>Custo do produto (automático)</label>
+            <input id="fCusto" placeholder="Automático" disabled>
+          </div>
+
+          <div class="field">
+            <label>Valor anúncio</label>
+            <input id="fAnuncio" placeholder="Ex: 150">
+          </div>
+
+          <div class="field">
+            <label>Canal do anúncio</label>
+            <select id="fCanalAnuncio"></select>
+          </div>
+
+          <div class="field">
+            <label>Data do anúncio</label>
+            <input id="fDataAnuncio" type="date">
+          </div>
+
+          <div class="field">
+            <label>Vendido?</label>
+            <select id="fVendido">
+              <option value="nao">Não</option>
+              <option value="sim">Sim</option>
+            </select>
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Observações</label>
+            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, pagamento, etc."></textarea>
+          </div>
+        </div>
+
+        <div id="salesBlock" style="display:none;">
+          <div class="hr"></div>
+          <div class="section-title">DADOS DA VENDA (obrigatórios quando Vendido = Sim)</div>
+
+          <div class="form">
+            <div class="field">
+              <label>Valor da venda *</label>
+              <input id="fVenda" placeholder="Ex: 145">
+            </div>
+
+            <div class="field">
+              <label>Canal da venda *</label>
+              <select id="fCanalVenda"></select>
+            </div>
+
+            <div class="field">
+              <label>Data da venda *</label>
+              <input id="fDataVenda" type="date">
+            </div>
+
+            <div class="field">
+              <label>Quem vendeu *</label>
+              <select id="fVendedor"></select>
+            </div>
+
+            <div class="field">
+              <label>Forma de entrega *</label>
+              <select id="fEntrega"></select>
+            </div>
+
+            <div class="field">
+              <label>Custo entrega *</label>
+              <input id="fCustoEntrega" placeholder="Ex: 5,00">
+            </div>
+
+            <div class="field">
+              <label>Status pagamento</label>
+              <select id="fPagStatus"></select>
+            </div>
+
+            <div class="field">
+              <label>Pagamento previsto</label>
+              <input id="fPagPrev" type="date">
+            </div>
+          </div>
+
+          <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
+            Preencha todos os campos obrigatórios da venda para salvar como “Vendido”.
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="head"><h3>Prévia de cálculos</h3><span class="muted2">Atualiza conforme você digita</span></div>
+          <div class="body" id="calcPreview"></div>
+        </div>
+      </div>
+
+      <div class="mfoot">
+        <button class="btn" id="cancelBtn" type="button">Cancelar</button>
+        <button class="btn danger" id="deleteBtn" type="button" style="display:none;">Excluir</button>
+        <button class="btn primary" id="saveBtn" type="button">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VENDA RÁPIDA -->
+  <div class="modal-backdrop" id="sellBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
+      <div class="mhead">
+        <h3 id="sellTitle">Venda rápida</h3>
+        <button class="btn small" id="closeSell" type="button" title="Fechar">X</button>
+      </div>
+      <div class="mbody">
+        <div class="muted2" id="sellMeta">—</div>
+
+        <div class="hr"></div>
+        <div class="section-title">DADOS DA VENDA</div>
+
+        <div class="form">
+          <div class="field">
+            <label>Valor da venda *</label>
+            <input id="sVenda" placeholder="Ex: 145">
+          </div>
+
+          <div class="field">
+            <label>Canal da venda *</label>
+            <select id="sCanal"></select>
+          </div>
+
+          <div class="field">
+            <label>Data da venda *</label>
+            <input id="sData" type="date">
+          </div>
+
+          <div class="field">
+            <label>Quem vendeu *</label>
+            <select id="sVendedor"></select>
+          </div>
+
+          <div class="field">
+            <label>Forma de entrega *</label>
+            <select id="sEntrega"></select>
+          </div>
+
+          <div class="field">
+            <label>Custo entrega *</label>
+            <input id="sCustoEntrega" placeholder="Ex: 0,00">
+          </div>
+
+          <div class="field">
+            <label>Status pagamento</label>
+            <select id="sPagStatus"></select>
+          </div>
+
+          <div class="field">
+            <label>Pagamento previsto</label>
+            <input id="sPagPrev" type="date">
+          </div>
+
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Observações (opcional)</label>
+            <textarea id="sObs" placeholder="Ex: Vendido para X, pagamento em tal data..."></textarea>
+          </div>
+        </div>
+
+        <div id="sellHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 8px; display:none;">
+          Preencha os campos obrigatórios (*) para concluir a venda.
+        </div>
+
+        <div class="muted2" style="margin-top:10px; font-size:12px;">
+          Dica: o custo do produto é automático (R$ 6.050,00 ÷ quantidade total de itens).
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="btn" id="cancelSell" type="button">Cancelar</button>
+        <button class="btn ok" id="confirmSell" type="button">✅ Concluir venda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FOTOS (3 por produto) -->
+  <div class="modal-backdrop" id="photoBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
+      <div class="mhead">
+        <h3 id="photoTitle">Fotos do produto</h3>
+        <button class="btn small" id="closePhoto" type="button" title="Fechar">X</button>
+      </div>
+      <div class="mbody">
+        <div class="muted2" id="photoMetaLine">—</div>
+
+        <div style="margin-top:12px;" class="photo-grid" id="photoGrid"></div>
+
+        <div class="photo-actions">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <label class="btn primary">
+              Anexar na foto selecionada
+              <input id="photoFile" type="file" accept="image/*" style="display:none;">
+            </label>
+            <button class="btn danger" id="removeSelectedPhotoBtn" type="button">Remover foto selecionada</button>
+          </div>
+          <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
+        </div>
+
+        <div class="muted2" style="margin-top:10px; font-size:12px;">
+          As fotos ficam salvas no seu navegador (junto do item). Ao exportar, elas vão no JSON também.
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="btn" id="closePhoto2" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "renova_lotes_html_v6";
+    const SNAP_KEY = STORAGE_KEY + "_snapshots";
+
+    // ✅ CUSTO FIXO TOTAL (divide pela quantidade de produtos cadastrados)
+    const TOTAL_CUSTO_FIXO = 6050.00;
+
+    const CANAIS = ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"];
+    const VENDEDORES = ["Dennis","Calebe","David","Outro"];
+    const ENTREGAS = ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"];
+    const PAG_STATUS = ["Pendente","Pago","Parcial","A combinar","Sem informação"];
+
+    // Seed (vai ser substituído pelos seus dados quando você importar o JSON)
+    const SEED = [
+      {
+        "id":"bfdf9bc3d924119c7845a86e",
+        "codigo":"1",
+        "nomeProduto":"Camiseta Milan",
+        "localEstoque":"Dennis",
+        "custoProduto":0,
+        "valorAnuncio":150,
+        "canalAnuncio":"Outro",
+        "dataAnuncioISO":"",
+        "vendido":false,
+        "valorVenda":0,
+        "canalVenda":"",
+        "dataVendaISO":"",
+        "quemVendeu":"",
+        "formaEntrega":"",
+        "custoEntrega":0,
+        "pagamentoStatus":"Pendente",
+        "pagamentoPrevistoISO":"",
+        "observacoes":"Camiseta do Milan - Número 80 Ronaldinho Gaúcho ",
+        "photos":["","",""]
+      }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    function uid(){ return (Math.random().toString(16).slice(2) + Date.now().toString(16)); }
+    function safe(n){ return Number.isFinite(n) ? n : 0; }
+
+    function parseMoney(v){
+      if (v === null || v === undefined) return 0;
+      if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+      const s = String(v).replace(/R\$\s?/g,"").replace(/\./g,"").replace(/,/g,".").trim();
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function brl(n){
+      const num = Number.isFinite(n) ? n : 0;
+      return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(num);
+    }
+    function pct(p){
+      const num = Number.isFinite(p) ? p : 0;
+      return new Intl.NumberFormat("pt-BR",{style:"percent",maximumFractionDigits:1}).format(num);
+    }
+    function daysBetweenISO(a,b){
+      if(!a || !b) return null;
+      const da = new Date(a + "T00:00:00");
+      const db = new Date(b + "T00:00:00");
+      const diff = db.getTime() - da.getTime();
+      if(!Number.isFinite(diff)) return null;
+      return Math.round(diff / (1000*60*60*24));
+    }
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+    function dateValue(iso){
+      if(!iso) return null;
+      const d = new Date(iso + "T00:00:00");
+      return Number.isFinite(d.getTime()) ? d.getTime() : null;
+    }
+    function nowISO(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // ============================
+    // ✅ CUSTO FIXO AUTOMÁTICO
+    // ============================
+    function custoUnitarioAtual(){
+      const qtd = Math.max(1, items.length);
+      return TOTAL_CUSTO_FIXO / qtd;
+    }
+    function aplicarCustoFixoEmTodos(){
+      const cu = custoUnitarioAtual();
+      items = items.map(x => ({ ...x, custoProduto: cu }));
+    }
+
+    // ============================
+    // ✅ CÓDIGO AUTO + NUMÉRICO
+    // ============================
+    function extractCodigoNumber(codigo){
+      const raw = String(codigo ?? "").trim();
+      const m = raw.match(/^\d+/);
+      if(!m) return null;
+      const n = Number(m[0]);
+      return Number.isFinite(n) ? n : null;
+    }
+    function getNextCodigo(){
+      const nums = items.map(i => extractCodigoNumber(i.codigo)).filter(n => n !== null);
+      const max = nums.length ? Math.max(...nums) : 0;
+      return String(max + 1);
+    }
+    function setNextCodigoIntoField(){
+      $("fCodigo").value = getNextCodigo();
+    }
+
+    let items = [];
+    let editingId = null;
+
+    let photoEditingId = null;
+    let activePhotoSlot = 0;
+
+    let sellEditingId = null;
+
+    const filterState = { mode: "all" };
+
+    const sortState = {
+      estoque: { key: "codigo", dir: "asc", type: "number" },
+      vendas:  { key: "dataVendaISO", dir: "desc", type: "date" }
+    };
+
+    function normalizeItemShape(x){
+      const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+      while(photos.length < 3) photos.push("");
+
+      if(x.photoDataUrl && !photos.some(Boolean)){
+        photos[0] = String(x.photoDataUrl || "");
+      }
+
+      return {
+        id: x.id || uid(),
+        codigo: String(x.codigo ?? "").trim(),
+        nomeProduto: String(x.nomeProduto ?? "").trim(),
+        localEstoque: String(x.localEstoque ?? ""),
+        custoProduto: safe(Number(x.custoProduto)),
+        valorAnuncio: safe(Number(x.valorAnuncio)),
+        canalAnuncio: String(x.canalAnuncio ?? ""),
+        dataAnuncioISO: String(x.dataAnuncioISO ?? ""),
+        vendido: Boolean(x.vendido),
+        valorVenda: safe(Number(x.valorVenda)),
+        canalVenda: String(x.canalVenda ?? ""),
+        dataVendaISO: String(x.dataVendaISO ?? ""),
+        quemVendeu: String(x.quemVendeu ?? ""),
+        formaEntrega: String(x.formaEntrega ?? ""),
+        custoEntrega: safe(Number(x.custoEntrega)),
+        pagamentoStatus: String(x.pagamentoStatus ?? "Pendente"),
+        pagamentoPrevistoISO: String(x.pagamentoPrevistoISO ?? ""),
+        observacoes: String(x.observacoes ?? ""),
+        photos
+      };
+    }
+
+    function save(){
+      aplicarCustoFixoEmTodos();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(Array.isArray(parsed)){
+            items = parsed.map(normalizeItemShape);
+            aplicarCustoFixoEmTodos();
+            return;
+          }
+        }
+      }catch(e){}
+      items = SEED.map(normalizeItemShape);
+      aplicarCustoFixoEmTodos();
+      save();
+    }
+
+    function setTab(tab){
+      document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      ["visao","estoque","vendas","graficos"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      render();
+    }
+
+    function compute(){
+      const sold = items.filter(i => i.vendido && safe(i.valorVenda) > 0);
+      const totalVendas = sold.length;
+
+      const faturamento = sold.reduce((a,i)=>a+safe(i.valorVenda),0);
+      const custoProdutos = sold.reduce((a,i)=>a+safe(i.custoProduto),0);
+      const custoEntregas = sold.reduce((a,i)=>a+safe(i.custoEntrega),0);
+      const lucroFinal = sold.reduce((a,i)=>a + safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega),0);
+
+      const ticketMedio = totalVendas ? faturamento/totalVendas : 0;
+      const lucroMedio = totalVendas ? lucroFinal/totalVendas : 0;
+
+      const margemLucro = faturamento ? lucroFinal/faturamento : 0;
+      const entregaPct = faturamento ? custoEntregas/faturamento : 0;
+      const roiProdutos = custoProdutos ? lucroFinal/custoProdutos : 0;
+
+      const tempos = sold.map(i => daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO)).filter(d => typeof d==="number");
+      const tempoMedio = tempos.length ? (tempos.reduce((a,b)=>a+b,0)/tempos.length) : null;
+
+      const totalItens = items.length;
+      const totalEstoque = items.filter(i => !i.vendido).length;
+      const taxaVenda = totalItens ? totalVendas/totalItens : 0;
+
+      const valorAnunciadoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.valorAnuncio),0);
+      const custoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.custoProduto),0);
+      const potencialLucroEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
+
+      const pagos = sold.filter(i => (i.pagamentoStatus||"").toLowerCase() === "pago").length;
+      const pendentes = sold.filter(i => (i.pagamentoStatus||"").toLowerCase() === "pendente").length;
+
+      return {
+        totalVendas,faturamento,custoProdutos,custoEntregas,lucroFinal,
+        ticketMedio,lucroMedio,margemLucro,entregaPct,roiProdutos,
+        tempoMedio,totalItens,totalEstoque,taxaVenda,
+        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque,
+        pagos, pendentes
+      };
+    }
+
+    function renderKPIs(m){
+      const groups = {
+        kpiVendas: [
+          { label:"Faturamento", value:brl(m.faturamento), hint:"Soma do valor de venda" },
+          { label:"Lucro final", value:brl(m.lucroFinal), hint:"Venda − custo − entrega" },
+          { label:"Margem", value:pct(m.margemLucro), hint:"Lucro / faturamento" },
+          { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Faturamento / vendas" },
+          { label:"Lucro médio", value:brl(m.lucroMedio), hint:"Lucro / vendas" },
+          { label:"Pagamentos (pago)", value:String(m.pagos), hint:"Vendas com status = Pago" },
+          { label:"Pagamentos (pendente)", value:String(m.pendentes), hint:"Vendas com status = Pendente" },
+        ],
+        kpiCustos: [
+          { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Soma do custo (vendidos)" },
+          { label:"Custo entregas", value:brl(m.custoEntregas), hint:"Soma entrega (vendidos)" },
+          { label:"% entrega", value:pct(m.entregaPct), hint:"Entrega / faturamento" },
+          { label:"ROI", value:pct(m.roiProdutos), hint:"Lucro / custo produtos" },
+        ],
+        kpiEstoque: [
+          { label:"Em estoque", value:String(m.totalEstoque), hint:"Itens não vendidos" },
+          { label:"Custo do estoque", value:brl(m.custoEstoque), hint:"Soma do custo (estoque)" },
+          { label:"Valor anunciado (estoque)", value:brl(m.valorAnunciadoEstoque), hint:"Soma do anúncio (estoque)" },
+          { label:"Potencial lucro (estoque)", value:brl(m.potencialLucroEstoque), hint:"(Anúncio − custo) no estoque" },
+        ],
+        kpiOperacao: [
+          { label:"Total de vendas", value:String(m.totalVendas), hint:"Itens vendidos com valor" },
+          { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas / itens" },
+          { label:"Tempo médio", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:"Anúncio → venda" },
+          { label:"Itens cadastrados", value:String(m.totalItens), hint:"Total na base" },
+        ],
+        kpiCustoFixo: [
+          { label:"Total fixo", value: brl(TOTAL_CUSTO_FIXO), hint:"Valor total gasto" },
+          { label:"Quantidade de produtos", value: String(Math.max(1, items.length)), hint:"Total de itens cadastrados" },
+          { label:"Custo unitário (auto)", value: brl(custoUnitarioAtual()), hint:"Total ÷ quantidade" },
+          { label:"Impacto do custo", value: (items.length<=1?"—":"↓ ao aumentar itens"), hint:"Quanto mais itens, menor o custo unitário" },
+        ],
+      };
+
+      Object.entries(groups).forEach(([gridId, list])=>{
+        const grid = $(gridId);
+        grid.innerHTML = "";
+        list.forEach(k=>{
+          const div = document.createElement("div");
+          div.className = "kpi";
+          div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+          grid.appendChild(div);
+        });
+      });
+    }
+
+    function renderQuick(m){
+      const estoque = items.filter(i=>!i.vendido).length;
+      $("quickSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="chip ok">🧾 Vendas: <b>${m.totalVendas}</b></span>
+          <span class="chip">💰 Faturamento: <b>${brl(m.faturamento)}</b></span>
+          <span class="chip">✅ Lucro: <b>${brl(m.lucroFinal)}</b></span>
+          <span class="chip">📦 Estoque: <b>${estoque}</b></span>
+          <span class="chip warn">🧱 Custo unitário (auto): <b>${brl(custoUnitarioAtual())}</b></span>
+          <span class="chip">⏱ Tempo médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
+        </div>
+      `;
+    }
+
+    // ===== filtros =====
+    function setChipActive(){
+      $("fltAll").classList.toggle("active", filterState.mode==="all");
+      $("fltStock").classList.toggle("active", filterState.mode==="stock");
+      $("fltSold").classList.toggle("active", filterState.mode==="sold");
+    }
+
+    function getFiltered(){
+      const q = ($("q").value || "").trim().toLowerCase();
+      let base = items;
+
+      if(filterState.mode === "stock") base = base.filter(i=>!i.vendido);
+      if(filterState.mode === "sold") base = base.filter(i=>i.vendido);
+
+      if(!q) return base;
+
+      return base.filter(i=>{
+        const hay = [
+          i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,
+          i.pagamentoStatus,i.pagamentoPrevistoISO,i.observacoes
+        ].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    // ===== ordenação =====
+    function normText(v){ return String(v ?? "").toLowerCase(); }
+
+    function getSortValue(item, key, type){
+      if(key === "lucroProj") return safe(item.valorAnuncio) - safe(item.custoProduto);
+      if(key === "lucroFinal") return safe(item.valorVenda) - safe(item.custoProduto) - safe(item.custoEntrega);
+      if(key === "tempoVenda") return daysBetweenISO(item.dataAnuncioISO, item.dataVendaISO) ?? -1;
+      if(key === "codigo"){
+        const n = extractCodigoNumber(item.codigo);
+        return n === null ? 1e15 : n;
+      }
+
+      const v = item[key];
+      if(type === "number") return safe(Number(v));
+      if(type === "date") return dateValue(v) ?? -1;
+      return normText(v);
+    }
+
+    function sortList(list, tableName){
+      const st = sortState[tableName];
+      const dirMul = st.dir === "asc" ? 1 : -1;
+      return [...list].sort((a,b)=>{
+        const va = getSortValue(a, st.key, st.type);
+        const vb = getSortValue(b, st.key, st.type);
+        if(st.type === "text"){
+          if(va < vb) return -1*dirMul;
+          if(va > vb) return  1*dirMul;
+          return 0;
+        }
+        return (va - vb) * dirMul;
+      });
+    }
+
+    function setSortIndicator(tableName){
+      document.querySelectorAll(`[data-ind^="${tableName}:"]`).forEach(el => el.textContent = "↕");
+      const st = sortState[tableName];
+      const ind = document.querySelector(`[data-ind="${tableName}:${st.key}"]`);
+      if(ind) ind.textContent = st.dir === "asc" ? "▲" : "▼";
+    }
+
+    function photoCount(it){
+      const arr = Array.isArray(it.photos) ? it.photos : ["","",""];
+      return arr.filter(Boolean).length;
+    }
+
+    // ===== DUPLICAR =====
+    function nextCopyCode(baseCode){
+      const b = String(baseCode || "").trim();
+      if(!b) return "COPIA-1";
+      const prefix = b + "-";
+      const existing = items
+        .map(x=>String(x.codigo||""))
+        .filter(c=>c.startsWith(prefix))
+        .map(c=>{
+          const tail = c.slice(prefix.length);
+          const n = Number(tail);
+          return Number.isFinite(n) ? n : null;
+        })
+        .filter(n=>n!==null);
+      const next = (existing.length ? Math.max(...existing) : 0) + 1;
+      return `${b}-${next}`;
+    }
+
+    window.duplicateItem = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+
+      const copy = JSON.parse(JSON.stringify(it));
+      copy.id = uid();
+      copy.codigo = nextCopyCode(it.codigo);
+
+      copy.vendido = false;
+      copy.valorVenda = 0;
+      copy.canalVenda = "";
+      copy.dataVendaISO = "";
+      copy.quemVendeu = "";
+      copy.formaEntrega = "";
+      copy.custoEntrega = 0;
+      copy.pagamentoStatus = "Pendente";
+      copy.pagamentoPrevistoISO = "";
+
+      items.unshift(normalizeItemShape(copy));
+      aplicarCustoFixoEmTodos();
+      save(); render();
+      window.openEdit(copy.id);
+    }
+
+    // ===== tabelas =====
+    function renderTables(filtered){
+      const estoqueBase = filtered.filter(i=>!i.vendido);
+      const vendasBase  = filtered.filter(i=>i.vendido);
+
+      const estoque = sortList(estoqueBase, "estoque");
+      const vendas  = sortList(vendasBase, "vendas");
+
+      setSortIndicator("estoque");
+      setSortIndicator("vendas");
+
+      const tbE = $("tbEstoque");
+      tbE.innerHTML = "";
+      if(!estoque.length){
+        tbE.innerHTML = `<tr><td colspan="9" class="muted">Nenhum item em estoque com o filtro atual.</td></tr>`;
+      } else {
+        estoque.forEach(i=>{
+          const lucroProj = safe(i.valorAnuncio) - safe(i.custoProduto);
+          const pc = photoCount(i);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(i.codigo)}</b></td>
+            <td>
+              <button class="prod-link" type="button" onclick="openPhoto('${i.id}')">${escapeHtml(i.nomeProduto)}</button>
+              ${pc ? `<span class="muted2" style="margin-left:8px;">📷 ${pc}/3</span>` : ``}
+            </td>
+            <td>${escapeHtml(i.localEstoque || "—")}</td>
+            <td>${escapeHtml(i.canalAnuncio || "—")}</td>
+            <td>${i.dataAnuncioISO || "—"}</td>
+            <td>${brl(safe(i.custoProduto))}</td>
+            <td>${brl(safe(i.valorAnuncio))}</td>
+            <td>${brl(lucroProj)}</td>
+            <td>
+              <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
+              <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
+              <button class="btn small ok" type="button" onclick="openQuickSell('${i.id}')">✅ Vendido</button>
+              <button class="btn small danger" type="button" onclick="removeItem('${i.id}')">🗑</button>
+            </td>
+          `;
+          tbE.appendChild(tr);
+        });
+      }
+
+      const tbV = $("tbVendas");
+      tbV.innerHTML = "";
+      if(!vendas.length){
+        tbV.innerHTML = `<tr><td colspan="13" class="muted">Nenhuma venda com o filtro atual.</td></tr>`;
+      } else {
+        vendas.forEach(i=>{
+          const lucroFinal = safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega);
+          const tempo = daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO);
+          const pc = photoCount(i);
+
+          const ps = (i.pagamentoStatus || "—");
+          const psLower = ps.toLowerCase();
+          const psChipClass = psLower === "pago" ? "ok" : (psLower === "pendente" ? "no" : "warn");
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(i.codigo)}</b></td>
+            <td>
+              <button class="prod-link" type="button" onclick="openPhoto('${i.id}')">${escapeHtml(i.nomeProduto)}</button>
+              ${pc ? `<span class="muted2" style="margin-left:8px;">📷 ${pc}/3</span>` : ``}
+            </td>
+            <td>${brl(safe(i.valorVenda))}</td>
+            <td>${brl(safe(i.custoProduto))}</td>
+            <td>${brl(safe(i.custoEntrega))}</td>
+            <td><b>${brl(lucroFinal)}</b></td>
+            <td>${escapeHtml(i.canalVenda || "—")}</td>
+            <td>${i.dataVendaISO || "—"}</td>
+            <td>${tempo===null ? "—" : tempo}</td>
+            <td>${escapeHtml(i.quemVendeu || "—")}</td>
+            <td><span class="chip ${psChipClass}" style="cursor:default;">${escapeHtml(ps)}</span></td>
+            <td>${i.pagamentoPrevistoISO || "—"}</td>
+            <td>
+              <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
+              <button class="btn small" type="button" onclick="markSold('${i.id}', false)">↩️ Estoque</button>
+              <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
+              <button class="btn small danger" type="button" onclick="removeItem('${i.id}')">🗑</button>
+            </td>
+          `;
+          tbV.appendChild(tr);
+        });
+      }
+    }
+
+    // ===== modal =====
+    function fillSelect(id, list, allowEmpty=false){
+      const s = $(id);
+      s.innerHTML = "";
+      if(allowEmpty){
+        const opt = document.createElement("option");
+        opt.value = ""; opt.textContent = "—";
+        s.appendChild(opt);
+      }
+      list.forEach(v=>{
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = v;
+        s.appendChild(opt);
+      });
+    }
+
+    function openModal(title){
+      $("modalTitle").textContent = title;
+      $("backdrop").style.display = "grid";
+    }
+    function closeModal(){
+      $("backdrop").style.display = "none";
+      editingId = null;
+      $("deleteBtn").style.display = "none";
+      $("requiredHint").style.display = "none";
+      $("soldLockChip").style.display = "none";
+      applySoldLockUI(false);
+    }
+
+    function openSellModal(){
+      $("sellBackdrop").style.display = "grid";
+    }
+    function closeSellModal(){
+      $("sellBackdrop").style.display = "none";
+      sellEditingId = null;
+      $("sellHint").style.display = "none";
+      ["sVenda","sCanal","sData","sVendedor","sEntrega","sCustoEntrega","sPagStatus","sPagPrev","sObs"].forEach(id=>{
+        const el = $(id);
+        if(!el) return;
+        if(el.tagName === "SELECT") el.value = "";
+        else el.value = "";
+      });
+    }
+
+    function clearSaleFields(){
+      $("fVenda").value = "";
+      $("fCanalVenda").value = "";
+      $("fDataVenda").value = "";
+      $("fVendedor").value = "";
+      $("fEntrega").value = "";
+      $("fCustoEntrega").value = "";
+      $("fPagStatus").value = "Pendente";
+      $("fPagPrev").value = "";
+    }
+
+    function toggleSalesBlock(show){
+      $("salesBlock").style.display = show ? "block" : "none";
+      ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagStatus","fPagPrev"].forEach(id=>{
+        $(id).disabled = !show;
+      });
+    }
+
+    function applySoldLockUI(isSoldLocked){
+      // ✅ trava campos do produto quando vendido (para não bagunçar histórico)
+      const lockIds = ["fProduto","fLocalEstoque","fAnuncio","fCanalAnuncio","fDataAnuncio"];
+      lockIds.forEach(id => $(id).disabled = isSoldLocked);
+
+      // custo é sempre travado
+      $("fCusto").disabled = true;
+
+      // vendido? (se já está vendido, não deixa voltar pra "não" aqui — isso é feito pelo botão "↩️ Estoque")
+      $("fVendido").disabled = isSoldLocked;
+
+      // código já é travado ao editar
+    }
+
+    function resetForm(){
+      $("fCodigo").value = "";
+      $("fProduto").value = "";
+      $("fLocalEstoque").value = "";
+      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
+      $("fAnuncio").value = "";
+      $("fCanalAnuncio").value = "Facebook";
+      $("fDataAnuncio").value = "";
+      $("fVendido").value = "nao";
+      $("fObs").value = "";
+      clearSaleFields();
+      toggleSalesBlock(false);
+      $("soldLockChip").style.display = "none";
+      applySoldLockUI(false);
+      updateCalcPreview();
+    }
+
+    function openCreate(){
+      editingId = null;
+      $("deleteBtn").style.display = "none";
+      resetForm();
+
+      $("fCodigo").disabled = false;
+      $("nextCodeBtn").disabled = false;
+      setNextCodigoIntoField();
+
+      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
+
+      openModal("Novo item");
+      setTimeout(()=>$("fProduto").focus(), 50);
+    }
+
+    window.openEdit = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      editingId = id;
+      $("deleteBtn").style.display = "inline-flex";
+
+      // trava código ao editar
+      $("fCodigo").disabled = true;
+      $("nextCodeBtn").disabled = true;
+
+      $("fCodigo").value = it.codigo || "";
+      $("fProduto").value = it.nomeProduto || "";
+      $("fLocalEstoque").value = it.localEstoque || "";
+
+      // custo sempre automático
+      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
+
+      $("fAnuncio").value = String(safe(it.valorAnuncio)).replace(".",",");
+      $("fCanalAnuncio").value = it.canalAnuncio || "Facebook";
+      $("fDataAnuncio").value = it.dataAnuncioISO || "";
+      $("fObs").value = it.observacoes || "";
+
+      const sold = !!it.vendido;
+      $("fVendido").value = sold ? "sim" : "nao";
+      toggleSalesBlock(sold);
+
+      if(sold){
+        $("fVenda").value = it.valorVenda ? String(safe(it.valorVenda)).replace(".",",") : "";
+        $("fCanalVenda").value = it.canalVenda || "";
+        $("fDataVenda").value = it.dataVendaISO || "";
+        $("fVendedor").value = it.quemVendeu || "";
+        $("fEntrega").value = it.formaEntrega || "";
+        $("fCustoEntrega").value = String(safe(it.custoEntrega)).replace(".",",");
+        $("fPagStatus").value = it.pagamentoStatus || "Pendente";
+        $("fPagPrev").value = it.pagamentoPrevistoISO || "";
+
+        $("soldLockChip").style.display = "inline-flex";
+        applySoldLockUI(true);
+      } else {
+        clearSaleFields();
+        $("soldLockChip").style.display = "none";
+        applySoldLockUI(false);
+      }
+
+      $("requiredHint").style.display = "none";
+      updateCalcPreview();
+      openModal("Editar item");
+    }
+
+    function readForm(){
+      // custo SEMPRE automático
+      const custo = custoUnitarioAtual();
+      const anuncio = parseMoney($("fAnuncio").value);
+      const vendido = $("fVendido").value === "sim";
+
+      const venda = parseMoney($("fVenda").value);
+      const custoEntrega = parseMoney($("fCustoEntrega").value);
+
+      const itemAtual = editingId ? items.find(x=>x.id===editingId) : null;
+
+      return {
+        id: editingId || uid(),
+        codigo: ($("fCodigo").value || "").trim(),
+        nomeProduto: ($("fProduto").value || "").trim(),
+        localEstoque: ($("fLocalEstoque").value || "").trim(),
+        custoProduto: custo,
+        valorAnuncio: anuncio,
+        canalAnuncio: ($("fCanalAnuncio").value || "").trim(),
+        dataAnuncioISO: ($("fDataAnuncio").value || "").trim(),
+        observacoes: ($("fObs").value || ""),
+        vendido,
+        valorVenda: vendido ? venda : 0,
+        canalVenda: vendido ? ($("fCanalVenda").value || "").trim() : "",
+        dataVendaISO: vendido ? ($("fDataVenda").value || "").trim() : "",
+        quemVendeu: vendido ? ($("fVendedor").value || "").trim() : "",
+        formaEntrega: vendido ? ($("fEntrega").value || "").trim() : "",
+        custoEntrega: vendido ? custoEntrega : 0,
+        pagamentoStatus: vendido ? ($("fPagStatus").value || "Pendente") : "Pendente",
+        pagamentoPrevistoISO: vendido ? (($("fPagPrev").value || "").trim()) : "",
+        photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : ["","",""]
+      };
+    }
+
+    function validateProduct(it){
+      if(!it.codigo) return "Preencha o Código.";
+      if(!it.nomeProduto) return "Preencha o Nome do produto.";
+
+      const codeNorm = String(it.codigo).trim().toLowerCase();
+      const dup = items.some(x => x.id !== it.id && String(x.codigo||"").trim().toLowerCase() === codeNorm);
+      if(dup) return "Este Código já existe. Use outro (ou clique em 🔁 Próximo no Novo item).";
+
+      return null;
+    }
+
+    function validateSaleIfNeeded(it){
+      if(!it.vendido) return null;
+      if(!(it.valorVenda > 0)) return "Preencha o Valor da venda.";
+      if(!it.canalVenda) return "Preencha o Canal da venda.";
+      if(!it.dataVendaISO) return "Preencha a Data da venda.";
+      if(!it.quemVendeu) return "Preencha Quem vendeu.";
+      if(!it.formaEntrega) return "Preencha a Forma de entrega.";
+      const raw = ($("fCustoEntrega").value || "").trim();
+      if(raw === "") return "Preencha o Custo entrega (pode ser 0).";
+      return null;
+    }
+
+    function updateCalcPreview(){
+      const custo = custoUnitarioAtual();
+      $("fCusto").value = String(custo).replace(".",",");
+
+      const anuncio = parseMoney($("fAnuncio").value);
+      const venda = parseMoney($("fVenda").value);
+      const custoEntrega = parseMoney($("fCustoEntrega").value);
+
+      const lucroProj = anuncio - custo;
+      const lucroFinal = venda - custo - custoEntrega;
+      const tempo = daysBetweenISO($("fDataAnuncio").value, $("fDataVenda").value);
+
+      $("calcPreview").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span class="chip">🧱 Custo (auto): <b>${brl(custo)}</b></span>
+          <span class="chip">📣 Lucro projetado: <b>${brl(lucroProj)}</b></span>
+          <span class="chip">✅ Lucro final: <b>${brl(lucroFinal)}</b></span>
+          <span class="chip">⏱ Tempo venda: <b>${tempo===null ? "—" : (tempo+" dias")}</b></span>
+        </div>
+        <div class="muted2" style="margin-top:10px;">
+          Fórmulas: custo = 6.050 ÷ itens • lucro proj. = anúncio − custo • lucro final = venda − custo − entrega
+        </div>
+      `;
+    }
+
+    function upsert(it){
+      const idx = items.findIndex(x=>x.id===it.id);
+      if(idx>=0) items[idx]=normalizeItemShape(it); else items.unshift(normalizeItemShape(it));
+      aplicarCustoFixoEmTodos();
+      save();
+      render();
+    }
+
+    window.removeItem = function(id){
+      items = items.filter(x=>x.id!==id);
+      aplicarCustoFixoEmTodos();
+      save(); render();
+    }
+
+    window.markSold = function(id, sold){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        if(sold) return x; // vender é pelo fluxo (venda rápida ou modal)
+        return {
+          ...x,
+          vendido:false,
+          valorVenda:0, canalVenda:"", dataVendaISO:"",
+          quemVendeu:"", formaEntrega:"", custoEntrega:0,
+          pagamentoStatus:"Pendente", pagamentoPrevistoISO:""
+        };
+      });
+      aplicarCustoFixoEmTodos();
+      save(); render();
+    }
+
+    // ============================
+    // ✅ VENDA RÁPIDA
+    // ============================
+    function validateQuickSellPayload(p){
+      if(!(p.valorVenda > 0)) return "Preencha o Valor da venda.";
+      if(!p.canalVenda) return "Preencha o Canal da venda.";
+      if(!p.dataVendaISO) return "Preencha a Data da venda.";
+      if(!p.quemVendeu) return "Preencha Quem vendeu.";
+      if(!p.formaEntrega) return "Preencha a Forma de entrega.";
+      if(p.custoEntrega === null) return "Preencha o Custo entrega (pode ser 0).";
+      return null;
+    }
+
+    window.openQuickSell = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      sellEditingId = id;
+
+      $("sellTitle").textContent = `Venda rápida — ${it.nomeProduto || "Produto"}`;
+      $("sellMeta").textContent = `Código: ${it.codigo || "—"} • Local: ${it.localEstoque || "—"} • Custo (auto): ${brl(custoUnitarioAtual())}`;
+
+      $("sData").value = nowISO();
+      $("sPagStatus").value = "Pendente";
+      $("sellHint").style.display = "none";
+
+      openSellModal();
+      setTimeout(() => $("sVenda").focus(), 60);
+    }
+
+    function applyQuickSell(){
+      const it = items.find(x=>x.id===sellEditingId);
+      if(!it) return;
+
+      const payload = {
+        valorVenda: parseMoney($("sVenda").value),
+        canalVenda: ($("sCanal").value || "").trim(),
+        dataVendaISO: ($("sData").value || "").trim(),
+        quemVendeu: ($("sVendedor").value || "").trim(),
+        formaEntrega: ($("sEntrega").value || "").trim(),
+        custoEntrega: (() => {
+          const raw = ($("sCustoEntrega").value || "").trim();
+          if(raw === "") return null;
+          return parseMoney(raw);
+        })(),
+        pagamentoStatus: ($("sPagStatus").value || "Pendente"),
+        pagamentoPrevistoISO: ($("sPagPrev").value || "").trim(),
+        obsExtra: ($("sObs").value || "")
+      };
+
+      const err = validateQuickSellPayload(payload);
+      if(err){
+        $("sellHint").style.display = "block";
+        alert(err);
+        return;
+      }
+
+      items = items.map(x=>{
+        if(x.id !== sellEditingId) return x;
+
+        const baseObs = String(x.observacoes || "").trim();
+        const extra = String(payload.obsExtra || "").trim();
+        const mergedObs = extra ? (baseObs ? (baseObs + "\n\n" + extra) : extra) : baseObs;
+
+        return {
+          ...x,
+          vendido: true,
+          valorVenda: payload.valorVenda,
+          canalVenda: payload.canalVenda,
+          dataVendaISO: payload.dataVendaISO,
+          quemVendeu: payload.quemVendeu,
+          formaEntrega: payload.formaEntrega,
+          custoEntrega: payload.custoEntrega,
+          pagamentoStatus: payload.pagamentoStatus,
+          pagamentoPrevistoISO: payload.pagamentoPrevistoISO,
+          observacoes: mergedObs
+        };
+      });
+
+      aplicarCustoFixoEmTodos();
+      save();
+      closeSellModal();
+      setTab("vendas");
+      render();
+    }
+
+    // ===== Export/Import =====
+    function exportJSON(){
+      const blob = new Blob([JSON.stringify(items,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "renova-lotes-backup-" + new Date().toISOString().slice(0,10) + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function toCSVRow(arr){
+      return arr.map(v=>{
+        const s = String(v ?? "");
+        const escaped = s.replaceAll('"','""');
+        return `"${escaped}"`;
+      }).join(",");
+    }
+    function exportCSV(){
+      const header = [
+        "id","codigo","nomeProduto","localEstoque","custoProduto","valorAnuncio","canalAnuncio","dataAnuncioISO",
+        "vendido","valorVenda","canalVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega",
+        "pagamentoStatus","pagamentoPrevistoISO","observacoes","photo1","photo2","photo3"
+      ];
+      const rows = items.map(i=>[
+        i.id, i.codigo, i.nomeProduto, i.localEstoque,
+        safe(i.custoProduto), safe(i.valorAnuncio), i.canalAnuncio, i.dataAnuncioISO,
+        i.vendido ? "sim" : "nao",
+        safe(i.valorVenda), i.canalVenda, i.dataVendaISO, i.quemVendeu, i.formaEntrega, safe(i.custoEntrega),
+        i.pagamentoStatus || "",
+        i.pagamentoPrevistoISO || "",
+        (i.observacoes || "").replaceAll("\n"," "),
+        i.photos?.[0] ? "[base64]" : "",
+        i.photos?.[1] ? "[base64]" : "",
+        i.photos?.[2] ? "[base64]" : ""
+      ]);
+      const csv = [toCSVRow(header), ...rows.map(toCSVRow)].join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "renova-lotes-" + new Date().toISOString().slice(0,10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSON(file){
+      if(!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try{
+          const parsed = JSON.parse(String(r.result||""));
+          if(Array.isArray(parsed)){
+            items = parsed.map(normalizeItemShape);
+            aplicarCustoFixoEmTodos();
+            save(); render();
+          } else {
+            alert("JSON inválido: precisa ser uma lista (array) de itens.");
+          }
+        }catch(e){
+          alert("Falha ao importar JSON.");
+        }
+      };
+      r.readAsText(file);
+    }
+
+    // ============================
+    // ✅ BACKUP AUTOMÁTICO (SNAPSHOT)
+    // ============================
+    function getSnapshots(){
+      try{
+        const raw = localStorage.getItem(SNAP_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      }catch(e){
+        return [];
+      }
+    }
+    function saveSnapshots(list){
+      localStorage.setItem(SNAP_KEY, JSON.stringify(list));
+    }
+    function createSnapshot(){
+      const snaps = getSnapshots();
+      snaps.unshift({
+        ts: new Date().toISOString(),
+        items: items
+      });
+      // limita a 10 snapshots
+      while(snaps.length > 10) snaps.pop();
+      saveSnapshots(snaps);
+      alert("Ponto de restauração criado com sucesso.");
+    }
+    function restoreLastSnapshot(){
+      const snaps = getSnapshots();
+      if(!snaps.length){
+        alert("Nenhum ponto de restauração encontrado.");
+        return;
+      }
+      const s = snaps[0];
+      if(confirm("Restaurar o último ponto de restauração? Isso sobrescreve o estado atual.")){
+        items = (s.items || []).map(normalizeItemShape);
+        aplicarCustoFixoEmTodos();
+        save();
+        render();
+        alert("Restaurado com sucesso.");
+      }
+    }
+    function clearAll(){
+      if(confirm("Tem certeza que deseja LIMPAR toda a base? (Recomendado criar um ponto de restauração antes)")){
+        items = [];
+        aplicarCustoFixoEmTodos();
+        save();
+        render();
+      }
+    }
+
+    // ===== FOTOS (3) =====
+    function openPhotoModal(){ $("photoBackdrop").style.display = "grid"; }
+    function closePhotoModal(){
+      $("photoBackdrop").style.display = "none";
+      $("photoFile").value = "";
+      photoEditingId = null;
+      activePhotoSlot = 0;
+    }
+
+    function renderPhotoGrid(it){
+      const grid = $("photoGrid");
+      grid.innerHTML = "";
+      const photos = it.photos || ["","",""];
+
+      for(let idx=0; idx<3; idx++){
+        const slot = document.createElement("div");
+        slot.className = "photo-slot" + (idx===activePhotoSlot ? " active" : "");
+        slot.onclick = () => { activePhotoSlot = idx; renderPhotoGrid(it); };
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = `Foto ${idx+1}`;
+
+        slot.appendChild(badge);
+
+        if(photos[idx]){
+          const img = document.createElement("img");
+          img.src = photos[idx];
+          img.alt = `Foto ${idx+1}`;
+          slot.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Sem foto";
+          slot.appendChild(empty);
+        }
+
+        grid.appendChild(slot);
+      }
+    }
+
+    window.openPhoto = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      photoEditingId = id;
+      activePhotoSlot = 0;
+
+      $("photoTitle").textContent = `Fotos — ${it.nomeProduto || "Produto"}`;
+      $("photoMetaLine").textContent = `Código: ${it.codigo || "—"} • Local: ${it.localEstoque || "—"}`;
+
+      renderPhotoGrid(it);
+      openPhotoModal();
+    }
+
+    function setPhotoAtSlot(id, slotIndex, dataUrl){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = dataUrl;
+        return { ...x, photos };
+      });
+      save(); render();
+    }
+
+    function removePhotoAtSlot(id, slotIndex){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = "";
+        return { ...x, photos };
+      });
+      save(); render();
+    }
+
+    // ===== GRÁFICOS (Canvas) =====
+    function getSoldItems(){
+      return items.filter(i=>i.vendido && safe(i.valorVenda)>0 && i.dataVendaISO);
+    }
+
+    function salesSeriesLast30(){
+      const sold = getSoldItems();
+      const mapCount = new Map();
+      const mapRevenue = new Map();
+      sold.forEach(i=>{
+        mapCount.set(i.dataVendaISO, (mapCount.get(i.dataVendaISO)||0) + 1);
+        mapRevenue.set(i.dataVendaISO, (mapRevenue.get(i.dataVendaISO)||0) + safe(i.valorVenda));
+      });
+
+      const n=30;
+      const labels = [];
+      const counts = [];
+      const revenue = [];
+      const today = new Date(nowISO()+"T00:00:00");
+      for(let i=n-1;i>=0;i--){
+        const d = new Date(today);
+        d.setDate(d.getDate()-i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        const iso = `${yyyy}-${mm}-${dd}`;
+        labels.push(`${dd}/${mm}`);
+        counts.push(mapCount.get(iso)||0);
+        revenue.push(mapRevenue.get(iso)||0);
+      }
+      return { labels, counts, revenue };
+    }
+
+    function groupBy(list, keyFn, valFn){
+      const m = new Map();
+      list.forEach(x=>{
+        const k = keyFn(x) || "—";
+        const v = valFn(x);
+        m.set(k, (m.get(k)||0) + v);
+      });
+      return m;
+    }
+
+    function stockAgingBuckets(){
+      const today = new Date(nowISO()+"T00:00:00").getTime();
+      const stock = items.filter(i=>!i.vendido && i.dataAnuncioISO);
+      const buckets = { "0–6d":0, "7–14d":0, "15–30d":0, "30+d":0 };
+      stock.forEach(i=>{
+        const t = dateValue(i.dataAnuncioISO);
+        if(!t) return;
+        const days = Math.round((today - t)/(1000*60*60*24));
+        if(days <= 6) buckets["0–6d"]++;
+        else if(days <= 14) buckets["7–14d"]++;
+        else if(days <= 30) buckets["15–30d"]++;
+        else buckets["30+d"]++;
+      });
+      return buckets;
+    }
+
+    function clearCanvas(ctx, w, h){
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = "rgba(0,0,0,.0)";
+      ctx.fillRect(0,0,w,h);
+    }
+
+    function drawAxes(ctx, w, h, pad){
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad, pad);
+      ctx.lineTo(pad, h-pad);
+      ctx.lineTo(w-pad, h-pad);
+      ctx.stroke();
+    }
+
+    function drawLineChart(canvasId, labels, values){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+
+      const max = Math.max(1, ...values);
+      const min = Math.min(0, ...values);
+
+      const xStep = (w - pad*2) / Math.max(1, (values.length-1));
+      const yScale = (h - pad*2) / (max - min || 1);
+
+      ctx.strokeStyle = "rgba(140,160,255,.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      values.forEach((v,i)=>{
+        const x = pad + i*xStep;
+        const y = (h-pad) - (v - min)*yScale;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      values.forEach((v,i)=>{
+        const x = pad + i*xStep;
+        const y = (h-pad) - (v - min)*yScale;
+        ctx.beginPath();
+        ctx.arc(x,y,2.2,0,Math.PI*2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      for(let i=0;i<labels.length;i+=5){
+        const x = pad + i*xStep;
+        ctx.fillText(labels[i], x-12, h-12);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText(String(Math.round(min*100)/100), 6, h-pad);
+    }
+
+    function drawBarChart(canvasId, labels, values){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+
+      const max = Math.max(1, ...values);
+      const barW = (w - pad*2) / Math.max(1, labels.length);
+
+      for(let i=0;i<labels.length;i++){
+        const v = values[i];
+        const x = pad + i*barW + 6;
+        const bh = (h - pad*2) * (v / max);
+        const y = (h - pad) - bh;
+
+        ctx.fillStyle = "rgba(90,255,170,.35)";
+        ctx.fillRect(x, y, Math.max(6, barW-12), bh);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      labels.forEach((lab,i)=>{
+        const x = pad + i*barW + 6;
+        if(labels.length <= 8){
+          ctx.fillText(lab, x, h-12);
+        } else if(i % 2 === 0){
+          ctx.fillText(lab, x, h-12);
+        }
+      });
+
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText("0", 10, h-pad);
+    }
+
+    function renderCharts(){
+      const sold = getSoldItems();
+      const { labels, counts, revenue } = salesSeriesLast30();
+
+      drawLineChart("cSales30", labels, counts);
+      drawLineChart("cRevenue30", labels, revenue);
+
+      const salesByChannel = groupBy(sold, x=>x.canalVenda||"—", _=>1);
+      const channels1 = [...salesByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cSalesByChannel", channels1.map(x=>x[0]), channels1.map(x=>x[1]));
+
+      const profitByChannel = groupBy(sold, x=>x.canalVenda||"—", x=> safe(x.valorVenda) - safe(x.custoProduto) - safe(x.custoEntrega));
+      const channels2 = [...profitByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cProfitByChannel", channels2.map(x=>x[0]), channels2.map(x=>Math.round(x[1]*100)/100));
+
+      const aging = stockAgingBuckets();
+      drawBarChart("cStockAging", Object.keys(aging), Object.values(aging));
+    }
+
+    function render(){
+      const filtered = getFiltered();
+      const m = compute();
+
+      if(!$("visao").classList.contains("hidden")){
+        renderKPIs(m);
+        renderQuick(m);
+      }
+
+      renderTables(filtered);
+
+      if(!$("graficos").classList.contains("hidden")){
+        renderCharts();
+      }
+    }
+
+    // ===== eventos =====
+    document.querySelectorAll(".tab").forEach(btn=>{
+      btn.addEventListener("click", () => setTab(btn.dataset.tab));
+    });
+
+    $("homeLogo").addEventListener("click", ()=> setTab("visao"));
+
+    $("q").addEventListener("input", render);
+
+    $("fltAll").addEventListener("click", ()=>{
+      filterState.mode = "all";
+      setChipActive();
+      render();
+    });
+    $("fltStock").addEventListener("click", ()=>{
+      filterState.mode = "stock";
+      setChipActive();
+      render();
+    });
+    $("fltSold").addEventListener("click", ()=>{
+      filterState.mode = "sold";
+      setChipActive();
+      render();
+    });
+
+    $("newBtn").addEventListener("click", openCreate);
+
+    $("nextCodeBtn").addEventListener("click", ()=>{
+      if(editingId) return;
+      setNextCodigoIntoField();
+    });
+
+    $("exportBtn").addEventListener("click", exportJSON);
+    $("exportCsvBtn").addEventListener("click", exportCSV);
+    $("importFile").addEventListener("change", (e)=> importJSON(e.target.files?.[0]));
+
+    $("snapshotBtn").addEventListener("click", createSnapshot);
+    $("restoreBtn").addEventListener("click", restoreLastSnapshot);
+    $("clearBtn").addEventListener("click", clearAll);
+
+    document.addEventListener("click", (e)=>{
+      const th = e.target.closest("th.sortable");
+      if(!th) return;
+      const table = th.dataset.table;
+      const key = th.dataset.sortKey;
+      const type = th.dataset.sortType;
+
+      const st = sortState[table];
+      if(st.key === key){
+        st.dir = st.dir === "asc" ? "desc" : "asc";
+      } else {
+        st.key = key;
+        st.type = type;
+        st.dir = (type === "date") ? "desc" : "asc";
+      }
+      render();
+    });
+
+    $("closeModal").addEventListener("click", closeModal);
+    $("cancelBtn").addEventListener("click", closeModal);
+
+    $("fVendido").addEventListener("change", ()=>{
+      const isSold = $("fVendido").value === "sim";
+      toggleSalesBlock(isSold);
+      if(!isSold){
+        clearSaleFields();
+        $("requiredHint").style.display = "none";
+      } else {
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        if(!$("fPagStatus").value) $("fPagStatus").value = "Pendente";
+      }
+      updateCalcPreview();
+    });
+
+    $("saveBtn").addEventListener("click", () => {
+      const it = readForm();
+      const errP = validateProduct(it);
+      if(errP){ alert(errP); return; }
+
+      const errS = validateSaleIfNeeded(it);
+      if(errS){
+        $("requiredHint").style.display = "block";
+        alert(errS);
+        return;
+      }
+
+      $("requiredHint").style.display = "none";
+      upsert(it);
+      closeModal();
+    });
+
+    $("deleteBtn").addEventListener("click", () => {
+      if(!editingId) return;
+      if(confirm("Excluir este item?")){
+        window.removeItem(editingId);
+        closeModal();
+      }
+    });
+
+    ["fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
+      $(id).addEventListener("input", updateCalcPreview);
+      $(id).addEventListener("change", updateCalcPreview);
+    });
+
+    $("backdrop").addEventListener("click", (e)=>{
+      if(e.target === $("backdrop")) closeModal();
+    });
+
+    // venda rápida
+    $("closeSell").addEventListener("click", closeSellModal);
+    $("cancelSell").addEventListener("click", closeSellModal);
+    $("confirmSell").addEventListener("click", applyQuickSell);
+    $("sellBackdrop").addEventListener("click", (e)=>{
+      if(e.target === $("sellBackdrop")) closeSellModal();
+    });
+
+    // fotos
+    $("closePhoto").addEventListener("click", closePhotoModal);
+    $("closePhoto2").addEventListener("click", closePhotoModal);
+    $("photoBackdrop").addEventListener("click", (e)=>{
+      if(e.target === $("photoBackdrop")) closePhotoModal();
+    });
+
+    $("photoFile").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file || !photoEditingId) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        setPhotoAtSlot(photoEditingId, activePhotoSlot, dataUrl);
+        const it = items.find(x=>x.id===photoEditingId);
+        if(it) renderPhotoGrid(it);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $("removeSelectedPhotoBtn").addEventListener("click", ()=>{
+      if(!photoEditingId) return;
+      removePhotoAtSlot(photoEditingId, activePhotoSlot);
+      const it = items.find(x=>x.id===photoEditingId);
+      if(it) renderPhotoGrid(it);
+    });
+
+    // selects
+    fillSelect("fCanalAnuncio", CANAIS);
+    fillSelect("fCanalVenda", CANAIS, true);
+    fillSelect("fVendedor", VENDEDORES, true);
+    fillSelect("fEntrega", ENTREGAS, true);
+    fillSelect("fPagStatus", PAG_STATUS);
+
+    fillSelect("sCanal", CANAIS, true);
+    fillSelect("sVendedor", VENDEDORES, true);
+    fillSelect("sEntrega", ENTREGAS, true);
+    fillSelect("sPagStatus", PAG_STATUS);
+
+    load();
+    setChipActive();
+    updateCalcPreview();
+    render();
+  </script>
+</body>
+</html>
+
