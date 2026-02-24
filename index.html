@@ -452,6 +452,101 @@
       cursor:pointer;
     }
     .xbtn:hover{ opacity:.9; }
+
+    /* =======================================================
+       ✅ AJUSTES PEDIDOS: MODAL COM ROLAGEM + MENOR NO CADASTRO
+       + 🔥 CADASTRO PRO (FASTBAR + 2 COLUNAS + ATALHOS)
+       ======================================================= */
+
+    /* rolagem interna do modal */
+    .modal{
+      max-height: calc(100vh - 40px);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal .mbody{
+      overflow: auto;
+      max-height: calc(100vh - 170px);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* modo compacto (apenas Novo item) */
+    .modal.compact{
+      width: min(860px, 100%);
+      max-height: calc(100vh - 70px);
+    }
+    .modal.compact .mhead,
+    .modal.compact .mfoot{
+      padding: 12px 12px 10px;
+    }
+    .modal.compact .mbody{
+      padding: 12px;
+      max-height: calc(100vh - 210px);
+    }
+    .modal.compact .field input,
+    .modal.compact .field select,
+    .modal.compact .field textarea{
+      padding: 9px 10px;
+    }
+
+    /* fastbar (atalhos de navegação dentro do modal) */
+    .fastbar{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      margin: -12px -12px 12px;
+      padding: 10px 12px;
+      background: rgba(18,22,32,.92);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .fastbar .left,
+    .fastbar .right{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.85);
+    }
+
+    /* cadastro “pro”: 2 colunas no modo compacto (sem mexer na lógica) */
+    .modal.compact .form{
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .modal.compact #fProduto{ }
+    .modal.compact .field textarea{
+      min-height: 86px;
+    }
+
+    /* fotos no cadastro: limita altura e evita empurrar tudo */
+    .modal.compact #inlinePhotoGrid{
+      max-height: 320px;
+      overflow:auto;
+      padding-right: 4px;
+    }
+
+    /* bloco venda: visual mais “seção” */
+    .section-card{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      background: rgba(0,0,0,.14);
+      padding: 12px;
+    }
+
   </style>
 </head>
 
@@ -807,183 +902,203 @@
         <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
       </div>
 
-      <div class="mbody">
-        <div class="section-title">DADOS DO PRODUTO</div>
-        <div class="form">
-          <div class="field">
-            <label>Código</label>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <input id="fCodigo" placeholder="Ex: 70" style="flex:1;">
-              <button class="btn small" id="nextCodeBtn" type="button" title="Gerar próximo código">🔁 Próximo</button>
+      <div class="mbody" id="modalBody">
+        <!-- 🔥 FASTBAR (cadastro rápido) -->
+        <div class="fastbar">
+          <div class="left">
+            <button class="btn small" id="goProduto" type="button">🧾 Produto</button>
+            <button class="btn small" id="goFotos" type="button">📷 Fotos</button>
+            <button class="btn small" id="goVenda" type="button">✅ Venda</button>
+            <span class="muted2" style="font-size:12px;">Salvar: <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></span>
+          </div>
+          <div class="right">
+            <button class="btn small warn" id="jumpCalc" type="button">📌 Prévia</button>
+          </div>
+        </div>
+
+        <div id="secProduto">
+          <div class="section-title">DADOS DO PRODUTO</div>
+          <div class="form">
+            <div class="field">
+              <label>Código</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input id="fCodigo" placeholder="Ex: 70" style="flex:1;">
+                <button class="btn small" id="nextCodeBtn" type="button" title="Gerar próximo código">🔁 Próximo</button>
+              </div>
             </div>
-          </div>
 
-          <div class="field" style="grid-column: span 2;">
-            <label>Nome do produto</label>
-            <input id="fProduto" placeholder="Ex: Camiseta Barcelona">
-          </div>
+            <div class="field" style="grid-column: span 2;">
+              <label>Nome do produto</label>
+              <input id="fProduto" placeholder="Ex: Camiseta Barcelona">
+            </div>
 
-          <div class="field">
-            <label>Categoria (tipo de produto)</label>
-            <select id="fTipoProduto"></select>
-          </div>
+            <div class="field">
+              <label>Categoria (tipo de produto)</label>
+              <select id="fTipoProduto"></select>
+            </div>
 
-          <div class="field">
-            <label>Local de estoque</label>
-            <select id="fLocalEstoque"></select>
-          </div>
+            <div class="field">
+              <label>Local de estoque</label>
+              <select id="fLocalEstoque"></select>
+            </div>
 
-          <div class="field">
-            <label>Lote</label>
-            <select id="fLote"></select>
-          </div>
+            <div class="field">
+              <label>Lote</label>
+              <select id="fLote"></select>
+            </div>
 
-          <div class="field">
-            <label>Custo do produto (rateado pelo lote)</label>
-            <input id="fCusto" placeholder="Auto" disabled>
-            <div class="mini-note">Automático: Total do lote ÷ quantidade de produtos no lote.</div>
-          </div>
+            <div class="field">
+              <label>Custo do produto (rateado pelo lote)</label>
+              <input id="fCusto" placeholder="Auto" disabled>
+              <div class="mini-note">Automático: Total do lote ÷ quantidade de produtos no lote.</div>
+            </div>
 
-          <div class="field">
-            <label>Valor anúncio</label>
-            <input id="fAnuncio" placeholder="Ex: 150">
-          </div>
+            <div class="field">
+              <label>Valor anúncio</label>
+              <input id="fAnuncio" placeholder="Ex: 150">
+            </div>
 
-          <div class="field" style="grid-column: span 2;">
-            <label>Canais do anúncio (pode marcar mais de um)</label>
-            <div class="multi-wrap" id="fCanaisAnuncio"></div>
-            <div class="mini-note">Para adicionar novos canais: vá em <b>Configurações</b>.</div>
-          </div>
+            <div class="field" style="grid-column: span 2;">
+              <label>Canais do anúncio (pode marcar mais de um)</label>
+              <div class="multi-wrap" id="fCanaisAnuncio"></div>
+              <div class="mini-note">Para adicionar novos canais: vá em <b>Configurações</b>.</div>
+            </div>
 
-          <div class="field">
-            <label>Data do anúncio</label>
-            <input id="fDataAnuncio" type="date">
-          </div>
+            <div class="field">
+              <label>Data do anúncio</label>
+              <input id="fDataAnuncio" type="date">
+            </div>
 
-          <div class="field">
-            <label>Vendido?</label>
-            <select id="fVendido">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
-            </select>
-          </div>
+            <div class="field">
+              <label>Vendido?</label>
+              <select id="fVendido">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
 
-          <div class="field" style="grid-column: 1 / -1;">
-            <label>Observações</label>
-            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, etc."></textarea>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label>Observações</label>
+              <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, etc."></textarea>
+            </div>
           </div>
         </div>
 
         <div class="hr"></div>
 
-        <div class="section-title">FOTOS (opcional — já no cadastro)</div>
-        <div class="muted2" id="inlinePhotoMeta">—</div>
-        <div style="margin-top:12px;" class="photo-grid" id="inlinePhotoGrid"></div>
-        <div class="photo-actions">
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <label class="btn primary">
-              Anexar na foto selecionada
-              <input id="inlinePhotoFile" type="file" accept="image/*" style="display:none;">
-            </label>
-            <button class="btn danger" id="inlineRemovePhotoBtn" type="button">Remover foto selecionada</button>
+        <div id="secFotos">
+          <div class="section-title">FOTOS (opcional — já no cadastro)</div>
+          <div class="muted2" id="inlinePhotoMeta">—</div>
+          <div style="margin-top:12px;" class="photo-grid" id="inlinePhotoGrid"></div>
+          <div class="photo-actions">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <label class="btn primary">
+                Anexar na foto selecionada
+                <input id="inlinePhotoFile" type="file" accept="image/*" style="display:none;">
+              </label>
+              <button class="btn danger" id="inlineRemovePhotoBtn" type="button">Remover foto selecionada</button>
+            </div>
+            <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
           </div>
-          <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
         </div>
 
         <div id="salesBlock" style="display:none;">
           <div class="hr"></div>
-          <div class="section-title">DADOS DA VENDA (obrigatórios quando Vendido = Sim)</div>
 
-          <div class="form">
-            <div class="field">
-              <label>Valor da venda *</label>
-              <input id="fVenda" placeholder="Ex: 145">
-            </div>
+          <div id="secVenda" class="section-card">
+            <div class="section-title">DADOS DA VENDA (obrigatórios quando Vendido = Sim)</div>
 
-            <div class="field" style="grid-column: span 2;">
-              <label>Canais da venda (pode marcar mais de um) *</label>
-              <div class="multi-wrap" id="fCanaisVenda"></div>
-              <div class="mini-note">Para adicionar novos canais: vá em <b>Configurações</b>.</div>
-            </div>
-
-            <div class="field">
-              <label>Data da venda *</label>
-              <input id="fDataVenda" type="date">
-            </div>
-
-            <div class="field">
-              <label>Quem vendeu *</label>
-              <select id="fVendedor"></select>
-            </div>
-
-            <div class="field">
-              <label>Forma de entrega *</label>
-              <select id="fEntrega"></select>
-              <div class="mini-note">Para adicionar formas: vá em <b>Configurações</b>.</div>
-            </div>
-
-            <div class="field">
-              <label>Custo entrega *</label>
-              <input id="fCustoEntrega" placeholder="Ex: 5,00">
-            </div>
-          </div>
-
-          <div class="hr"></div>
-          <div class="section-title">PAGAMENTO</div>
-
-          <div class="form">
-            <div class="field">
-              <label>Tipo</label>
-              <select id="fPagamentoTipo">
-                <option value="avista">À vista</option>
-                <option value="parcelado">Parcelado</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label>Forma</label>
-              <select id="fPagamentoForma">
-                <option value="pix">Pix</option>
-                <option value="dinheiro">Dinheiro</option>
-                <option value="cartao">Cartão</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label>Observação do pagamento</label>
-              <input id="fPagamentoObs" placeholder="Ex: combinado para dia 28/02">
-            </div>
-
-            <div class="field" style="grid-column: 1 / -1;" id="parcelasBlock" style="display:none;">
-              <label>Parcelas (datas e valores)</label>
-              <div class="mini-note">Clique em “Adicionar parcela” e informe data + valor. (Opcional)</div>
-
-              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-                <button class="btn" id="addParcelaBtn" type="button">➕ Adicionar parcela</button>
-                <button class="btn danger" id="clearParcelasBtn" type="button">Limpar parcelas</button>
+            <div class="form">
+              <div class="field">
+                <label>Valor da venda *</label>
+                <input id="fVenda" placeholder="Ex: 145">
               </div>
 
-              <div class="table-wrap" style="margin-top:10px; max-height:220px;">
-                <table style="min-width:640px;">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Valor</th>
-                      <th>Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbParcelas"></tbody>
-                </table>
+              <div class="field" style="grid-column: span 2;">
+                <label>Canais da venda (pode marcar mais de um) *</label>
+                <div class="multi-wrap" id="fCanaisVenda"></div>
+                <div class="mini-note">Para adicionar novos canais: vá em <b>Configurações</b>.</div>
+              </div>
+
+              <div class="field">
+                <label>Data da venda *</label>
+                <input id="fDataVenda" type="date">
+              </div>
+
+              <div class="field">
+                <label>Quem vendeu *</label>
+                <select id="fVendedor"></select>
+              </div>
+
+              <div class="field">
+                <label>Forma de entrega *</label>
+                <select id="fEntrega"></select>
+                <div class="mini-note">Para adicionar formas: vá em <b>Configurações</b>.</div>
+              </div>
+
+              <div class="field">
+                <label>Custo entrega *</label>
+                <input id="fCustoEntrega" placeholder="Ex: 5,00">
               </div>
             </div>
-          </div>
 
-          <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
-            Preencha todos os campos obrigatórios da venda para salvar como “Vendido”.
+            <div class="hr"></div>
+            <div class="section-title">PAGAMENTO</div>
+
+            <div class="form">
+              <div class="field">
+                <label>Tipo</label>
+                <select id="fPagamentoTipo">
+                  <option value="avista">À vista</option>
+                  <option value="parcelado">Parcelado</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Forma</label>
+                <select id="fPagamentoForma">
+                  <option value="pix">Pix</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao">Cartão</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Observação do pagamento</label>
+                <input id="fPagamentoObs" placeholder="Ex: combinado para dia 28/02">
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;" id="parcelasBlock" style="display:none;">
+                <label>Parcelas (datas e valores)</label>
+                <div class="mini-note">Clique em “Adicionar parcela” e informe data + valor. (Opcional)</div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                  <button class="btn" id="addParcelaBtn" type="button">➕ Adicionar parcela</button>
+                  <button class="btn danger" id="clearParcelasBtn" type="button">Limpar parcelas</button>
+                </div>
+
+                <div class="table-wrap" style="margin-top:10px; max-height:220px;">
+                  <table style="min-width:640px;">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbParcelas"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
+              Preencha todos os campos obrigatórios da venda para salvar como “Vendido”.
+            </div>
           </div>
         </div>
 
-        <div class="card" style="margin-top:12px;">
+        <div id="secCalc" class="card" style="margin-top:12px;">
           <div class="head"><h3>Prévia de cálculos</h3><span class="muted2">Atualiza conforme você digita</span></div>
           <div class="body" id="calcPreview"></div>
         </div>
@@ -1103,6 +1218,21 @@
       return `${yyyy}-${mm}-${dd}`;
     }
     function isoNow(){ return new Date().toISOString(); }
+
+    // ============================
+    // 🔥 CADASTRO PRO: navegação rápida + atalho salvar + Enter avança
+    // ============================
+    function scrollToSection(id){
+      const el = $(id);
+      if(!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    function isModalOpen(){
+      return $("backdrop").style.display === "grid";
+    }
+    function focusFirstField(){
+      setTimeout(()=>{ $("fProduto")?.focus(); }, 40);
+    }
 
     // ============================
     // ✅ CÓDIGO AUTO + NUMÉRICO
@@ -1636,15 +1766,12 @@
 
       if(!confirm("Tem certeza que deseja excluir este item? Ele irá para a Lixeira por 30 dias.")) return;
 
-      // move para lixeira
       trash.unshift({ deletedAt: isoNow(), item: normalizeItemShape(it) });
       saveTrash();
 
-      // remove da base
       items = items.filter(x=>x.id!==id);
       saveItems();
 
-      // recalcula lote do item excluído
       recalcLotCosts(it.loteId);
 
       render();
@@ -1654,15 +1781,12 @@
       const row = trash[idx];
       if(!row) return;
 
-      // restaura
       items.unshift(normalizeItemShape(row.item));
       saveItems();
 
-      // remove do trash
       trash.splice(idx, 1);
       saveTrash();
 
-      // recalcula custos do lote restaurado
       recalcLotCosts(row.item.loteId);
 
       render();
@@ -1772,6 +1896,11 @@
     // ============================
     function openModal(title){
       $("modalTitle").textContent = title;
+
+      // remove compact por padrão (ativamos só no "Novo item")
+      const modalEl = $("backdrop").querySelector(".modal");
+      modalEl.classList.remove("compact");
+
       $("backdrop").style.display = "grid";
     }
     function closeModal(){
@@ -1789,9 +1918,7 @@
       $("fVendedor").value = "";
       $("fEntrega").value = "";
       $("fCustoEntrega").value = "";
-      // canais venda
       setMultiSelected("venda", []);
-      // pagamento
       $("fPagamentoTipo").value = "avista";
       $("fPagamentoForma").value = "pix";
       $("fPagamentoObs").value = "";
@@ -1805,7 +1932,6 @@
       ["fVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagamentoTipo","fPagamentoForma","fPagamentoObs"].forEach(id=>{
         $(id).disabled = !show;
       });
-      // multi-canais venda
       $("fCanaisVenda").style.pointerEvents = show ? "auto" : "none";
       $("fCanaisVenda").style.opacity = show ? "1" : "0.6";
       toggleParcelasBlock();
@@ -1832,7 +1958,6 @@
       $("fVendido").value = "nao";
       $("fObs").value = "";
 
-      // fotos inline
       inlineActiveSlot = 0;
       renderInlinePhotoGrid({ photos:["","",""], nomeProduto:"", codigo:"", localEstoque:"" });
 
@@ -1853,17 +1978,26 @@
       // custo automático do lote selecionado (considerando +1 item novo)
       syncAutoCostPreviewForSelectedLot(true);
 
+      // ✅ modo compacto só no NOVO ITEM
+      const modalEl = $("backdrop").querySelector(".modal");
+      modalEl.classList.add("compact");
+
       openModal("Novo item");
-      setTimeout(()=>$("fProduto").focus(), 50);
+      focusFirstField();
+      scrollToSection("secProduto");
     }
 
     window.openEdit = function(id){
       const it = items.find(x=>x.id===id);
       if(!it) return;
       editingId = id;
+
+      // ✅ editar = modal normal
+      const modalEl = $("backdrop").querySelector(".modal");
+      modalEl.classList.remove("compact");
+
       $("deleteBtn").style.display = "inline-flex";
 
-      // trava o código ao editar
       $("fCodigo").disabled = true;
       $("nextCodeBtn").disabled = true;
 
@@ -1880,7 +2014,6 @@
       $("fDataAnuncio").value = it.dataAnuncioISO || "";
       $("fObs").value = it.observacoes || "";
 
-      // fotos inline mostram as do item
       inlineActiveSlot = 0;
       renderInlinePhotoGrid(it);
 
@@ -1897,7 +2030,6 @@
 
         setMultiSelected("venda", it.canaisVenda || []);
 
-        // pagamento
         $("fPagamentoTipo").value = it.pagamento?.tipo || "avista";
         $("fPagamentoForma").value = it.pagamento?.forma || "pix";
         $("fPagamentoObs").value = it.pagamento?.obs || "";
@@ -1911,6 +2043,8 @@
       $("requiredHint").style.display = "none";
       updateCalcPreview();
       openModal("Editar item");
+      scrollToSection("secProduto");
+      setTimeout(()=>$("fProduto").focus(), 50);
     }
 
     function readForm(){
@@ -1923,7 +2057,6 @@
       const itemAtual = editingId ? items.find(x=>x.id===editingId) : null;
 
       const loteId = ($("fLote").value || (lots[0]?.id || "lote-1")).trim();
-      const lot = getLotById(loteId);
       const custoAuto = computeAutoCostForLot(loteId, editingId ? 0 : 1);
 
       const pagamento = vendido ? {
@@ -1941,7 +2074,6 @@
         localEstoque: ($("fLocalEstoque").value || "").trim(),
         loteId,
 
-        // custo fixo por lote (automático)
         custoProduto: custoAuto,
 
         valorAnuncio: anuncio,
@@ -1963,7 +2095,6 @@
       };
     }
 
-    // ✅ Validação: impede CÓDIGO duplicado
     function validateProduct(it){
       if(!it.codigo) return "Preencha o Código.";
       if(!it.nomeProduto) return "Preencha o Nome do produto.";
@@ -2016,14 +2147,10 @@
       if(idx>=0) items[idx]=normalizeItemShape(it); else items.unshift(normalizeItemShape(it));
 
       saveItems();
-
-      // custo do lote sempre recalculado ao inserir/editar item (mantém fixo por lote)
       recalcLotCosts(it.loteId);
-
       render();
     }
 
-    // Excluir (botão do modal) -> lixeira
     function trashEditing(){
       if(!editingId) return;
       const it = items.find(x=>x.id===editingId);
@@ -2045,7 +2172,7 @@
     window.markSold = function(id, sold){
       items = items.map(x=>{
         if(x.id!==id) return x;
-        if(sold) return x; // vender só pelo fluxo
+        if(sold) return x;
         return {
           ...x,
           vendido:false,
@@ -2070,6 +2197,7 @@
       toggleSalesBlock(true);
       if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
       updateCalcPreview();
+      scrollToSection("secVenda");
       setTimeout(()=>$("fVenda").focus(), 50);
     }
 
@@ -2147,7 +2275,6 @@
         try{
           const parsed = JSON.parse(String(r.result||""));
 
-          // Novo formato (v6)
           if(parsed && typeof parsed === "object" && (parsed.items || parsed.config || parsed.lots)){
             if(parsed.config){
               const pc = parsed.config;
@@ -2179,7 +2306,6 @@
             saveItems();
             saveTrash();
 
-            // recalcula custos de todos os lotes (garantia)
             lots.forEach(l=>recalcLotCosts(l.id));
 
             mountDynamicSelectors();
@@ -2188,11 +2314,9 @@
             return;
           }
 
-          // Formato antigo: array de itens
           if(Array.isArray(parsed)){
             items = parsed.map(normalizeItemShape);
             saveItems();
-            // tenta recalcular custo dos lotes existentes
             lots.forEach(l=>recalcLotCosts(l.id));
             render();
             alert("Importado com sucesso (lista de itens).");
@@ -2324,7 +2448,6 @@
 
     function setInlinePhoto(dataUrl){
       if(!editingId){
-        // no modo "novo", guardamos em um buffer temporário no atributo dataset do grid
         const buf = getInlinePhotosBuffer();
         buf[inlineActiveSlot] = dataUrl;
         setInlinePhotosBuffer(buf);
@@ -2332,7 +2455,6 @@
         return;
       }
 
-      // editando item real
       setPhotoAtSlot(editingId, inlineActiveSlot, dataUrl);
       const it = items.find(x=>x.id===editingId);
       if(it) renderInlinePhotoGrid(it);
@@ -2446,7 +2568,6 @@
         tb.appendChild(tr);
       });
 
-      // listeners inline
       tb.querySelectorAll("input").forEach(inp=>{
         inp.addEventListener("input", ()=>{
           const idx = Number(inp.dataset.idx);
@@ -2488,7 +2609,6 @@
     }
 
     function renderConfig(){
-      // lotes
       const lotsWrap = $("lotsList");
       lotsWrap.innerHTML = "";
       lots.forEach(l=>{
@@ -2517,11 +2637,9 @@
         lotsWrap.appendChild(d);
       });
 
-      // listas
       badgeList("canalAnuncioList", config.canaisAnuncio, (v)=>{
         if(!confirm(`Remover canal de anúncio "${v}"?`)) return;
         config.canaisAnuncio = (config.canaisAnuncio||[]).filter(x=>x!==v);
-        // remove dos itens
         items = items.map(it=>({ ...it, canaisAnuncio: (it.canaisAnuncio||[]).filter(x=>x!==v) }));
         saveItems();
         saveConfig();
@@ -2542,7 +2660,6 @@
       badgeList("entregaList", config.entregas, (v)=>{
         if(!confirm(`Remover forma de entrega "${v}"?`)) return;
         config.entregas = (config.entregas||[]).filter(x=>x!==v);
-        // se item tinha forma removida, limpa
         items = items.map(it=> it.formaEntrega===v ? { ...it, formaEntrega:"" } : it);
         saveItems();
         saveConfig();
@@ -2782,7 +2899,6 @@
       drawLineChart("cSales30", labels, counts);
       drawLineChart("cRevenue30", labels, revenue);
 
-      // multi-canal: distribui 1 venda em todos os canais marcados
       const salesByChannel = new Map();
       const profitByChannel = new Map();
 
@@ -2887,6 +3003,9 @@
         $("requiredHint").style.display = "none";
       } else {
         if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        // 🔥 quando marcar vendido, já vai pro bloco de venda
+        setTimeout(()=>scrollToSection("secVenda"), 60);
+        setTimeout(()=>$("fVenda").focus(), 120);
       }
       updateCalcPreview();
     });
@@ -2918,7 +3037,6 @@
         return;
       }
 
-      // aplica fotos inline buffer no "novo item"
       if(!editingId){
         const buf = getInlinePhotosBuffer();
         it.photos = buf.slice(0,3);
@@ -2932,12 +3050,10 @@
 
     $("deleteBtn").addEventListener("click", trashEditing);
 
-    // recalcular custo automático quando lote muda
     $("fLote").addEventListener("change", ()=>{
       syncAutoCostPreviewForSelectedLot(!editingId);
     });
 
-    // custo auto também muda quando você está no "novo" e digita (preview)
     ["fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
       $(id).addEventListener("input", updateCalcPreview);
       $(id).addEventListener("change", updateCalcPreview);
@@ -2988,6 +3104,58 @@
     $("inlineRemovePhotoBtn").addEventListener("click", removeInlinePhoto);
 
     // ============================
+    // 🔥 Fastbar events (cadastro rápido)
+    // ============================
+    $("goProduto").addEventListener("click", ()=>scrollToSection("secProduto"));
+    $("goFotos").addEventListener("click", ()=>scrollToSection("secFotos"));
+    $("goVenda").addEventListener("click", ()=>{
+      if($("fVendido").value !== "sim"){
+        $("fVendido").value = "sim";
+        toggleSalesBlock(true);
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        updateCalcPreview();
+      }
+      scrollToSection("secVenda");
+      setTimeout(()=>$("fVenda").focus(), 80);
+    });
+    $("jumpCalc").addEventListener("click", ()=>scrollToSection("secCalc"));
+
+    // Ctrl+Enter salva (modal)
+    document.addEventListener("keydown", (e)=>{
+      if(!isModalOpen()) return;
+
+      if((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+        e.preventDefault();
+        $("saveBtn").click();
+        return;
+      }
+    });
+
+    // Enter avança para o próximo campo (exceto textarea)
+    document.addEventListener("keydown", (e)=>{
+      if(!isModalOpen()) return;
+      const t = e.target;
+      if(!t) return;
+      const tag = (t.tagName || "").toLowerCase();
+      if(tag === "textarea") return;
+
+      if(e.key === "Enter"){
+        // não travar botões e selects
+        if(tag === "button") return;
+        e.preventDefault();
+
+        const modal = $("backdrop").querySelector(".modal");
+        const focusables = Array.from(modal.querySelectorAll("input, select, textarea, button"))
+          .filter(el => !el.disabled && el.type !== "hidden" && el.offsetParent !== null);
+
+        const idx = focusables.indexOf(t);
+        if(idx >= 0 && idx < focusables.length - 1){
+          focusables[idx + 1].focus();
+        }
+      }
+    });
+
+    // ============================
     // CONFIG EVENTS
     // ============================
     $("addLotBtn").addEventListener("click", ()=>{
@@ -3034,19 +3202,16 @@
     loadItems();
     purgeTrash();
 
-    // garantir que todos itens tenham lote válido
     const existingLotIds = new Set(lots.map(l=>l.id));
     items = items.map(it=>{
       if(!existingLotIds.has(it.loteId)) return { ...it, loteId: lots[0]?.id || "lote-1" };
       return it;
     });
 
-    // recalcula custos de todos os lotes (garantia do rateio)
     lots.forEach(l=>recalcLotCosts(l.id));
 
     mountDynamicSelectors();
 
-    // inicializa multi picks e custo
     setMultiSelected("anuncio", []);
     setMultiSelected("venda", []);
     syncAutoCostPreviewForSelectedLot(true);
