@@ -184,7 +184,7 @@
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
     }
-    table{ width:100%; border-collapse: collapse; min-width: 1180px; }
+    table{ width:100%; border-collapse: collapse; min-width: 1080px; }
     thead th{
       position: sticky;
       top: 0;
@@ -227,7 +227,6 @@
     }
     .chip.ok{ background: rgba(90,255,170,.14); border-color: rgba(90,255,170,.22); }
     .chip.no{ background: rgba(255,70,70,.14); border-color: rgba(255,70,70,.22); }
-    .chip.warn{ background: rgba(255,200,80,.14); border-color: rgba(255,200,80,.22); }
 
     .footer{
       margin-top: 14px;
@@ -253,8 +252,12 @@
       padding: 18px;
       z-index: 99;
     }
+
+    /* ✅ MODAL MENOR + ROLAGEM INTERNA (ajuste completo) */
     .modal{
       width: min(980px, 100%);
+      max-width: 980px;
+      max-height: 78vh;
       background: rgba(18,22,32,.92);
       border: 1px solid rgba(255,255,255,.12);
       border-radius: 20px;
@@ -262,20 +265,38 @@
       overflow:hidden;
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
+
+      display:flex;
+      flex-direction:column;
+
+      position: relative; /* ✅ necessário pro FAB */
     }
     .modal .mhead{
       padding: 14px 14px 10px;
       display:flex; justify-content:space-between; align-items:center;
       border-bottom:1px solid rgba(255,255,255,.06);
-      gap: 10px;
+      flex: 0 0 auto;
     }
     .modal .mhead h3{ margin:0; font-size: 14px; }
-    .modal .mbody{ padding: 14px; }
+    .modal .mbody{
+      padding: 14px;
+      overflow:auto;  /* ✅ rola aqui */
+      flex: 1;
+      scroll-behavior: smooth;
+    }
     .modal .mfoot{
       padding: 14px;
       display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;
       border-top:1px solid rgba(255,255,255,.06);
+      flex: 0 0 auto;
     }
+
+    /* ✅ barra de rolagem */
+    .modal .mbody::-webkit-scrollbar{ width: 10px; }
+    .modal .mbody::-webkit-scrollbar-track{ background: rgba(255,255,255,.05); border-radius: 999px; }
+    .modal .mbody::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.18); border-radius: 999px; }
+    .modal .mbody::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,.26); }
+
     .form{ display:grid; grid-template-columns: 1fr; gap: 10px; }
     @media (min-width: 920px){ .form{ grid-template-columns: repeat(3, 1fr); } }
     .field{ display:flex; flex-direction:column; gap:6px; }
@@ -287,10 +308,6 @@
       background: rgba(0,0,0,.22);
       color: var(--text);
       outline:none;
-    }
-    .field input:disabled, .field select:disabled, .field textarea:disabled{
-      opacity: .7;
-      cursor:not-allowed;
     }
     .field textarea{ min-height: 92px; resize: vertical; grid-column: 1 / -1; }
     .hr{ height:1px; background: rgba(255,255,255,.08); margin: 12px 0; }
@@ -385,6 +402,40 @@
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 14px;
     }
+
+    /* ✅ botões flutuantes de rolagem dentro do modal */
+    .scroll-fab{
+      position: absolute;
+      right: 14px;
+      bottom: 86px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 120;
+    }
+    .scroll-fab .fab{
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.09);
+      color: rgba(255,255,255,.92);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: .15s ease;
+    }
+    .scroll-fab .fab:hover{ transform: translateY(-1px); background: rgba(255,255,255,.13); }
+    .scroll-fab .fab:active{ transform: translateY(0); }
+
+    /* ✅ MODO SIMPLES: esconde venda e fotos no cadastro */
+    .simple-mode #salesBlock,
+    .simple-mode #inlinePhotosCard{
+      display: none !important;
+    }
   </style>
 </head>
 
@@ -410,7 +461,7 @@
             <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8"/>
             <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
-          <input id="q" placeholder="Buscar por código, produto, canal, vendedor, local, pagamento..." />
+          <input id="q" placeholder="Buscar por código, produto, canal, vendedor, local..." />
         </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -426,10 +477,6 @@
           Importar
           <input id="importFile" type="file" accept="application/json" style="display:none;">
         </label>
-
-        <button class="btn warn" id="snapshotBtn" type="button" title="Cria um ponto de restauração no navegador">🛟 Ponto de restauração</button>
-        <button class="btn" id="restoreBtn" type="button" title="Restaura o último ponto de restauração">↩️ Restaurar</button>
-        <button class="btn danger" id="clearBtn" type="button" title="Apaga tudo (com confirmação)">🧹 Limpar base</button>
 
         <button class="btn primary" id="newBtn" type="button">Novo item</button>
       </div>
@@ -465,11 +512,6 @@
       </div>
 
       <div class="card" style="margin-top:12px;">
-        <div class="head"><h3>Custo fixo (automático)</h3><span class="muted2">Sempre recalculado por quantidade</span></div>
-        <div class="body"><div class="kpis" id="kpiCustoFixo"></div></div>
-      </div>
-
-      <div class="card" style="margin-top:12px;">
         <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
         <div class="body" id="quickSummary"></div>
       </div>
@@ -480,7 +522,7 @@
       <div class="card">
         <div class="head">
           <h3>Itens em estoque</h3>
-          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos • Vendido: venda rápida</span>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos</span>
         </div>
         <div class="body">
           <div class="table-wrap">
@@ -492,7 +534,7 @@
                   <th class="sortable" data-table="estoque" data-sort-key="localEstoque" data-sort-type="text">Local <span class="sort-ind" data-ind="estoque:localEstoque">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="canalAnuncio" data-sort-type="text">Canal anúncio <span class="sort-ind" data-ind="estoque:canalAnuncio">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="dataAnuncioISO" data-sort-type="date">Data anúncio <span class="sort-ind" data-ind="estoque:dataAnuncioISO">↕</span></th>
-                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo (auto) <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="valorAnuncio" data-sort-type="number">Valor anúncio <span class="sort-ind" data-ind="estoque:valorAnuncio">↕</span></th>
                   <th class="sortable" data-table="estoque" data-sort-key="lucroProj" data-sort-type="number">Lucro proj. <span class="sort-ind" data-ind="estoque:lucroProj">↕</span></th>
                   <th>Ações</th>
@@ -510,7 +552,7 @@
       <div class="card">
         <div class="head">
           <h3>Vendas</h3>
-          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos • Pagamento: status e data prevista</span>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código ordena 1,2,3... • Clique no produto: fotos</span>
         </div>
         <div class="body">
           <div class="table-wrap">
@@ -520,15 +562,13 @@
                   <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="vendas:nomeProduto">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="valorVenda" data-sort-type="number">Venda <span class="sort-ind" data-ind="vendas:valorVenda">↕</span></th>
-                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo (auto) <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="custoEntrega" data-sort-type="number">Entrega <span class="sort-ind" data-ind="vendas:custoEntrega">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="lucroFinal" data-sort-type="number">Lucro <span class="sort-ind" data-ind="vendas:lucroFinal">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="canalVenda" data-sort-type="text">Canal <span class="sort-ind" data-ind="vendas:canalVenda">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="dataVendaISO" data-sort-type="date">Data venda <span class="sort-ind" data-ind="vendas:dataVendaISO">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="tempoVenda" data-sort-type="number">Tempo (dias) <span class="sort-ind" data-ind="vendas:tempoVenda">↕</span></th>
                   <th class="sortable" data-table="vendas" data-sort-key="quemVendeu" data-sort-type="text">Vendedor <span class="sort-ind" data-ind="vendas:quemVendeu">↕</span></th>
-                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoStatus" data-sort-type="text">Pagamento <span class="sort-ind" data-ind="vendas:pagamentoStatus">↕</span></th>
-                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoPrevistoISO" data-sort-type="date">Previsto <span class="sort-ind" data-ind="vendas:pagamentoPrevistoISO">↕</span></th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -568,30 +608,32 @@
           </div>
 
           <div class="muted2" style="margin-top:10px; font-size:12px;">
-            Observação: os gráficos são recalculados automaticamente ao editar itens, vender, importar ou duplicar.
+            Observação: os gráficos são recalculados automaticamente ao editar itens, marcar venda, importar ou duplicar.
           </div>
         </div>
       </div>
     </section>
 
     <div class="footer">
-      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar e Ponto de restauração para backup.</div>
-      <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos • Custo é automático</div>
+      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar para backup.</div>
+      <div class="muted2">Ordenação: clique no cabeçalho • Código ordena numérico • Clique no produto: fotos</div>
     </div>
   </div>
 
   <!-- MODAL: CADASTRO/EDIÇÃO -->
   <div class="modal-backdrop" id="backdrop">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal simple-mode" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="mhead">
         <h3 id="modalTitle">Novo item</h3>
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <span class="chip" id="soldLockChip" style="display:none;" title="Itens vendidos ficam travados para não bagunçar histórico">🔒 Travado (vendido)</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn small" id="modeBtn" type="button" title="Alternar modo">🧩 Modo simples</button>
           <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
         </div>
       </div>
 
       <div class="mbody">
+        <div id="anchorTop"></div>
+
         <div class="section-title">DADOS DO PRODUTO</div>
         <div class="form">
           <div class="field">
@@ -613,8 +655,8 @@
           </div>
 
           <div class="field">
-            <label>Custo do produto (automático)</label>
-            <input id="fCusto" placeholder="Automático" disabled>
+            <label>Custo do produto</label>
+            <input id="fCusto" placeholder="Ex: 6,33">
           </div>
 
           <div class="field">
@@ -642,9 +684,37 @@
 
           <div class="field" style="grid-column: 1 / -1;">
             <label>Observações</label>
-            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, pagamento, etc."></textarea>
+            <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, etc."></textarea>
           </div>
         </div>
+
+        <!-- ✅ FOTOS NO CADASTRO (opcional) -->
+        <div class="card" style="margin-top:12px;" id="inlinePhotosCard">
+          <div class="head">
+            <h3 id="anchorFotos">Fotos (opcional)</h3>
+            <span class="muted2">Você pode anexar agora ou depois • 3 fotos por produto</span>
+          </div>
+          <div class="body">
+            <div class="photo-grid" id="inlinePhotoGrid"></div>
+
+            <div class="photo-actions">
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <label class="btn primary">
+                  Anexar na foto selecionada
+                  <input id="inlinePhotoFile" type="file" accept="image/*" style="display:none;">
+                </label>
+                <button class="btn danger" id="removeInlineSelectedPhotoBtn" type="button">Remover foto selecionada</button>
+              </div>
+              <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
+            </div>
+
+            <div class="muted2" style="margin-top:10px; font-size:12px;">
+              As fotos ficam salvas no seu navegador e vão junto no JSON.
+            </div>
+          </div>
+        </div>
+
+        <div id="anchorVenda"></div>
 
         <div id="salesBlock" style="display:none;">
           <div class="hr"></div>
@@ -680,16 +750,6 @@
               <label>Custo entrega *</label>
               <input id="fCustoEntrega" placeholder="Ex: 5,00">
             </div>
-
-            <div class="field">
-              <label>Status pagamento</label>
-              <select id="fPagStatus"></select>
-            </div>
-
-            <div class="field">
-              <label>Pagamento previsto</label>
-              <input id="fPagPrev" type="date">
-            </div>
           </div>
 
           <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
@@ -701,87 +761,22 @@
           <div class="head"><h3>Prévia de cálculos</h3><span class="muted2">Atualiza conforme você digita</span></div>
           <div class="body" id="calcPreview"></div>
         </div>
+
+        <div id="anchorBottom"></div>
+      </div>
+
+      <!-- ✅ botões flutuantes -->
+      <div class="scroll-fab" id="scrollFab" style="display:none;">
+        <button class="fab" type="button" id="goTop" title="Topo">⬆️</button>
+        <button class="fab" type="button" id="goFotos" title="Fotos">📷</button>
+        <button class="fab" type="button" id="goVenda" title="Venda">💳</button>
+        <button class="fab" type="button" id="goBottom" title="Final">⬇️</button>
       </div>
 
       <div class="mfoot">
         <button class="btn" id="cancelBtn" type="button">Cancelar</button>
         <button class="btn danger" id="deleteBtn" type="button" style="display:none;">Excluir</button>
         <button class="btn primary" id="saveBtn" type="button">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: VENDA RÁPIDA -->
-  <div class="modal-backdrop" id="sellBackdrop">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
-      <div class="mhead">
-        <h3 id="sellTitle">Venda rápida</h3>
-        <button class="btn small" id="closeSell" type="button" title="Fechar">X</button>
-      </div>
-      <div class="mbody">
-        <div class="muted2" id="sellMeta">—</div>
-
-        <div class="hr"></div>
-        <div class="section-title">DADOS DA VENDA</div>
-
-        <div class="form">
-          <div class="field">
-            <label>Valor da venda *</label>
-            <input id="sVenda" placeholder="Ex: 145">
-          </div>
-
-          <div class="field">
-            <label>Canal da venda *</label>
-            <select id="sCanal"></select>
-          </div>
-
-          <div class="field">
-            <label>Data da venda *</label>
-            <input id="sData" type="date">
-          </div>
-
-          <div class="field">
-            <label>Quem vendeu *</label>
-            <select id="sVendedor"></select>
-          </div>
-
-          <div class="field">
-            <label>Forma de entrega *</label>
-            <select id="sEntrega"></select>
-          </div>
-
-          <div class="field">
-            <label>Custo entrega *</label>
-            <input id="sCustoEntrega" placeholder="Ex: 0,00">
-          </div>
-
-          <div class="field">
-            <label>Status pagamento</label>
-            <select id="sPagStatus"></select>
-          </div>
-
-          <div class="field">
-            <label>Pagamento previsto</label>
-            <input id="sPagPrev" type="date">
-          </div>
-
-          <div class="field" style="grid-column: 1 / -1;">
-            <label>Observações (opcional)</label>
-            <textarea id="sObs" placeholder="Ex: Vendido para X, pagamento em tal data..."></textarea>
-          </div>
-        </div>
-
-        <div id="sellHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 8px; display:none;">
-          Preencha os campos obrigatórios (*) para concluir a venda.
-        </div>
-
-        <div class="muted2" style="margin-top:10px; font-size:12px;">
-          Dica: o custo do produto é automático (R$ 6.050,00 ÷ quantidade total de itens).
-        </div>
-      </div>
-      <div class="mfoot">
-        <button class="btn" id="cancelSell" type="button">Cancelar</button>
-        <button class="btn ok" id="confirmSell" type="button">✅ Concluir venda</button>
       </div>
     </div>
   </div>
@@ -820,40 +815,16 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "renova_lotes_html_v6";
-    const SNAP_KEY = STORAGE_KEY + "_snapshots";
-
-    // ✅ CUSTO FIXO TOTAL (divide pela quantidade de produtos cadastrados)
-    const TOTAL_CUSTO_FIXO = 6050.00;
+    const STORAGE_KEY = "renova_lotes_html_v5";
 
     const CANAIS = ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"];
     const VENDEDORES = ["Dennis","Calebe","David","Outro"];
     const ENTREGAS = ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"];
-    const PAG_STATUS = ["Pendente","Pago","Parcial","A combinar","Sem informação"];
 
-    // Seed (vai ser substituído pelos seus dados quando você importar o JSON)
+    // Seed (pode importar seu JSON para substituir)
     const SEED = [
-      {
-        "id":"bfdf9bc3d924119c7845a86e",
-        "codigo":"1",
-        "nomeProduto":"Camiseta Milan",
-        "localEstoque":"Dennis",
-        "custoProduto":0,
-        "valorAnuncio":150,
-        "canalAnuncio":"Outro",
-        "dataAnuncioISO":"",
-        "vendido":false,
-        "valorVenda":0,
-        "canalVenda":"",
-        "dataVendaISO":"",
-        "quemVendeu":"",
-        "formaEntrega":"",
-        "custoEntrega":0,
-        "pagamentoStatus":"Pendente",
-        "pagamentoPrevistoISO":"",
-        "observacoes":"Camiseta do Milan - Número 80 Ronaldinho Gaúcho ",
-        "photos":["","",""]
-      }
+      // ✅ deixe vazio se quiser começar do zero:
+      // { ... }
     ];
 
     const $ = (id) => document.getElementById(id);
@@ -902,18 +873,6 @@
     }
 
     // ============================
-    // ✅ CUSTO FIXO AUTOMÁTICO
-    // ============================
-    function custoUnitarioAtual(){
-      const qtd = Math.max(1, items.length);
-      return TOTAL_CUSTO_FIXO / qtd;
-    }
-    function aplicarCustoFixoEmTodos(){
-      const cu = custoUnitarioAtual();
-      items = items.map(x => ({ ...x, custoProduto: cu }));
-    }
-
-    // ============================
     // ✅ CÓDIGO AUTO + NUMÉRICO
     // ============================
     function extractCodigoNumber(codigo){
@@ -935,10 +894,14 @@
     let items = [];
     let editingId = null;
 
+    // ✅ novo: fotos no cadastro + modo simples/completo
+    let draftId = null;
+    let draftPhotos = ["","",""];
+    let modalPhotoSlot = 0;
+    let modalMode = "simple"; // simple | full
+
     let photoEditingId = null;
     let activePhotoSlot = 0;
-
-    let sellEditingId = null;
 
     const filterState = { mode: "all" };
 
@@ -971,16 +934,9 @@
         quemVendeu: String(x.quemVendeu ?? ""),
         formaEntrega: String(x.formaEntrega ?? ""),
         custoEntrega: safe(Number(x.custoEntrega)),
-        pagamentoStatus: String(x.pagamentoStatus ?? "Pendente"),
-        pagamentoPrevistoISO: String(x.pagamentoPrevistoISO ?? ""),
         observacoes: String(x.observacoes ?? ""),
         photos
       };
-    }
-
-    function save(){
-      aplicarCustoFixoEmTodos();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
 
     function load(){
@@ -988,17 +944,12 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if(raw){
           const parsed = JSON.parse(raw);
-          if(Array.isArray(parsed)){
-            items = parsed.map(normalizeItemShape);
-            aplicarCustoFixoEmTodos();
-            return;
-          }
+          if(Array.isArray(parsed)){ items = parsed.map(normalizeItemShape); return; }
         }
       }catch(e){}
       items = SEED.map(normalizeItemShape);
-      aplicarCustoFixoEmTodos();
-      save();
     }
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
@@ -1033,15 +984,11 @@
       const custoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.custoProduto),0);
       const potencialLucroEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
 
-      const pagos = sold.filter(i => (i.pagamentoStatus||"").toLowerCase() === "pago").length;
-      const pendentes = sold.filter(i => (i.pagamentoStatus||"").toLowerCase() === "pendente").length;
-
       return {
         totalVendas,faturamento,custoProdutos,custoEntregas,lucroFinal,
         ticketMedio,lucroMedio,margemLucro,entregaPct,roiProdutos,
         tempoMedio,totalItens,totalEstoque,taxaVenda,
-        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque,
-        pagos, pendentes
+        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque
       };
     }
 
@@ -1053,8 +1000,6 @@
           { label:"Margem", value:pct(m.margemLucro), hint:"Lucro / faturamento" },
           { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Faturamento / vendas" },
           { label:"Lucro médio", value:brl(m.lucroMedio), hint:"Lucro / vendas" },
-          { label:"Pagamentos (pago)", value:String(m.pagos), hint:"Vendas com status = Pago" },
-          { label:"Pagamentos (pendente)", value:String(m.pendentes), hint:"Vendas com status = Pendente" },
         ],
         kpiCustos: [
           { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Soma do custo (vendidos)" },
@@ -1073,12 +1018,6 @@
           { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas / itens" },
           { label:"Tempo médio", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:"Anúncio → venda" },
           { label:"Itens cadastrados", value:String(m.totalItens), hint:"Total na base" },
-        ],
-        kpiCustoFixo: [
-          { label:"Total fixo", value: brl(TOTAL_CUSTO_FIXO), hint:"Valor total gasto" },
-          { label:"Quantidade de produtos", value: String(Math.max(1, items.length)), hint:"Total de itens cadastrados" },
-          { label:"Custo unitário (auto)", value: brl(custoUnitarioAtual()), hint:"Total ÷ quantidade" },
-          { label:"Impacto do custo", value: (items.length<=1?"—":"↓ ao aumentar itens"), hint:"Quanto mais itens, menor o custo unitário" },
         ],
       };
 
@@ -1102,7 +1041,6 @@
           <span class="chip">💰 Faturamento: <b>${brl(m.faturamento)}</b></span>
           <span class="chip">✅ Lucro: <b>${brl(m.lucroFinal)}</b></span>
           <span class="chip">📦 Estoque: <b>${estoque}</b></span>
-          <span class="chip warn">🧱 Custo unitário (auto): <b>${brl(custoUnitarioAtual())}</b></span>
           <span class="chip">⏱ Tempo médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
         </div>
       `;
@@ -1125,10 +1063,8 @@
       if(!q) return base;
 
       return base.filter(i=>{
-        const hay = [
-          i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,
-          i.pagamentoStatus,i.pagamentoPrevistoISO,i.observacoes
-        ].filter(Boolean).join(" ").toLowerCase();
+        const hay = [i.codigo,i.nomeProduto,i.localEstoque,i.canalAnuncio,i.canalVenda,i.quemVendeu,i.formaEntrega,i.observacoes]
+          .filter(Boolean).join(" ").toLowerCase();
         return hay.includes(q);
       });
     }
@@ -1140,6 +1076,7 @@
       if(key === "lucroProj") return safe(item.valorAnuncio) - safe(item.custoProduto);
       if(key === "lucroFinal") return safe(item.valorVenda) - safe(item.custoProduto) - safe(item.custoEntrega);
       if(key === "tempoVenda") return daysBetweenISO(item.dataAnuncioISO, item.dataVendaISO) ?? -1;
+
       if(key === "codigo"){
         const n = extractCodigoNumber(item.codigo);
         return n === null ? 1e15 : n;
@@ -1211,11 +1148,8 @@
       copy.quemVendeu = "";
       copy.formaEntrega = "";
       copy.custoEntrega = 0;
-      copy.pagamentoStatus = "Pendente";
-      copy.pagamentoPrevistoISO = "";
 
       items.unshift(normalizeItemShape(copy));
-      aplicarCustoFixoEmTodos();
       save(); render();
       window.openEdit(copy.id);
     }
@@ -1255,7 +1189,7 @@
             <td>
               <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
               <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
-              <button class="btn small ok" type="button" onclick="openQuickSell('${i.id}')">✅ Vendido</button>
+              <button class="btn small ok" type="button" onclick="startSellFlow('${i.id}')">✅ Vendido</button>
               <button class="btn small danger" type="button" onclick="removeItem('${i.id}')">🗑</button>
             </td>
           `;
@@ -1266,17 +1200,12 @@
       const tbV = $("tbVendas");
       tbV.innerHTML = "";
       if(!vendas.length){
-        tbV.innerHTML = `<tr><td colspan="13" class="muted">Nenhuma venda com o filtro atual.</td></tr>`;
+        tbV.innerHTML = `<tr><td colspan="11" class="muted">Nenhuma venda com o filtro atual.</td></tr>`;
       } else {
         vendas.forEach(i=>{
           const lucroFinal = safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega);
           const tempo = daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO);
           const pc = photoCount(i);
-
-          const ps = (i.pagamentoStatus || "—");
-          const psLower = ps.toLowerCase();
-          const psChipClass = psLower === "pago" ? "ok" : (psLower === "pendente" ? "no" : "warn");
-
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><b>${escapeHtml(i.codigo)}</b></td>
@@ -1292,8 +1221,6 @@
             <td>${i.dataVendaISO || "—"}</td>
             <td>${tempo===null ? "—" : tempo}</td>
             <td>${escapeHtml(i.quemVendeu || "—")}</td>
-            <td><span class="chip ${psChipClass}" style="cursor:default;">${escapeHtml(ps)}</span></td>
-            <td>${i.pagamentoPrevistoISO || "—"}</td>
             <td>
               <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
               <button class="btn small" type="button" onclick="markSold('${i.id}', false)">↩️ Estoque</button>
@@ -1322,32 +1249,133 @@
       });
     }
 
+    function modalBody(){
+      return document.querySelector("#backdrop .modal .mbody");
+    }
+    function scrollToAnchor(anchorId){
+      const body = modalBody();
+      const el = document.getElementById(anchorId);
+      if(!body || !el) return;
+      const bodyRect = body.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const delta = elRect.top - bodyRect.top;
+      body.scrollTo({ top: body.scrollTop + delta - 8, behavior: "smooth" });
+    }
+    function showScrollFab(show){
+      const fab = document.getElementById("scrollFab");
+      if(!fab) return;
+      fab.style.display = show ? "flex" : "none";
+    }
+
+    function applyModalMode(){
+      const modalEl = document.querySelector("#backdrop .modal");
+      if(!modalEl) return;
+      modalEl.classList.toggle("simple-mode", modalMode === "simple");
+      const btn = document.getElementById("modeBtn");
+      if(btn){
+        btn.textContent = modalMode === "simple" ? "🧩 Modo simples" : "🧩 Modo completo";
+      }
+    }
+
+    function renderInlinePhotoGrid(photos){
+      const grid = document.getElementById("inlinePhotoGrid");
+      if(!grid) return;
+
+      grid.innerHTML = "";
+      const arr = Array.isArray(photos) ? photos : ["","",""];
+
+      for(let idx=0; idx<3; idx++){
+        const slot = document.createElement("div");
+        slot.className = "photo-slot" + (idx===modalPhotoSlot ? " active" : "");
+        slot.onclick = () => { modalPhotoSlot = idx; renderInlinePhotoGrid(arr); };
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = `Foto ${idx+1}`;
+        slot.appendChild(badge);
+
+        if(arr[idx]){
+          const img = document.createElement("img");
+          img.src = arr[idx];
+          img.alt = `Foto ${idx+1}`;
+          slot.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Sem foto";
+          slot.appendChild(empty);
+        }
+
+        grid.appendChild(slot);
+      }
+    }
+
+    function setPhotoAtSlot(id, slotIndex, dataUrl){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = dataUrl;
+        return { ...x, photos };
+      });
+      save(); render();
+    }
+
+    function removePhotoAtSlot(id, slotIndex){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = "";
+        return { ...x, photos };
+      });
+      save(); render();
+    }
+
+    function setCurrentPhotoAtSlot(slotIndex, dataUrl){
+      if(editingId){
+        setPhotoAtSlot(editingId, slotIndex, dataUrl);
+        const it = items.find(x=>x.id===editingId);
+        renderInlinePhotoGrid(it?.photos || ["","",""]);
+        return;
+      }
+      draftPhotos = draftPhotos.slice(0,3);
+      while(draftPhotos.length<3) draftPhotos.push("");
+      draftPhotos[slotIndex] = dataUrl;
+      renderInlinePhotoGrid(draftPhotos);
+    }
+
+    function removeCurrentPhotoAtSlot(slotIndex){
+      if(editingId){
+        removePhotoAtSlot(editingId, slotIndex);
+        const it = items.find(x=>x.id===editingId);
+        renderInlinePhotoGrid(it?.photos || ["","",""]);
+        return;
+      }
+      draftPhotos = draftPhotos.slice(0,3);
+      while(draftPhotos.length<3) draftPhotos.push("");
+      draftPhotos[slotIndex] = "";
+      renderInlinePhotoGrid(draftPhotos);
+    }
+
     function openModal(title){
       $("modalTitle").textContent = title;
       $("backdrop").style.display = "grid";
+      applyModalMode();
+      showScrollFab(true);
+      setTimeout(()=>scrollToAnchor("anchorTop"), 10);
     }
     function closeModal(){
       $("backdrop").style.display = "none";
       editingId = null;
       $("deleteBtn").style.display = "none";
       $("requiredHint").style.display = "none";
-      $("soldLockChip").style.display = "none";
-      applySoldLockUI(false);
-    }
 
-    function openSellModal(){
-      $("sellBackdrop").style.display = "grid";
-    }
-    function closeSellModal(){
-      $("sellBackdrop").style.display = "none";
-      sellEditingId = null;
-      $("sellHint").style.display = "none";
-      ["sVenda","sCanal","sData","sVendedor","sEntrega","sCustoEntrega","sPagStatus","sPagPrev","sObs"].forEach(id=>{
-        const el = $(id);
-        if(!el) return;
-        if(el.tagName === "SELECT") el.value = "";
-        else el.value = "";
-      });
+      draftId = null;
+      draftPhotos = ["","",""];
+      modalPhotoSlot = 0;
+
+      showScrollFab(false);
     }
 
     function clearSaleFields(){
@@ -1357,36 +1385,20 @@
       $("fVendedor").value = "";
       $("fEntrega").value = "";
       $("fCustoEntrega").value = "";
-      $("fPagStatus").value = "Pendente";
-      $("fPagPrev").value = "";
     }
 
     function toggleSalesBlock(show){
       $("salesBlock").style.display = show ? "block" : "none";
-      ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagStatus","fPagPrev"].forEach(id=>{
+      ["fVenda","fCanalVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega"].forEach(id=>{
         $(id).disabled = !show;
       });
-    }
-
-    function applySoldLockUI(isSoldLocked){
-      // ✅ trava campos do produto quando vendido (para não bagunçar histórico)
-      const lockIds = ["fProduto","fLocalEstoque","fAnuncio","fCanalAnuncio","fDataAnuncio"];
-      lockIds.forEach(id => $(id).disabled = isSoldLocked);
-
-      // custo é sempre travado
-      $("fCusto").disabled = true;
-
-      // vendido? (se já está vendido, não deixa voltar pra "não" aqui — isso é feito pelo botão "↩️ Estoque")
-      $("fVendido").disabled = isSoldLocked;
-
-      // código já é travado ao editar
     }
 
     function resetForm(){
       $("fCodigo").value = "";
       $("fProduto").value = "";
       $("fLocalEstoque").value = "";
-      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
+      $("fCusto").value = "";
       $("fAnuncio").value = "";
       $("fCanalAnuncio").value = "Facebook";
       $("fDataAnuncio").value = "";
@@ -1394,8 +1406,6 @@
       $("fObs").value = "";
       clearSaleFields();
       toggleSalesBlock(false);
-      $("soldLockChip").style.display = "none";
-      applySoldLockUI(false);
       updateCalcPreview();
     }
 
@@ -1404,11 +1414,19 @@
       $("deleteBtn").style.display = "none";
       resetForm();
 
+      // ✅ novo draft
+      draftId = uid();
+      draftPhotos = ["","",""];
+      modalPhotoSlot = 0;
+
+      // ✅ começa no modo simples
+      modalMode = "simple";
+      applyModalMode();
+      setTimeout(()=>renderInlinePhotoGrid(draftPhotos), 10);
+
       $("fCodigo").disabled = false;
       $("nextCodeBtn").disabled = false;
       setNextCodigoIntoField();
-
-      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
 
       openModal("Novo item");
       setTimeout(()=>$("fProduto").focus(), 50);
@@ -1420,17 +1438,21 @@
       editingId = id;
       $("deleteBtn").style.display = "inline-flex";
 
-      // trava código ao editar
+      draftId = null;
+      draftPhotos = ["","",""];
+      modalPhotoSlot = 0;
+
+      modalMode = "simple";
+      applyModalMode();
+      setTimeout(()=>renderInlinePhotoGrid(it?.photos || ["","",""]), 10);
+
       $("fCodigo").disabled = true;
       $("nextCodeBtn").disabled = true;
 
       $("fCodigo").value = it.codigo || "";
       $("fProduto").value = it.nomeProduto || "";
       $("fLocalEstoque").value = it.localEstoque || "";
-
-      // custo sempre automático
-      $("fCusto").value = String(custoUnitarioAtual()).replace(".",",");
-
+      $("fCusto").value = String(safe(it.custoProduto)).replace(".",",");
       $("fAnuncio").value = String(safe(it.valorAnuncio)).replace(".",",");
       $("fCanalAnuncio").value = it.canalAnuncio || "Facebook";
       $("fDataAnuncio").value = it.dataAnuncioISO || "";
@@ -1447,15 +1469,8 @@
         $("fVendedor").value = it.quemVendeu || "";
         $("fEntrega").value = it.formaEntrega || "";
         $("fCustoEntrega").value = String(safe(it.custoEntrega)).replace(".",",");
-        $("fPagStatus").value = it.pagamentoStatus || "Pendente";
-        $("fPagPrev").value = it.pagamentoPrevistoISO || "";
-
-        $("soldLockChip").style.display = "inline-flex";
-        applySoldLockUI(true);
       } else {
         clearSaleFields();
-        $("soldLockChip").style.display = "none";
-        applySoldLockUI(false);
       }
 
       $("requiredHint").style.display = "none";
@@ -1464,8 +1479,7 @@
     }
 
     function readForm(){
-      // custo SEMPRE automático
-      const custo = custoUnitarioAtual();
+      const custo = parseMoney($("fCusto").value);
       const anuncio = parseMoney($("fAnuncio").value);
       const vendido = $("fVendido").value === "sim";
 
@@ -1475,7 +1489,7 @@
       const itemAtual = editingId ? items.find(x=>x.id===editingId) : null;
 
       return {
-        id: editingId || uid(),
+        id: editingId || draftId || uid(),
         codigo: ($("fCodigo").value || "").trim(),
         nomeProduto: ($("fProduto").value || "").trim(),
         localEstoque: ($("fLocalEstoque").value || "").trim(),
@@ -1491,9 +1505,7 @@
         quemVendeu: vendido ? ($("fVendedor").value || "").trim() : "",
         formaEntrega: vendido ? ($("fEntrega").value || "").trim() : "",
         custoEntrega: vendido ? custoEntrega : 0,
-        pagamentoStatus: vendido ? ($("fPagStatus").value || "Pendente") : "Pendente",
-        pagamentoPrevistoISO: vendido ? (($("fPagPrev").value || "").trim()) : "",
-        photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : ["","",""]
+        photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : (draftPhotos.slice(0,3))
       };
     }
 
@@ -1521,9 +1533,7 @@
     }
 
     function updateCalcPreview(){
-      const custo = custoUnitarioAtual();
-      $("fCusto").value = String(custo).replace(".",",");
-
+      const custo = parseMoney($("fCusto").value);
       const anuncio = parseMoney($("fAnuncio").value);
       const venda = parseMoney($("fVenda").value);
       const custoEntrega = parseMoney($("fCustoEntrega").value);
@@ -1534,13 +1544,12 @@
 
       $("calcPreview").innerHTML = `
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <span class="chip">🧱 Custo (auto): <b>${brl(custo)}</b></span>
           <span class="chip">📣 Lucro projetado: <b>${brl(lucroProj)}</b></span>
           <span class="chip">✅ Lucro final: <b>${brl(lucroFinal)}</b></span>
           <span class="chip">⏱ Tempo venda: <b>${tempo===null ? "—" : (tempo+" dias")}</b></span>
         </div>
         <div class="muted2" style="margin-top:10px;">
-          Fórmulas: custo = 6.050 ÷ itens • lucro proj. = anúncio − custo • lucro final = venda − custo − entrega
+          Fórmulas: lucro projetado = anúncio − custo • lucro final = venda − custo − entrega
         </div>
       `;
     }
@@ -1548,119 +1557,43 @@
     function upsert(it){
       const idx = items.findIndex(x=>x.id===it.id);
       if(idx>=0) items[idx]=normalizeItemShape(it); else items.unshift(normalizeItemShape(it));
-      aplicarCustoFixoEmTodos();
       save();
       render();
     }
 
     window.removeItem = function(id){
       items = items.filter(x=>x.id!==id);
-      aplicarCustoFixoEmTodos();
       save(); render();
     }
 
     window.markSold = function(id, sold){
       items = items.map(x=>{
         if(x.id!==id) return x;
-        if(sold) return x; // vender é pelo fluxo (venda rápida ou modal)
-        return {
-          ...x,
-          vendido:false,
-          valorVenda:0, canalVenda:"", dataVendaISO:"",
-          quemVendeu:"", formaEntrega:"", custoEntrega:0,
-          pagamentoStatus:"Pendente", pagamentoPrevistoISO:""
-        };
+        if(sold) return x;
+        return { ...x, vendido:false, valorVenda:0, canalVenda:"", dataVendaISO:"", quemVendeu:"", formaEntrega:"", custoEntrega:0 };
       });
-      aplicarCustoFixoEmTodos();
       save(); render();
     }
 
-    // ============================
-    // ✅ VENDA RÁPIDA
-    // ============================
-    function validateQuickSellPayload(p){
-      if(!(p.valorVenda > 0)) return "Preencha o Valor da venda.";
-      if(!p.canalVenda) return "Preencha o Canal da venda.";
-      if(!p.dataVendaISO) return "Preencha a Data da venda.";
-      if(!p.quemVendeu) return "Preencha Quem vendeu.";
-      if(!p.formaEntrega) return "Preencha a Forma de entrega.";
-      if(p.custoEntrega === null) return "Preencha o Custo entrega (pode ser 0).";
-      return null;
-    }
-
-    window.openQuickSell = function(id){
+    window.startSellFlow = function(id){
       const it = items.find(x=>x.id===id);
       if(!it) return;
-      sellEditingId = id;
+      window.openEdit(id);
 
-      $("sellTitle").textContent = `Venda rápida — ${it.nomeProduto || "Produto"}`;
-      $("sellMeta").textContent = `Código: ${it.codigo || "—"} • Local: ${it.localEstoque || "—"} • Custo (auto): ${brl(custoUnitarioAtual())}`;
+      // ✅ última sugestão: ao clicar em "Vendido" já abre modo completo e vai na venda
+      modalMode = "full";
+      applyModalMode();
 
-      $("sData").value = nowISO();
-      $("sPagStatus").value = "Pendente";
-      $("sellHint").style.display = "none";
-
-      openSellModal();
-      setTimeout(() => $("sVenda").focus(), 60);
+      $("fVendido").value = "sim";
+      toggleSalesBlock(true);
+      if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+      updateCalcPreview();
+      setTimeout(()=>{
+        scrollToAnchor("anchorVenda");
+        $("fVenda").focus();
+      }, 80);
     }
 
-    function applyQuickSell(){
-      const it = items.find(x=>x.id===sellEditingId);
-      if(!it) return;
-
-      const payload = {
-        valorVenda: parseMoney($("sVenda").value),
-        canalVenda: ($("sCanal").value || "").trim(),
-        dataVendaISO: ($("sData").value || "").trim(),
-        quemVendeu: ($("sVendedor").value || "").trim(),
-        formaEntrega: ($("sEntrega").value || "").trim(),
-        custoEntrega: (() => {
-          const raw = ($("sCustoEntrega").value || "").trim();
-          if(raw === "") return null;
-          return parseMoney(raw);
-        })(),
-        pagamentoStatus: ($("sPagStatus").value || "Pendente"),
-        pagamentoPrevistoISO: ($("sPagPrev").value || "").trim(),
-        obsExtra: ($("sObs").value || "")
-      };
-
-      const err = validateQuickSellPayload(payload);
-      if(err){
-        $("sellHint").style.display = "block";
-        alert(err);
-        return;
-      }
-
-      items = items.map(x=>{
-        if(x.id !== sellEditingId) return x;
-
-        const baseObs = String(x.observacoes || "").trim();
-        const extra = String(payload.obsExtra || "").trim();
-        const mergedObs = extra ? (baseObs ? (baseObs + "\n\n" + extra) : extra) : baseObs;
-
-        return {
-          ...x,
-          vendido: true,
-          valorVenda: payload.valorVenda,
-          canalVenda: payload.canalVenda,
-          dataVendaISO: payload.dataVendaISO,
-          quemVendeu: payload.quemVendeu,
-          formaEntrega: payload.formaEntrega,
-          custoEntrega: payload.custoEntrega,
-          pagamentoStatus: payload.pagamentoStatus,
-          pagamentoPrevistoISO: payload.pagamentoPrevistoISO,
-          observacoes: mergedObs
-        };
-      });
-
-      aplicarCustoFixoEmTodos();
-      save();
-      closeSellModal();
-      setTab("vendas");
-      render();
-    }
-
-    // ===== Export/Import =====
     function exportJSON(){
       const blob = new Blob([JSON.stringify(items,null,2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
@@ -1683,16 +1616,14 @@
     function exportCSV(){
       const header = [
         "id","codigo","nomeProduto","localEstoque","custoProduto","valorAnuncio","canalAnuncio","dataAnuncioISO",
-        "vendido","valorVenda","canalVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega",
-        "pagamentoStatus","pagamentoPrevistoISO","observacoes","photo1","photo2","photo3"
+        "vendido","valorVenda","canalVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega","observacoes",
+        "photo1","photo2","photo3"
       ];
       const rows = items.map(i=>[
         i.id, i.codigo, i.nomeProduto, i.localEstoque,
         safe(i.custoProduto), safe(i.valorAnuncio), i.canalAnuncio, i.dataAnuncioISO,
         i.vendido ? "sim" : "nao",
         safe(i.valorVenda), i.canalVenda, i.dataVendaISO, i.quemVendeu, i.formaEntrega, safe(i.custoEntrega),
-        i.pagamentoStatus || "",
-        i.pagamentoPrevistoISO || "",
         (i.observacoes || "").replaceAll("\n"," "),
         i.photos?.[0] ? "[base64]" : "",
         i.photos?.[1] ? "[base64]" : "",
@@ -1718,7 +1649,6 @@
           const parsed = JSON.parse(String(r.result||""));
           if(Array.isArray(parsed)){
             items = parsed.map(normalizeItemShape);
-            aplicarCustoFixoEmTodos();
             save(); render();
           } else {
             alert("JSON inválido: precisa ser uma lista (array) de itens.");
@@ -1730,57 +1660,7 @@
       r.readAsText(file);
     }
 
-    // ============================
-    // ✅ BACKUP AUTOMÁTICO (SNAPSHOT)
-    // ============================
-    function getSnapshots(){
-      try{
-        const raw = localStorage.getItem(SNAP_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      }catch(e){
-        return [];
-      }
-    }
-    function saveSnapshots(list){
-      localStorage.setItem(SNAP_KEY, JSON.stringify(list));
-    }
-    function createSnapshot(){
-      const snaps = getSnapshots();
-      snaps.unshift({
-        ts: new Date().toISOString(),
-        items: items
-      });
-      // limita a 10 snapshots
-      while(snaps.length > 10) snaps.pop();
-      saveSnapshots(snaps);
-      alert("Ponto de restauração criado com sucesso.");
-    }
-    function restoreLastSnapshot(){
-      const snaps = getSnapshots();
-      if(!snaps.length){
-        alert("Nenhum ponto de restauração encontrado.");
-        return;
-      }
-      const s = snaps[0];
-      if(confirm("Restaurar o último ponto de restauração? Isso sobrescreve o estado atual.")){
-        items = (s.items || []).map(normalizeItemShape);
-        aplicarCustoFixoEmTodos();
-        save();
-        render();
-        alert("Restaurado com sucesso.");
-      }
-    }
-    function clearAll(){
-      if(confirm("Tem certeza que deseja LIMPAR toda a base? (Recomendado criar um ponto de restauração antes)")){
-        items = [];
-        aplicarCustoFixoEmTodos();
-        save();
-        render();
-      }
-    }
-
-    // ===== FOTOS (3) =====
+    // ===== FOTOS MODAL DE FOTOS (mantido) =====
     function openPhotoModal(){ $("photoBackdrop").style.display = "grid"; }
     function closePhotoModal(){
       $("photoBackdrop").style.display = "none";
@@ -1834,26 +1714,12 @@
       openPhotoModal();
     }
 
-    function setPhotoAtSlot(id, slotIndex, dataUrl){
-      items = items.map(x=>{
-        if(x.id!==id) return x;
-        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
-        while(photos.length<3) photos.push("");
-        photos[slotIndex] = dataUrl;
-        return { ...x, photos };
-      });
-      save(); render();
+    function setPhotoAtSlotExternal(id, slotIndex, dataUrl){
+      setPhotoAtSlot(id, slotIndex, dataUrl);
     }
 
-    function removePhotoAtSlot(id, slotIndex){
-      items = items.map(x=>{
-        if(x.id!==id) return x;
-        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
-        while(photos.length<3) photos.push("");
-        photos[slotIndex] = "";
-        return { ...x, photos };
-      });
-      save(); render();
+    function removePhotoAtSlotExternal(id, slotIndex){
+      removePhotoAtSlot(id, slotIndex);
     }
 
     // ===== GRÁFICOS (Canvas) =====
@@ -2088,10 +1954,6 @@
     $("exportCsvBtn").addEventListener("click", exportCSV);
     $("importFile").addEventListener("change", (e)=> importJSON(e.target.files?.[0]));
 
-    $("snapshotBtn").addEventListener("click", createSnapshot);
-    $("restoreBtn").addEventListener("click", restoreLastSnapshot);
-    $("clearBtn").addEventListener("click", clearAll);
-
     document.addEventListener("click", (e)=>{
       const th = e.target.closest("th.sortable");
       if(!th) return;
@@ -2113,17 +1975,51 @@
     $("closeModal").addEventListener("click", closeModal);
     $("cancelBtn").addEventListener("click", closeModal);
 
+    // ✅ Modo simples/completo
+    $("modeBtn").addEventListener("click", ()=>{
+      modalMode = (modalMode === "simple") ? "full" : "simple";
+      applyModalMode();
+    });
+
+    // ✅ botões flutuantes
+    document.getElementById("goTop")?.addEventListener("click", ()=>scrollToAnchor("anchorTop"));
+    document.getElementById("goFotos")?.addEventListener("click", ()=>{
+      if(modalMode === "simple"){
+        modalMode = "full";
+        applyModalMode();
+      }
+      scrollToAnchor("anchorFotos");
+    });
+    document.getElementById("goVenda")?.addEventListener("click", ()=>{
+      if(modalMode === "simple"){
+        modalMode = "full";
+        applyModalMode();
+      }
+      $("fVendido").value = "sim";
+      toggleSalesBlock(true);
+      if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+      updateCalcPreview();
+      scrollToAnchor("anchorVenda");
+    });
+    document.getElementById("goBottom")?.addEventListener("click", ()=>scrollToAnchor("anchorBottom"));
+
+    // ✅ última sugestão (inteligente):
+    // quando o usuário mudar "Vendido? = Sim" dentro do cadastro, abre modo completo e leva direto pra venda
     $("fVendido").addEventListener("change", ()=>{
       const isSold = $("fVendido").value === "sim";
       toggleSalesBlock(isSold);
-      if(!isSold){
+
+      if(isSold){
+        modalMode = "full";
+        applyModalMode();
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        updateCalcPreview();
+        setTimeout(()=>scrollToAnchor("anchorVenda"), 60);
+      } else {
         clearSaleFields();
         $("requiredHint").style.display = "none";
-      } else {
-        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
-        if(!$("fPagStatus").value) $("fPagStatus").value = "Pendente";
+        updateCalcPreview();
       }
-      updateCalcPreview();
     });
 
     $("saveBtn").addEventListener("click", () => {
@@ -2151,7 +2047,7 @@
       }
     });
 
-    ["fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
+    ["fCusto","fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
       $(id).addEventListener("input", updateCalcPreview);
       $(id).addEventListener("change", updateCalcPreview);
     });
@@ -2160,15 +2056,26 @@
       if(e.target === $("backdrop")) closeModal();
     });
 
-    // venda rápida
-    $("closeSell").addEventListener("click", closeSellModal);
-    $("cancelSell").addEventListener("click", closeSellModal);
-    $("confirmSell").addEventListener("click", applyQuickSell);
-    $("sellBackdrop").addEventListener("click", (e)=>{
-      if(e.target === $("sellBackdrop")) closeSellModal();
+    // ✅ fotos no cadastro (inline)
+    $("inlinePhotoFile").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        setCurrentPhotoAtSlot(modalPhotoSlot, dataUrl);
+      };
+      reader.readAsDataURL(file);
+
+      e.target.value = "";
     });
 
-    // fotos
+    $("removeInlineSelectedPhotoBtn").addEventListener("click", ()=>{
+      removeCurrentPhotoAtSlot(modalPhotoSlot);
+    });
+
+    // ===== modal fotos (antigo) =====
     $("closePhoto").addEventListener("click", closePhotoModal);
     $("closePhoto2").addEventListener("click", closePhotoModal);
     $("photoBackdrop").addEventListener("click", (e)=>{
@@ -2196,17 +2103,10 @@
       if(it) renderPhotoGrid(it);
     });
 
-    // selects
     fillSelect("fCanalAnuncio", CANAIS);
     fillSelect("fCanalVenda", CANAIS, true);
     fillSelect("fVendedor", VENDEDORES, true);
     fillSelect("fEntrega", ENTREGAS, true);
-    fillSelect("fPagStatus", PAG_STATUS);
-
-    fillSelect("sCanal", CANAIS, true);
-    fillSelect("sVendedor", VENDEDORES, true);
-    fillSelect("sEntrega", ENTREGAS, true);
-    fillSelect("sPagStatus", PAG_STATUS);
 
     load();
     setChipActive();
