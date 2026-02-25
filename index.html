@@ -108,7 +108,7 @@
 
     .tabs{
       display:grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(8, 1fr);
       gap:10px;
       margin: 14px 0 14px;
       padding: 8px;
@@ -591,6 +591,7 @@
       <button class="tab active" data-tab="visao" type="button">Visão geral</button>
       <button class="tab" data-tab="estoque" type="button">Estoque</button>
       <button class="tab" data-tab="vendas" type="button">Vendas</button>
+      <button class="tab" data-tab="financeiro" type="button">Financeiro</button>
       <button class="tab" data-tab="graficos" type="button">Gráficos</button>
       <button class="tab" data-tab="local" type="button">Por local</button>
       <button class="tab" data-tab="lixeira" type="button">Lixeira</button>
@@ -622,6 +623,40 @@
       <div class="card" style="margin-top:12px;">
         <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
         <div class="body" id="quickSummary"></div>
+      </div>
+    </section>
+
+    <!-- FINANCEIRO -->
+    <section id="financeiro" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Resumo financeiro</h3><span class="muted2">Recebido, a receber e caixa</span></div>
+        <div class="body"><div class="kpis" id="kpiFinanceiro"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Agenda de recebimentos</h3><span class="muted2">Controle por parcela</span></div>
+        <div class="body">
+          <div id="financeSummary"></div>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Previsto para</th>
+                  <th>Recebido em</th>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Parcela</th>
+                  <th>Valor</th>
+                  <th>Forma</th>
+                  <th>Vendedor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbFinanceiro"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1292,11 +1327,14 @@
       const tipo = (base.tipo === "parcelado") ? "parcelado" : "avista";
       const forma = ["pix","dinheiro","cartao"].includes(base.forma) ? base.forma : "pix";
       const obs = String(base.obs ?? "");
+      const recebidoAvistaEm = String(base.recebidoAvistaEm ?? "");
+      const recebimentoUnicoEm = String(base.recebimentoUnicoEm ?? "");
       const parcelas = Array.isArray(base.parcelas) ? base.parcelas.map(x=>({
         data: String(x?.data ?? ""),
-        valor: safe(Number(x?.valor))
+        valor: safe(Number(x?.valor)),
+        recebidoEm: String(x?.recebidoEm ?? "")
       })) : [];
-      return { tipo, forma, obs, parcelas };
+      return { tipo, forma, obs, parcelas, recebidoAvistaEm, recebimentoUnicoEm };
     }
 
     function normalizeItemShape(x){
@@ -1436,8 +1474,167 @@
     // ============================
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-      ["visao","estoque","vendas","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
       render();
+    }
+
+    function paymentDateLabel(iso){
+      if(!iso) return "—";
+      const d = new Date(iso + "T00:00:00");
+      if(!Number.isFinite(d.getTime())) return "—";
+      return d.toLocaleDateString("pt-BR");
+    }
+
+    function buildPaymentRows(){
+      const rows = [];
+      items.filter(i=>i.vendido && safe(i.valorVenda) > 0).forEach(it=>{
+        const pay = normalizePagamento(it.pagamento);
+        if(pay.tipo === "parcelado"){
+          if(pay.parcelas.length){
+            pay.parcelas.forEach((p, idx)=>{
+              rows.push({
+                itemId: it.id,
+                key: `parcela:${idx}`,
+                kind: "parcela",
+                parcelaIdx: idx,
+                parcelaLabel: `${idx+1}/${pay.parcelas.length}`,
+                status: p.recebidoEm ? "recebido" : "pendente",
+                dueISO: p.data || it.dataVendaISO || "",
+                receivedISO: p.recebidoEm || "",
+                valor: safe(p.valor),
+                forma: pay.forma,
+                codigo: it.codigo,
+                nomeProduto: it.nomeProduto,
+                quemVendeu: it.quemVendeu || "—"
+              });
+            });
+          } else {
+            rows.push({
+              itemId: it.id,
+              key: "unico",
+              kind: "unico",
+              parcelaIdx: 0,
+              parcelaLabel: "Única",
+              status: pay.recebimentoUnicoEm ? "recebido" : "pendente",
+              dueISO: it.dataVendaISO || "",
+              receivedISO: pay.recebimentoUnicoEm || "",
+              valor: safe(it.valorVenda),
+              forma: pay.forma,
+              codigo: it.codigo,
+              nomeProduto: it.nomeProduto,
+              quemVendeu: it.quemVendeu || "—"
+            });
+          }
+        } else {
+          const receivedISO = pay.recebidoAvistaEm || it.dataVendaISO || "";
+          rows.push({
+            itemId: it.id,
+            key: "avista",
+            kind: "avista",
+            parcelaIdx: 0,
+            parcelaLabel: "À vista",
+            status: receivedISO ? "recebido" : "pendente",
+            dueISO: it.dataVendaISO || "",
+            receivedISO,
+            valor: safe(it.valorVenda),
+            forma: pay.forma,
+            codigo: it.codigo,
+            nomeProduto: it.nomeProduto,
+            quemVendeu: it.quemVendeu || "—"
+          });
+        }
+      });
+
+      const today = nowISO();
+      rows.forEach(r=>{
+        r.isOverdue = r.status === "pendente" && !!r.dueISO && r.dueISO < today;
+      });
+
+      rows.sort((a,b)=>{
+        if(a.status !== b.status) return a.status === "pendente" ? -1 : 1;
+        const da = a.dueISO || "9999-12-31";
+        const db = b.dueISO || "9999-12-31";
+        return da.localeCompare(db);
+      });
+
+      return rows;
+    }
+
+    function computeFinanceiro(rows){
+      const recebido = rows.filter(r=>r.status==="recebido").reduce((acc,r)=>acc + safe(r.valor),0);
+      const aReceber = rows.filter(r=>r.status!=="recebido").reduce((acc,r)=>acc + safe(r.valor),0);
+      const pendentes = rows.filter(r=>r.status!=="recebido");
+      const vencidas = pendentes.filter(r=>r.isOverdue);
+      const proximas = pendentes.filter(r=>r.dueISO && !r.isOverdue).sort((a,b)=>a.dueISO.localeCompare(b.dueISO));
+      return {
+        recebido,
+        aReceber,
+        caixa: recebido,
+        qtdParcelas: rows.length,
+        qtdPendentes: pendentes.length,
+        qtdVencidas: vencidas.length,
+        proximoRecebimento: proximas[0] || null
+      };
+    }
+
+    function renderFinanceiro(){
+      const rows = buildPaymentRows();
+      const m = computeFinanceiro(rows);
+
+      const grid = $("kpiFinanceiro");
+      grid.innerHTML = "";
+      [
+        { label:"Já recebi", value:brl(m.recebido), hint:"Total confirmado" },
+        { label:"Tenho a receber", value:brl(m.aReceber), hint:"Parcelas pendentes" },
+        { label:"Em caixa", value:brl(m.caixa), hint:"Baseado nos recebimentos" },
+        { label:"Parcelas", value:String(m.qtdParcelas), hint:`${m.qtdPendentes} pendentes • ${m.qtdVencidas} vencidas` }
+      ].forEach(k=>{
+        const div = document.createElement("div");
+        div.className = "kpi";
+        div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+        grid.appendChild(div);
+      });
+
+      $("financeSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="chip">💳 Pendentes: <b>${m.qtdPendentes}</b></span>
+          <span class="chip">🚨 Vencidas: <b>${m.qtdVencidas}</b></span>
+          <span class="chip">📅 Próximo: <b>${m.proximoRecebimento ? paymentDateLabel(m.proximoRecebimento.dueISO) : "—"}</b></span>
+        </div>
+      `;
+
+      const tb = $("tbFinanceiro");
+      tb.innerHTML = "";
+      if(!rows.length){
+        tb.innerHTML = `<tr><td colspan="10" class="muted">Nenhum recebimento encontrado. Marque itens como vendidos para gerar cobranças.</td></tr>`;
+        return;
+      }
+
+      rows.forEach(r=>{
+        const tr = document.createElement("tr");
+        const statusChip = r.status === "recebido"
+          ? `<span class="chip" style="background:rgba(90,255,170,.14); border-color:rgba(90,255,170,.35)">✅ Recebido</span>`
+          : r.isOverdue
+            ? `<span class="chip" style="background:rgba(255,90,90,.14); border-color:rgba(255,90,90,.35)">⚠️ Vencido</span>`
+            : `<span class="chip">⏳ Pendente</span>`;
+        tr.innerHTML = `
+          <td>${statusChip}</td>
+          <td>${paymentDateLabel(r.dueISO)}</td>
+          <td>${paymentDateLabel(r.receivedISO)}</td>
+          <td><b>${escapeHtml(r.codigo || "—")}</b></td>
+          <td>${escapeHtml(r.nomeProduto || "—")}</td>
+          <td>${escapeHtml(r.parcelaLabel)}</td>
+          <td>${brl(safe(r.valor))}</td>
+          <td>${escapeHtml(r.forma || "—")}</td>
+          <td>${escapeHtml(r.quemVendeu || "—")}</td>
+          <td>
+            <button class="btn small ${r.status === "recebido" ? "warn" : "ok"}" type="button" onclick="toggleRecebimento('${r.itemId}','${r.kind}',${r.parcelaIdx})">
+              ${r.status === "recebido" ? "↩️ Desfazer" : "💰 Receber"}
+            </button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
     }
 
     // ============================
@@ -1654,7 +1851,7 @@
       copy.quemVendeu = "";
       copy.formaEntrega = "";
       copy.custoEntrega = 0;
-      copy.pagamento = { tipo:"avista", forma:"pix", obs:"", parcelas:[] };
+      copy.pagamento = { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"" };
 
       items.unshift(normalizeItemShape(copy));
       saveItems();
@@ -2033,7 +2230,7 @@
         $("fPagamentoTipo").value = it.pagamento?.tipo || "avista";
         $("fPagamentoForma").value = it.pagamento?.forma || "pix";
         $("fPagamentoObs").value = it.pagamento?.obs || "";
-        parcelasDraft = Array.isArray(it.pagamento?.parcelas) ? it.pagamento.parcelas.map(p=>({ data:p.data, valor:safe(p.valor) })) : [];
+        parcelasDraft = Array.isArray(it.pagamento?.parcelas) ? it.pagamento.parcelas.map(p=>({ data:p.data, valor:safe(p.valor), recebidoEm: String(p.recebidoEm||"") })) : [];
         renderParcelasTable();
         toggleParcelasBlock();
       } else {
@@ -2059,12 +2256,19 @@
       const loteId = ($("fLote").value || (lots[0]?.id || "lote-1")).trim();
       const custoAuto = computeAutoCostForLot(loteId, editingId ? 0 : 1);
 
+      const pagAtual = normalizePagamento(itemAtual?.pagamento);
       const pagamento = vendido ? {
         tipo: $("fPagamentoTipo").value === "parcelado" ? "parcelado" : "avista",
         forma: $("fPagamentoForma").value,
         obs: $("fPagamentoObs").value || "",
-        parcelas: parcelasDraft.map(p=>({ data: String(p.data||""), valor: safe(Number(p.valor)) }))
-      } : { tipo:"avista", forma:"pix", obs:"", parcelas:[] };
+        recebidoAvistaEm: pagAtual.recebidoAvistaEm || ($("fPagamentoTipo").value === "avista" ? ($("fDataVenda").value || "") : ""),
+        recebimentoUnicoEm: pagAtual.recebimentoUnicoEm || "",
+        parcelas: parcelasDraft.map((p,idx)=>({
+          data: String(p.data||""),
+          valor: safe(Number(p.valor)),
+          recebidoEm: String(p.recebidoEm || pagAtual.parcelas?.[idx]?.recebidoEm || "")
+        }))
+      } : { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"" };
 
       return {
         id: editingId || uid(),
@@ -2182,7 +2386,7 @@
           quemVendeu:"",
           formaEntrega:"",
           custoEntrega:0,
-          pagamento:{ tipo:"avista", forma:"pix", obs:"", parcelas:[] }
+          pagamento:{ tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"" }
         };
       });
       saveItems();
@@ -2199,6 +2403,30 @@
       updateCalcPreview();
       scrollToSection("secVenda");
       setTimeout(()=>$("fVenda").focus(), 50);
+    }
+
+
+    window.toggleRecebimento = function(itemId, kind, parcelaIdx){
+      const hoje = nowISO();
+      items = items.map(it=>{
+        if(it.id !== itemId) return it;
+        const pagamento = normalizePagamento(it.pagamento);
+
+        if(kind === "avista"){
+          pagamento.recebidoAvistaEm = pagamento.recebidoAvistaEm ? "" : hoje;
+        } else if(kind === "unico"){
+          pagamento.recebimentoUnicoEm = pagamento.recebimentoUnicoEm ? "" : hoje;
+        } else if(kind === "parcela"){
+          const idx = Number(parcelaIdx);
+          if(Number.isFinite(idx) && pagamento.parcelas[idx]){
+            pagamento.parcelas[idx].recebidoEm = pagamento.parcelas[idx].recebidoEm ? "" : hoje;
+          }
+        }
+
+        return { ...it, pagamento };
+      });
+      saveItems();
+      render();
     }
 
     // ============================
@@ -2935,6 +3163,10 @@
       }
 
       renderTables(filtered);
+
+      if(!$("financeiro").classList.contains("hidden")){
+        renderFinanceiro();
+      }
 
       if(!$("graficos").classList.contains("hidden")){
         renderCharts();
