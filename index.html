@@ -108,7 +108,7 @@
 
     .tabs{
       display:grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(8, 1fr);
       gap:10px;
       margin: 14px 0 14px;
       padding: 8px;
@@ -591,6 +591,7 @@
       <button class="tab active" data-tab="visao" type="button">Visão geral</button>
       <button class="tab" data-tab="estoque" type="button">Estoque</button>
       <button class="tab" data-tab="vendas" type="button">Vendas</button>
+      <button class="tab" data-tab="financeiro" type="button">Financeiro</button>
       <button class="tab" data-tab="graficos" type="button">Gráficos</button>
       <button class="tab" data-tab="local" type="button">Por local</button>
       <button class="tab" data-tab="lixeira" type="button">Lixeira</button>
@@ -622,6 +623,75 @@
       <div class="card" style="margin-top:12px;">
         <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
         <div class="body" id="quickSummary"></div>
+      </div>
+    </section>
+
+    <!-- FINANCEIRO -->
+    <section id="financeiro" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Resumo financeiro</h3><span class="muted2">Recebido, a receber e caixa</span></div>
+        <div class="body"><div class="kpis" id="kpiFinanceiro"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Agenda de recebimentos</h3><span class="muted2">Controle por parcela</span></div>
+        <div class="body">
+          <div id="financeSummary"></div>
+
+          <div class="two-col" style="margin-top:10px;">
+            <div class="field">
+              <label>Status</label>
+              <select id="financeStatusFilter">
+                <option value="todos">Todos</option>
+                <option value="pendente">Pendente</option>
+                <option value="recebido">Recebido</option>
+                <option value="vencido">Vencido</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Vendedor</label>
+              <select id="financeSellerFilter"></select>
+            </div>
+            <div class="field">
+              <label>Forma</label>
+              <select id="financeFormaFilter">
+                <option value="todas">Todas</option>
+                <option value="pix">Pix</option>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao">Cartão</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Período</label>
+              <select id="financePeriodFilter">
+                <option value="todos">Todos</option>
+                <option value="hoje">Vence hoje</option>
+                <option value="7dias">Próximos 7 dias</option>
+                <option value="vencidas">Vencidas</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Previsto para</th>
+                  <th>Recebido em</th>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Parcela</th>
+                  <th>Valor</th>
+                  <th>Forma</th>
+                  <th>Vendedor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbFinanceiro"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -706,12 +776,16 @@
               <div class="body"><canvas id="cRevenue30" class="chart" width="900" height="260"></canvas></div>
             </div>
             <div class="card">
-              <div class="head"><h3>Vendas por canal</h3><span class="muted2">Quantidade (multi-canal)</span></div>
+              <div class="head"><h3>Mix de vendas por canal</h3><span class="muted2">Onde a operação realmente vende</span></div>
               <div class="body"><canvas id="cSalesByChannel" class="chart" width="900" height="260"></canvas></div>
             </div>
             <div class="card">
-              <div class="head"><h3>Lucro por canal</h3><span class="muted2">R$ (multi-canal)</span></div>
-              <div class="body"><canvas id="cProfitByChannel" class="chart" width="900" height="260"></canvas></div>
+              <div class="head"><h3>Margem por canal</h3><span class="muted2">% de margem para priorizar canal</span></div>
+              <div class="body"><canvas id="cMarginByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="head"><h3>Previsão x Recebimento (30 dias)</h3><span class="muted2">Diferença entre caixa esperado e realizado</span></div>
+              <div class="body"><canvas id="cReceipts30" class="chart" width="900" height="260"></canvas></div>
             </div>
             <div class="card" style="grid-column: 1 / -1;">
               <div class="head"><h3>Aging do estoque</h3><span class="muted2">0–6d / 7–14d / 15–30d / 30+d</span></div>
@@ -1068,9 +1142,22 @@
                 <input id="fPagamentoObs" placeholder="Ex: combinado para dia 28/02">
               </div>
 
+              <div class="field" id="recebimentoStatusBlock">
+                <label>Recebido?</label>
+                <select id="fRecebidoStatus">
+                  <option value="pendente">Pendente</option>
+                  <option value="recebido">Recebido</option>
+                </select>
+              </div>
+
+              <div class="field" id="recebimentoDateBlock">
+                <label>Data do recebimento</label>
+                <input id="fRecebidoEm" type="date">
+              </div>
+
               <div class="field" style="grid-column: 1 / -1;" id="parcelasBlock" style="display:none;">
                 <label>Parcelas (datas e valores)</label>
-                <div class="mini-note">Clique em “Adicionar parcela” e informe data + valor. (Opcional)</div>
+                <div class="mini-note">Clique em “Adicionar parcela” e informe data + valor. (Obrigatório no parcelado)</div>
 
                 <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
                   <button class="btn" id="addParcelaBtn" type="button">➕ Adicionar parcela</button>
@@ -1292,11 +1379,15 @@
       const tipo = (base.tipo === "parcelado") ? "parcelado" : "avista";
       const forma = ["pix","dinheiro","cartao"].includes(base.forma) ? base.forma : "pix";
       const obs = String(base.obs ?? "");
+      const recebidoAvistaEm = String(base.recebidoAvistaEm ?? "");
+      const recebimentoUnicoEm = String(base.recebimentoUnicoEm ?? "");
       const parcelas = Array.isArray(base.parcelas) ? base.parcelas.map(x=>({
         data: String(x?.data ?? ""),
-        valor: safe(Number(x?.valor))
+        valor: safe(Number(x?.valor)),
+        recebidoEm: String(x?.recebidoEm ?? "")
       })) : [];
-      return { tipo, forma, obs, parcelas };
+      const historico = Array.isArray(base.historico) ? base.historico.map(h=>({ em: String(h?.em||""), evento: String(h?.evento||""), valor: safe(Number(h?.valor)) })) : [];
+      return { tipo, forma, obs, parcelas, recebidoAvistaEm, recebimentoUnicoEm, historico };
     }
 
     function normalizeItemShape(x){
@@ -1436,8 +1527,218 @@
     // ============================
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-      ["visao","estoque","vendas","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
       render();
+    }
+
+    function paymentDateLabel(iso){
+      if(!iso) return "—";
+      const d = new Date(iso + "T00:00:00");
+      if(!Number.isFinite(d.getTime())) return "—";
+      return d.toLocaleDateString("pt-BR");
+    }
+    function pushPagamentoHistorico(pagamento, evento, valor){
+      const hist = Array.isArray(pagamento.historico) ? pagamento.historico.slice() : [];
+      hist.unshift({ em: isoNow(), evento, valor: safe(Number(valor)) });
+      pagamento.historico = hist.slice(0, 100);
+    }
+
+    function dueInNextDays(dueISO, days){
+      if(!dueISO) return false;
+      const now = new Date(nowISO()+"T00:00:00").getTime();
+      const due = new Date(dueISO+"T00:00:00").getTime();
+      if(!Number.isFinite(now) || !Number.isFinite(due)) return false;
+      const delta = Math.round((due-now)/(1000*60*60*24));
+      return delta >= 0 && delta <= days;
+    }
+
+    function isDueToday(dueISO){
+      return !!dueISO && dueISO === nowISO();
+    }
+
+
+    function buildPaymentRows(){
+      const rows = [];
+      items.filter(i=>i.vendido && safe(i.valorVenda) > 0).forEach(it=>{
+        const pay = normalizePagamento(it.pagamento);
+        if(pay.tipo === "parcelado"){
+          if(pay.parcelas.length){
+            pay.parcelas.forEach((p, idx)=>{
+              rows.push({
+                itemId: it.id,
+                key: `parcela:${idx}`,
+                kind: "parcela",
+                parcelaIdx: idx,
+                parcelaLabel: `${idx+1}/${pay.parcelas.length}`,
+                status: p.recebidoEm ? "recebido" : "pendente",
+                dueISO: p.data || it.dataVendaISO || "",
+                receivedISO: p.recebidoEm || "",
+                valor: safe(p.valor),
+                forma: pay.forma,
+                codigo: it.codigo,
+                nomeProduto: it.nomeProduto,
+                quemVendeu: it.quemVendeu || "—"
+              });
+            });
+          } else {
+            rows.push({
+              itemId: it.id,
+              key: "unico",
+              kind: "unico",
+              parcelaIdx: 0,
+              parcelaLabel: "Única",
+              status: pay.recebimentoUnicoEm ? "recebido" : "pendente",
+              dueISO: it.dataVendaISO || "",
+              receivedISO: pay.recebimentoUnicoEm || "",
+              valor: safe(it.valorVenda),
+              forma: pay.forma,
+              codigo: it.codigo,
+              nomeProduto: it.nomeProduto,
+              quemVendeu: it.quemVendeu || "—"
+            });
+          }
+        } else {
+          const receivedISO = pay.recebidoAvistaEm || it.dataVendaISO || "";
+          rows.push({
+            itemId: it.id,
+            key: "avista",
+            kind: "avista",
+            parcelaIdx: 0,
+            parcelaLabel: "À vista",
+            status: receivedISO ? "recebido" : "pendente",
+            dueISO: it.dataVendaISO || "",
+            receivedISO,
+            valor: safe(it.valorVenda),
+            forma: pay.forma,
+            codigo: it.codigo,
+            nomeProduto: it.nomeProduto,
+            quemVendeu: it.quemVendeu || "—"
+          });
+        }
+      });
+
+      const today = nowISO();
+      rows.forEach(r=>{
+        r.isOverdue = r.status === "pendente" && !!r.dueISO && r.dueISO < today;
+      });
+
+      rows.sort((a,b)=>{
+        if(a.status !== b.status) return a.status === "pendente" ? -1 : 1;
+        const da = a.dueISO || "9999-12-31";
+        const db = b.dueISO || "9999-12-31";
+        return da.localeCompare(db);
+      });
+
+      return rows;
+    }
+
+    function computeFinanceiro(rows){
+      const recebido = rows.filter(r=>r.status==="recebido").reduce((acc,r)=>acc + safe(r.valor),0);
+      const aReceber = rows.filter(r=>r.status!=="recebido").reduce((acc,r)=>acc + safe(r.valor),0);
+      const pendentes = rows.filter(r=>r.status!=="recebido");
+      const vencidas = pendentes.filter(r=>r.isOverdue);
+      const proximas = pendentes.filter(r=>r.dueISO && !r.isOverdue).sort((a,b)=>a.dueISO.localeCompare(b.dueISO));
+      const venceHoje = pendentes.filter(r=>isDueToday(r.dueISO));
+      const proximos7 = pendentes.filter(r=>dueInNextDays(r.dueISO, 7));
+      const custosVendidos = items.filter(i=>i.vendido).reduce((acc,i)=>acc + safe(i.custoProduto) + safe(i.custoEntrega),0);
+      return {
+        recebido,
+        aReceber,
+        caixa: recebido - custosVendidos,
+        qtdParcelas: rows.length,
+        qtdPendentes: pendentes.length,
+        qtdVencidas: vencidas.length,
+        qtdVenceHoje: venceHoje.length,
+        qtdProximos7: proximos7.length,
+        proximoRecebimento: proximas[0] || null
+      };
+    }
+
+    function renderFinanceiro(){
+      const rows = buildPaymentRows();
+      const m = computeFinanceiro(rows);
+
+      const sellerSel = $("financeSellerFilter");
+      if(sellerSel){
+        const cur = sellerSel.value || "todos";
+        sellerSel.innerHTML = `<option value="todos">Todos</option>${(config.vendedores||[]).map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("")}`;
+        sellerSel.value = Array.from(sellerSel.options).some(o=>o.value===cur) ? cur : "todos";
+      }
+
+      const statusFilter = $("financeStatusFilter")?.value || "todos";
+      const sellerFilter = $("financeSellerFilter")?.value || "todos";
+      const formaFilter = $("financeFormaFilter")?.value || "todas";
+      const periodFilter = $("financePeriodFilter")?.value || "todos";
+
+      const filteredRows = rows.filter(r=>{
+        if(statusFilter === "pendente" && r.status !== "pendente") return false;
+        if(statusFilter === "recebido" && r.status !== "recebido") return false;
+        if(statusFilter === "vencido" && !r.isOverdue) return false;
+        if(sellerFilter !== "todos" && r.quemVendeu !== sellerFilter) return false;
+        if(formaFilter !== "todas" && r.forma !== formaFilter) return false;
+        if(periodFilter === "hoje" && !isDueToday(r.dueISO)) return false;
+        if(periodFilter === "7dias" && !dueInNextDays(r.dueISO, 7)) return false;
+        if(periodFilter === "vencidas" && !r.isOverdue) return false;
+        return true;
+      });
+
+      const grid = $("kpiFinanceiro");
+      grid.innerHTML = "";
+      [
+        { label:"Já recebi", value:brl(m.recebido), hint:"Total confirmado" },
+        { label:"Tenho a receber", value:brl(m.aReceber), hint:"Parcelas pendentes" },
+        { label:"Em caixa", value:brl(m.caixa), hint:"Recebimentos - custos das vendas" },
+        { label:"Parcelas", value:String(m.qtdParcelas), hint:`${m.qtdPendentes} pendentes • ${m.qtdVencidas} vencidas` },
+        { label:"Vence hoje", value:String(m.qtdVenceHoje), hint:"Pendências para hoje" },
+        { label:"Próx. 7 dias", value:String(m.qtdProximos7), hint:"A receber em até 7 dias" }
+      ].forEach(k=>{
+        const div = document.createElement("div");
+        div.className = "kpi";
+        div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+        grid.appendChild(div);
+      });
+
+      $("financeSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="chip">💳 Pendentes: <b>${m.qtdPendentes}</b></span>
+          <span class="chip">🚨 Vencidas: <b>${m.qtdVencidas}</b></span>
+          <span class="chip">📅 Próximo: <b>${m.proximoRecebimento ? paymentDateLabel(m.proximoRecebimento.dueISO) : "—"}</b></span>
+          <span class="chip">📌 Mostrando: <b>${filteredRows.length}</b></span>
+        </div>
+      `;
+
+      const tb = $("tbFinanceiro");
+      tb.innerHTML = "";
+      if(!filteredRows.length){
+        tb.innerHTML = `<tr><td colspan="10" class="muted">Nenhum recebimento para os filtros selecionados.</td></tr>`;
+        return;
+      }
+
+      filteredRows.forEach(r=>{
+        const tr = document.createElement("tr");
+        const statusChip = r.status === "recebido"
+          ? `<span class="chip" style="background:rgba(90,255,170,.14); border-color:rgba(90,255,170,.35)">✅ Recebido</span>`
+          : r.isOverdue
+            ? `<span class="chip" style="background:rgba(255,90,90,.14); border-color:rgba(255,90,90,.35)">⚠️ Vencido</span>`
+            : `<span class="chip">⏳ Pendente</span>`;
+        tr.innerHTML = `
+          <td>${statusChip}</td>
+          <td>${paymentDateLabel(r.dueISO)}</td>
+          <td>${paymentDateLabel(r.receivedISO)}</td>
+          <td><b>${escapeHtml(r.codigo || "—")}</b></td>
+          <td>${escapeHtml(r.nomeProduto || "—")}</td>
+          <td>${escapeHtml(r.parcelaLabel)}</td>
+          <td>${brl(safe(r.valor))}</td>
+          <td>${escapeHtml(r.forma || "—")}</td>
+          <td>${escapeHtml(r.quemVendeu || "—")}</td>
+          <td>
+            <button class="btn small ${r.status === "recebido" ? "warn" : "ok"}" type="button" onclick="toggleRecebimento('${r.itemId}','${r.kind}',${r.parcelaIdx})">
+              ${r.status === "recebido" ? "↩️ Desfazer" : "💰 Receber"}
+            </button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
     }
 
     // ============================
@@ -1471,6 +1772,7 @@
     // ============================
     function compute(){
       const sold = items.filter(i => i.vendido && safe(i.valorVenda) > 0);
+      const stock = items.filter(i => !i.vendido);
       const totalVendas = sold.length;
 
       const faturamento = sold.reduce((a,i)=>a+safe(i.valorVenda),0);
@@ -1487,49 +1789,61 @@
 
       const tempos = sold.map(i => daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO)).filter(d => typeof d==="number");
       const tempoMedio = tempos.length ? (tempos.reduce((a,b)=>a+b,0)/tempos.length) : null;
+      const giroRapido = tempos.length ? tempos.filter(d=>d<=14).length / tempos.length : 0;
 
       const totalItens = items.length;
-      const totalEstoque = items.filter(i => !i.vendido).length;
+      const totalEstoque = stock.length;
       const taxaVenda = totalItens ? totalVendas/totalItens : 0;
 
-      const valorAnunciadoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.valorAnuncio),0);
-      const custoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.custoProduto),0);
-      const potencialLucroEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
+      const valorAnunciadoEstoque = stock.reduce((a,i)=>a+safe(i.valorAnuncio),0);
+      const custoEstoque = stock.reduce((a,i)=>a+safe(i.custoProduto),0);
+      const potencialLucroEstoque = stock.reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
+      const estoque30d = stock.filter(i=>{
+        const d = daysBetweenISO(i.dataAnuncioISO, nowISO());
+        return typeof d === "number" && d > 30;
+      }).length;
 
       return {
         totalVendas,faturamento,custoProdutos,custoEntregas,lucroFinal,
         ticketMedio,lucroMedio,margemLucro,entregaPct,roiProdutos,
-        tempoMedio,totalItens,totalEstoque,taxaVenda,
-        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque
+        tempoMedio,giroRapido,totalItens,totalEstoque,taxaVenda,
+        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque,estoque30d
       };
     }
 
     function renderKPIs(m){
+      const metaMargem = 0.35;
+      const metaEntregaPct = 0.12;
+      const metaTempo = 14;
+      const margemOk = m.margemLucro >= metaMargem;
+      const entregaOk = m.entregaPct <= metaEntregaPct;
+      const tempoOk = (m.tempoMedio ?? 999) <= metaTempo;
+
       const groups = {
         kpiVendas: [
-          { label:"Faturamento", value:brl(m.faturamento), hint:"Soma do valor de venda" },
-          { label:"Lucro final", value:brl(m.lucroFinal), hint:"Venda − custo − entrega" },
-          { label:"Margem", value:pct(m.margemLucro), hint:"Lucro / faturamento" },
-          { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Faturamento / vendas" },
-          { label:"Lucro médio", value:brl(m.lucroMedio), hint:"Lucro / vendas" },
+          { label:"Faturamento", value:brl(m.faturamento), hint:"Meta: crescer sem perder margem" },
+          { label:"Lucro operacional", value:brl(m.lucroFinal), hint:"Após custo de produto + entrega" },
+          { label:"Margem", value:pct(m.margemLucro), hint:`${margemOk?"✅":"⚠️"} Meta >= ${pct(metaMargem)}` },
+          { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Quanto cada venda gera" },
+          { label:"Lucro por venda", value:brl(m.lucroMedio), hint:"Eficiência por pedido" },
         ],
         kpiCustos: [
-          { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Custo rateado (vendidos)" },
-          { label:"Custo entregas", value:brl(m.custoEntregas), hint:"Soma entrega (vendidos)" },
-          { label:"% entrega", value:pct(m.entregaPct), hint:"Entrega / faturamento" },
-          { label:"ROI", value:pct(m.roiProdutos), hint:"Lucro / custo produtos" },
+          { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Quanto imobilizou para vender" },
+          { label:"Custo entregas", value:brl(m.custoEntregas), hint:"Custo logístico total" },
+          { label:"Peso da entrega", value:pct(m.entregaPct), hint:`${entregaOk?"✅":"⚠️"} Meta <= ${pct(metaEntregaPct)}` },
+          { label:"ROI de produtos", value:pct(m.roiProdutos), hint:"Retorno sobre custo de compra" },
         ],
         kpiEstoque: [
-          { label:"Em estoque", value:String(m.totalEstoque), hint:"Itens não vendidos" },
-          { label:"Custo do estoque", value:brl(m.custoEstoque), hint:"Soma do custo (estoque)" },
-          { label:"Valor anunciado (estoque)", value:brl(m.valorAnunciadoEstoque), hint:"Soma do anúncio (estoque)" },
-          { label:"Potencial lucro (estoque)", value:brl(m.potencialLucroEstoque), hint:"(Anúncio − custo) no estoque" },
+          { label:"Itens em estoque", value:String(m.totalEstoque), hint:"Volume parado hoje" },
+          { label:"Estoque 30+ dias", value:String(m.estoque30d), hint:"Priorizar giro / promoções" },
+          { label:"Capital no estoque", value:brl(m.custoEstoque), hint:"Dinheiro imobilizado" },
+          { label:"Potencial de lucro", value:brl(m.potencialLucroEstoque), hint:"Se vender pelo valor anunciado" },
         ],
         kpiOperacao: [
-          { label:"Total de vendas", value:String(m.totalVendas), hint:"Itens vendidos com valor" },
-          { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas / itens" },
-          { label:"Tempo médio", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:"Anúncio → venda" },
-          { label:"Itens cadastrados", value:String(m.totalItens), hint:"Total na base" },
+          { label:"Total de vendas", value:String(m.totalVendas), hint:"Pedidos concluídos" },
+          { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas ÷ itens cadastrados" },
+          { label:"Tempo médio de giro", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:`${tempoOk?"✅":"⚠️"} Meta <= ${metaTempo} dias` },
+          { label:"Giro rápido (<=14d)", value:pct(m.giroRapido), hint:"% de vendas em até 14 dias" },
         ],
       };
 
@@ -1547,13 +1861,17 @@
 
     function renderQuick(m){
       const estoque = items.filter(i=>!i.vendido).length;
+      const foco = (m.estoque30d > 0 || (m.tempoMedio ?? 0) > 14)
+        ? "⚠️ Foco: girar estoque parado e acelerar fechamento"
+        : "✅ Operação saudável: mantenha ritmo e margem";
       $("quickSummary").innerHTML = `
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <span class="chip">🧾 Vendas: <b>${m.totalVendas}</b></span>
           <span class="chip">💰 Faturamento: <b>${brl(m.faturamento)}</b></span>
           <span class="chip">✅ Lucro: <b>${brl(m.lucroFinal)}</b></span>
           <span class="chip">📦 Estoque: <b>${estoque}</b></span>
-          <span class="chip">⏱ Tempo médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
+          <span class="chip">⏱ Giro médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
+          <span class="chip">🎯 ${foco}</span>
         </div>
       `;
     }
@@ -1654,7 +1972,7 @@
       copy.quemVendeu = "";
       copy.formaEntrega = "";
       copy.custoEntrega = 0;
-      copy.pagamento = { tipo:"avista", forma:"pix", obs:"", parcelas:[] };
+      copy.pagamento = { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"", historico:[] };
 
       items.unshift(normalizeItemShape(copy));
       saveItems();
@@ -1922,14 +2240,17 @@
       $("fPagamentoTipo").value = "avista";
       $("fPagamentoForma").value = "pix";
       $("fPagamentoObs").value = "";
+      $("fRecebidoStatus").value = "pendente";
+      $("fRecebidoEm").value = "";
       parcelasDraft = [];
       renderParcelasTable();
       toggleParcelasBlock();
+      toggleRecebimentoFields();
     }
 
     function toggleSalesBlock(show){
       $("salesBlock").style.display = show ? "block" : "none";
-      ["fVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagamentoTipo","fPagamentoForma","fPagamentoObs"].forEach(id=>{
+      ["fVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagamentoTipo","fPagamentoForma","fPagamentoObs","fRecebidoStatus","fRecebidoEm"].forEach(id=>{
         $(id).disabled = !show;
       });
       $("fCanaisVenda").style.pointerEvents = show ? "auto" : "none";
@@ -1940,6 +2261,13 @@
     function toggleParcelasBlock(){
       const show = $("fVendido").value === "sim" && $("fPagamentoTipo").value === "parcelado";
       $("parcelasBlock").style.display = show ? "block" : "none";
+    }
+
+    function toggleRecebimentoFields(){
+      const isSold = $("fVendido").value === "sim";
+      const isParcelado = $("fPagamentoTipo").value === "parcelado";
+      $("recebimentoStatusBlock").style.display = (isSold && !isParcelado) ? "flex" : "none";
+      $("recebimentoDateBlock").style.display = (isSold && !isParcelado && $("fRecebidoStatus").value === "recebido") ? "flex" : "none";
     }
 
     function resetForm(){
@@ -2033,9 +2361,14 @@
         $("fPagamentoTipo").value = it.pagamento?.tipo || "avista";
         $("fPagamentoForma").value = it.pagamento?.forma || "pix";
         $("fPagamentoObs").value = it.pagamento?.obs || "";
-        parcelasDraft = Array.isArray(it.pagamento?.parcelas) ? it.pagamento.parcelas.map(p=>({ data:p.data, valor:safe(p.valor) })) : [];
+        const payNorm = normalizePagamento(it.pagamento);
+        const baseRec = payNorm.recebidoAvistaEm || payNorm.recebimentoUnicoEm || "";
+        $("fRecebidoStatus").value = baseRec ? "recebido" : "pendente";
+        $("fRecebidoEm").value = baseRec;
+        parcelasDraft = Array.isArray(it.pagamento?.parcelas) ? it.pagamento.parcelas.map(p=>({ data:p.data, valor:safe(p.valor), recebidoEm: String(p.recebidoEm||"") })) : [];
         renderParcelasTable();
         toggleParcelasBlock();
+        toggleRecebimentoFields();
       } else {
         clearSaleFields();
       }
@@ -2059,12 +2392,22 @@
       const loteId = ($("fLote").value || (lots[0]?.id || "lote-1")).trim();
       const custoAuto = computeAutoCostForLot(loteId, editingId ? 0 : 1);
 
+      const pagAtual = normalizePagamento(itemAtual?.pagamento);
+      const recebidoManual = $("fRecebidoStatus").value === "recebido" ? ($("fRecebidoEm").value || nowISO()) : "";
+      const tipoPagamento = $("fPagamentoTipo").value === "parcelado" ? "parcelado" : "avista";
       const pagamento = vendido ? {
-        tipo: $("fPagamentoTipo").value === "parcelado" ? "parcelado" : "avista",
+        tipo: tipoPagamento,
         forma: $("fPagamentoForma").value,
         obs: $("fPagamentoObs").value || "",
-        parcelas: parcelasDraft.map(p=>({ data: String(p.data||""), valor: safe(Number(p.valor)) }))
-      } : { tipo:"avista", forma:"pix", obs:"", parcelas:[] };
+        recebidoAvistaEm: tipoPagamento === "avista" ? recebidoManual : "",
+        recebimentoUnicoEm: (tipoPagamento === "parcelado" && !parcelasDraft.length) ? (pagAtual.recebimentoUnicoEm || "") : "",
+        parcelas: parcelasDraft.map((p,idx)=>({
+          data: String(p.data||""),
+          valor: safe(Number(p.valor)),
+          recebidoEm: String(p.recebidoEm || pagAtual.parcelas?.[idx]?.recebidoEm || "")
+        })),
+        historico: Array.isArray(pagAtual.historico) ? pagAtual.historico.slice(0,100) : []
+      } : { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"", historico:[] };
 
       return {
         id: editingId || uid(),
@@ -2116,6 +2459,12 @@
       if(!it.formaEntrega) return "Preencha a Forma de entrega.";
       const raw = ($("fCustoEntrega").value || "").trim();
       if(raw === "") return "Preencha o Custo entrega (pode ser 0).";
+      if(it.pagamento?.tipo === "parcelado" && (!it.pagamento?.parcelas || !it.pagamento.parcelas.length)){
+        return "Pagamento parcelado exige ao menos 1 parcela.";
+      }
+      if(it.pagamento?.tipo === "avista" && $("fRecebidoStatus").value === "recebido" && !$("fRecebidoEm").value){
+        return "Informe a data de recebimento.";
+      }
       return null;
     }
 
@@ -2182,7 +2531,7 @@
           quemVendeu:"",
           formaEntrega:"",
           custoEntrega:0,
-          pagamento:{ tipo:"avista", forma:"pix", obs:"", parcelas:[] }
+          pagamento:{ tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"", historico:[] }
         };
       });
       saveItems();
@@ -2199,6 +2548,65 @@
       updateCalcPreview();
       scrollToSection("secVenda");
       setTimeout(()=>$("fVenda").focus(), 50);
+    }
+
+
+    window.toggleRecebimento = function(itemId, kind, parcelaIdx){
+      const hoje = nowISO();
+      items = items.map(it=>{
+        if(it.id !== itemId) return it;
+        const pagamento = normalizePagamento(it.pagamento);
+
+        const askDate = () => {
+          const informed = prompt("Informe a data de recebimento (AAAA-MM-DD):", hoje);
+          if(informed === null) return null;
+          const iso = String(informed || "").trim();
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+            alert("Data inválida. Use o formato AAAA-MM-DD.");
+            return null;
+          }
+          return iso;
+        };
+
+        if(kind === "avista"){
+          if(pagamento.recebidoAvistaEm){
+            pagamento.recebidoAvistaEm = "";
+            pushPagamentoHistorico(pagamento, "desfazer_avista", it.valorVenda);
+          } else {
+            const dt = askDate();
+            if(!dt) return it;
+            pagamento.recebidoAvistaEm = dt;
+            pushPagamentoHistorico(pagamento, "receber_avista", it.valorVenda);
+          }
+        } else if(kind === "unico"){
+          if(pagamento.recebimentoUnicoEm){
+            pagamento.recebimentoUnicoEm = "";
+            pushPagamentoHistorico(pagamento, "desfazer_unico", it.valorVenda);
+          } else {
+            const dt = askDate();
+            if(!dt) return it;
+            pagamento.recebimentoUnicoEm = dt;
+            pushPagamentoHistorico(pagamento, "receber_unico", it.valorVenda);
+          }
+        } else if(kind === "parcela"){
+          const idx = Number(parcelaIdx);
+          if(Number.isFinite(idx) && pagamento.parcelas[idx]){
+            if(pagamento.parcelas[idx].recebidoEm){
+              pagamento.parcelas[idx].recebidoEm = "";
+              pushPagamentoHistorico(pagamento, `desfazer_parcela_${idx+1}`, pagamento.parcelas[idx].valor);
+            } else {
+              const dt = askDate();
+              if(!dt) return it;
+              pagamento.parcelas[idx].recebidoEm = dt;
+              pushPagamentoHistorico(pagamento, `receber_parcela_${idx+1}`, pagamento.parcelas[idx].valor);
+            }
+          }
+        }
+
+        return { ...it, pagamento };
+      });
+      saveItems();
+      render();
     }
 
     // ============================
@@ -2775,6 +3183,34 @@
       return { labels, counts, revenue };
     }
 
+
+    function receiptsSeriesLast30(){
+      const rows = buildPaymentRows();
+      const dueMap = new Map();
+      const recvMap = new Map();
+      rows.forEach(r=>{
+        if(r.dueISO) dueMap.set(r.dueISO, (dueMap.get(r.dueISO)||0) + safe(r.valor));
+        if(r.receivedISO) recvMap.set(r.receivedISO, (recvMap.get(r.receivedISO)||0) + safe(r.valor));
+      });
+      const n=30;
+      const labels = [];
+      const due = [];
+      const received = [];
+      const today = new Date(nowISO()+"T00:00:00");
+      for(let i=n-1;i>=0;i--){
+        const d = new Date(today);
+        d.setDate(d.getDate()-i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        const iso = `${yyyy}-${mm}-${dd}`;
+        labels.push(`${dd}/${mm}`);
+        due.push(dueMap.get(iso)||0);
+        received.push(recvMap.get(iso)||0);
+      }
+      return { labels, due, received };
+    }
+
     function clearCanvas(ctx, w, h){
       ctx.clearRect(0,0,w,h);
       ctx.fillStyle = "rgba(0,0,0,.0)";
@@ -2832,6 +3268,52 @@
         ctx.fillText(labels[i], x-12, h-12);
       }
 
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText(String(Math.round(min*100)/100), 6, h-pad);
+    }
+
+    
+    function drawDualLineChart(canvasId, labels, seriesA, seriesB, colorA="rgba(90,255,170,.85)", colorB="rgba(140,160,255,.85)"){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+      const all = [...seriesA, ...seriesB];
+      const max = Math.max(1, ...all);
+      const min = Math.min(0, ...all);
+      const xStep = (w - pad*2) / Math.max(1, (labels.length-1));
+      const yScale = (h - pad*2) / (max - min || 1);
+
+      function drawOne(arr, color){
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        arr.forEach((v,i)=>{
+          const x = pad + i*xStep;
+          const y = (h-pad) - (v-min)*yScale;
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+      }
+      drawOne(seriesA, colorA);
+      drawOne(seriesB, colorB);
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      for(let i=0;i<labels.length;i+=5){
+        const x = pad + i*xStep;
+        ctx.fillText(labels[i], x-12, h-12);
+      }
+      ctx.fillText("Previsto", w-140, 16);
+      ctx.fillText("Recebido", w-72, 16);
+      ctx.fillStyle = colorA;
+      ctx.fillRect(w-190, 8, 12, 2);
+      ctx.fillStyle = colorB;
+      ctx.fillRect(w-124, 8, 12, 2);
       ctx.fillStyle = "rgba(255,255,255,.60)";
       ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
       ctx.fillText(String(Math.round(min*100)/100), 6, h-pad);
@@ -2895,28 +3377,37 @@
     function renderCharts(){
       const sold = getSoldItems();
       const { labels, counts, revenue } = salesSeriesLast30();
+      const receipt = receiptsSeriesLast30();
 
       drawLineChart("cSales30", labels, counts);
       drawLineChart("cRevenue30", labels, revenue);
+      drawDualLineChart("cReceipts30", receipt.labels, receipt.due, receipt.received);
 
       const salesByChannel = new Map();
+      const revByChannel = new Map();
       const profitByChannel = new Map();
 
       sold.forEach(it=>{
         const chans = (it.canaisVenda && it.canaisVenda.length) ? it.canaisVenda : ["—"];
-        const profit = safe(it.valorVenda) - safe(it.custoProduto) - safe(it.custoEntrega);
+        const revenueItem = safe(it.valorVenda);
+        const profitItem = revenueItem - safe(it.custoProduto) - safe(it.custoEntrega);
 
         chans.forEach(ch=>{
           salesByChannel.set(ch, (salesByChannel.get(ch)||0) + 1);
-          profitByChannel.set(ch, (profitByChannel.get(ch)||0) + profit);
+          revByChannel.set(ch, (revByChannel.get(ch)||0) + revenueItem);
+          profitByChannel.set(ch, (profitByChannel.get(ch)||0) + profitItem);
         });
       });
 
       const channels1 = [...salesByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
       drawBarChart("cSalesByChannel", channels1.map(x=>x[0]), channels1.map(x=>x[1]));
 
-      const channels2 = [...profitByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
-      drawBarChart("cProfitByChannel", channels2.map(x=>x[0]), channels2.map(x=>Math.round(x[1]*100)/100));
+      const marginByChannel = [...revByChannel.entries()].map(([ch, rev])=>{
+        const profit = safe(profitByChannel.get(ch));
+        const margin = rev ? (profit/rev)*100 : 0;
+        return [ch, Math.round(margin*10)/10];
+      }).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cMarginByChannel", marginByChannel.map(x=>x[0]), marginByChannel.map(x=>x[1]));
 
       const aging = stockAgingBuckets();
       drawBarChart("cStockAging", Object.keys(aging), Object.values(aging));
@@ -2935,6 +3426,10 @@
       }
 
       renderTables(filtered);
+
+      if(!$("financeiro").classList.contains("hidden")){
+        renderFinanceiro();
+      }
 
       if(!$("graficos").classList.contains("hidden")){
         renderCharts();
@@ -2963,6 +3458,10 @@
     $("homeLogo").addEventListener("click", ()=> setTab("visao"));
 
     $("q").addEventListener("input", render);
+    ["financeStatusFilter","financeSellerFilter","financeFormaFilter","financePeriodFilter"].forEach(id=>{
+      const el = $(id);
+      if(el) el.addEventListener("change", render);
+    });
     $("newBtn").addEventListener("click", openCreate);
 
     $("nextCodeBtn").addEventListener("click", ()=>{
@@ -2998,6 +3497,7 @@
     $("fVendido").addEventListener("change", ()=>{
       const isSold = $("fVendido").value === "sim";
       toggleSalesBlock(isSold);
+      toggleRecebimentoFields();
       if(!isSold){
         clearSaleFields();
         $("requiredHint").style.display = "none";
@@ -3012,6 +3512,14 @@
 
     $("fPagamentoTipo").addEventListener("change", ()=>{
       toggleParcelasBlock();
+      toggleRecebimentoFields();
+    });
+
+    $("fRecebidoStatus").addEventListener("change", ()=>{
+      if($("fRecebidoStatus").value === "recebido" && !$("fRecebidoEm").value){
+        $("fRecebidoEm").value = nowISO();
+      }
+      toggleRecebimentoFields();
     });
 
     $("addParcelaBtn").addEventListener("click", ()=>{
