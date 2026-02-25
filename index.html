@@ -1594,7 +1594,7 @@
             });
           }
         } else {
-          const receivedISO = pay.recebidoAvistaEm || it.dataVendaISO || "";
+          const receivedISO = pay.recebidoAvistaEm || "";
           rows.push({
             itemId: it.id,
             key: "avista",
@@ -2380,10 +2380,10 @@
         obs: $("fPagamentoObs").value || "",
         recebidoAvistaEm: tipoPagamento === "avista" ? recebidoManual : "",
         recebimentoUnicoEm: (tipoPagamento === "parcelado" && !parcelasDraft.length) ? (pagAtual.recebimentoUnicoEm || "") : "",
-        parcelas: parcelasDraft.map((p,idx)=>({
+        parcelas: parcelasDraft.map((p)=>({
           data: String(p.data||""),
           valor: safe(Number(p.valor)),
-          recebidoEm: String(p.recebidoEm || pagAtual.parcelas?.[idx]?.recebidoEm || "")
+          recebidoEm: String(p.recebidoEm ?? "")
         })),
         historico: Array.isArray(pagAtual.historico) ? pagAtual.historico.slice(0,100) : []
       } : { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"", historico:[] };
