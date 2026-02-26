@@ -1440,6 +1440,11 @@
 
     let editingId = null;
 
+    // CRM modules
+    let clients = [];
+    let pdvCart = [];
+    let caixaData = { aberto: false, abertoEm: null, saldoInicial: 0, transacoes: [] };
+
     let photoEditingId = null;
     let activePhotoSlot = 0;
 
@@ -1616,7 +1621,7 @@
     // ============================
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config","pdv","clientes","caixa"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
       render();
     }
 
@@ -3633,7 +3638,7 @@
     // CLIENTES
     // ============================
     const CLIENTS_KEY = "renova_lotes_clientes_v1";
-    let clients = [];
+    const INACTIVE_CLIENT_THRESHOLD_DAYS = 90;
 
     function loadClients(){
       try {
@@ -3657,7 +3662,7 @@
       const totalClients = clients.length;
       const totalRevenue = clients.reduce((s,c) => s + (c.totalGasto||0), 0);
       const avgLTV = totalClients ? totalRevenue / totalClients : 0;
-      const activeClients = clients.filter(c => c.ultimaCompra && daysBetweenISO(c.ultimaCompra, nowISO()) <= 90).length;
+      const activeClients = clients.filter(c => c.ultimaCompra && daysBetweenISO(c.ultimaCompra, nowISO()) <= INACTIVE_CLIENT_THRESHOLD_DAYS).length;
 
       const kpiEl = $("kpiClientes");
       if(kpiEl){
@@ -3679,7 +3684,7 @@
         const tags = (c.tags||[]).map(t=>`<span class="chip" style="font-size:11px;padding:4px 8px;">${escapeHtml(t)}</span>`).join(" ");
         const lastBuy = c.ultimaCompra ? new Date(c.ultimaCompra+"T00:00:00").toLocaleDateString("pt-BR") : "—";
         const since = c.ultimaCompra ? daysBetweenISO(c.ultimaCompra, nowISO()) : null;
-        const alert2 = since !== null && since > 90 ? `<span style="color:rgba(255,120,80,.9);font-size:11px;margin-left:4px;">⚠ ${since}d sem comprar</span>` : "";
+        const alert2 = since !== null && since > INACTIVE_CLIENT_THRESHOLD_DAYS ? `<span style="color:rgba(255,120,80,.9);font-size:11px;margin-left:4px;">⚠ ${since}d sem comprar</span>` : "";
         return `<tr>
           <td><b>${escapeHtml(c.nome||"")}</b></td>
           <td>${escapeHtml(c.cpf||"")}</td>
@@ -3747,7 +3752,6 @@
     // ============================
     // PDV
     // ============================
-    let pdvCart = [];
 
     function getPdvProducts(){
       return items.filter(i => !i.vendido && safe(i.valorAnuncio) > 0);
@@ -3794,7 +3798,8 @@
     function pdvChangeQty(id, delta){
       const item = pdvCart.find(c=>c.id===id);
       if(!item) return;
-      item.qty = Math.max(1, (item.qty||0)+delta);
+      // Each item is a unique physical unit; qty capped at 1
+      item.qty = Math.max(1, Math.min(1, (item.qty||0)+delta));
       renderPdvCart();
     }
 
@@ -3839,13 +3844,38 @@
       const payEl = document.querySelector("input[name='pdvPay']:checked");
       const pay = payEl ? payEl.value : "pix";
 
+      // For installment sales, collect number of installments
+      let numParcelas = 1;
+      if(pay === "parcelado"){
+        const input = prompt("Número de parcelas:", "2");
+        if(!input) return;
+        numParcelas = Math.max(1, parseInt(input, 10) || 1);
+      }
+
       const payLabels = { pix:"PIX", dinheiro:"Dinheiro", cartao:"Cartão", parcelado:"A Prazo" };
-      if(!confirm(`Finalizar venda?\n\nTotal: ${brl(total)}\nForma: ${payLabels[pay]||pay}\nItens: ${pdvCart.length}`)) return;
+      if(!confirm(`Finalizar venda?\n\nTotal: ${brl(total)}\nForma: ${payLabels[pay]||pay}${pay==="parcelado"?" ("+numParcelas+"x)":""}\nItens: ${pdvCart.length}`)) return;
 
       const today = nowISO();
+      const missing = pdvCart.filter(c => !items.find(i=>i.id===c.id));
+      if(missing.length > 0){
+        alert(`Atenção: ${missing.length} produto(s) não encontrado(s) no estoque. A venda não pode ser finalizada.`);
+        return;
+      }
+
       pdvCart.forEach(c=>{
         const prod = items.find(i=>i.id===c.id);
         if(!prod) return;
+
+        // Build installment schedule if parcelado
+        const parcelas = pay === "parcelado" ? Array.from({ length: numParcelas }, (_, idx) => {
+          const dueDate = new Date(today+"T00:00:00");
+          dueDate.setMonth(dueDate.getMonth() + idx + 1);
+          const yyyy = dueDate.getFullYear();
+          const mm = String(dueDate.getMonth()+1).padStart(2,"0");
+          const dd2 = String(dueDate.getDate()).padStart(2,"0");
+          return { data: `${yyyy}-${mm}-${dd2}`, valor: Math.round((c.preco / numParcelas) * 100) / 100, recebidoEm: "" };
+        }) : [];
+
         prod.vendido = true;
         prod.valorVenda = c.preco;
         prod.dataVendaISO = today;
@@ -3859,7 +3889,7 @@
           obs: "",
           recebidoAvistaEm: pay !== "parcelado" ? today : "",
           recebimentoUnicoEm: pay !== "parcelado" ? today : "",
-          parcelas: []
+          parcelas
         };
       });
 
@@ -3897,7 +3927,6 @@
     // CAIXA
     // ============================
     const CAIXA_KEY = "renova_lotes_caixa_v1";
-    let caixaData = { aberto: false, abertoEm: null, saldoInicial: 0, transacoes: [] };
 
     function loadCaixa(){
       try {
@@ -3928,7 +3957,7 @@
       if(kpiEl){
         kpiEl.innerHTML = `
           <div class="kpi"><div class="label">Saldo em Caixa</div><div class="value">${brl(saldo)}</div><div class="hint">Hoje</div></div>
-          <div class="kpi"><div class="label">Entradas Hoje</div><div class="value" style="color:rgba(90,255,170,.9);">${brl(entradas + totalVendas)}</div></div>
+          <div class="kpi"><div class="label">Entradas Hoje</div><div class="value" style="color:rgba(90,255,170,.9);">${brl(entradas)}</div></div>
           <div class="kpi"><div class="label">Saídas Hoje</div><div class="value" style="color:rgba(255,100,80,.9);">${brl(saidas)}</div></div>
           <div class="kpi"><div class="label">Vendas Hoje</div><div class="value">${vendas.length}</div><div class="hint">${brl(totalVendas)}</div></div>
         `;
@@ -4018,8 +4047,8 @@
       if(!item || !item.pagamento) return;
       const pay = item.pagamento;
       if(pay.tipo === "parcelado" && pay.parcelas){
-        const idx = parseInt(parcelaIdx)||0;
-        if(pay.parcelas[idx]){
+        const idx = parseInt(parcelaIdx, 10);
+        if(!isNaN(idx) && pay.parcelas[idx]){
           pay.parcelas[idx].recebidoEm = nowISO();
         }
       } else {
