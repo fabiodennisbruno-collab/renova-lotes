@@ -1,4 +1,76 @@
-<script>
-  const SUPABASE_URL = 'https://qjkjtqioizvuqextiqch.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqa2p0cWlvaXp2dXFleHRpcWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDA1MDAsImV4cCI6MjA4NzE3NjUwMH0.WPHfYpvmk7V0JFNRsmdJIwJmQK_Mp0LGXSsNWQrdCIs';
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Sync v2</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/supabase@latest/dist/supabase.js"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+
+    <div id="app">
+        <header>
+            <h1>Cloud Sync v2</h1>
+        </header>
+        <main>
+            <div id="auth">
+                <h2>Authentication</h2>
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button id="login">Login</button>
+                <button id="signup">Sign Up</button>
+                <button id="logout">Logout</button>
+            </div>
+            <div id="dashboard" style="display:none;">
+                <h2>Dashboard</h2>
+                <div id="status"></div>
+                <button id="sync">Sync Now</button>
+                <div id="data"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://your-supabase-url.supabase.co';
+        const supabaseKey = 'your-supabase-key';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Authentication
+        document.getElementById('login').onclick = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { user, error } = await supabase.auth.signIn({ email, password });
+            if (error) alert(error.message);
+            else loadDashboard();
+        };
+
+        document.getElementById('signup').onclick = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { user, error } = await supabase.auth.signUp({ email, password });
+            if (error) alert(error.message);
+            else alert('Check your email for confirmation!');
+        };
+
+        document.getElementById('logout').onclick = async () => {
+            await supabase.auth.signOut();
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('auth').style.display = 'block';
+        };
+
+        // Synchronization
+        document.getElementById('sync').onclick = async () => {
+            // Implement synchronization logic here
+            document.getElementById('status').innerText = 'Synchronizing...';
+        };
+
+        function loadDashboard() {
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('status').innerText = 'Online';
+        }
+    </script>
+</body>
+</html>
