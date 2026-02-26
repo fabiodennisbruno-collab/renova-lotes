@@ -11,8 +11,8 @@
  *   window.SUPABASE_URL      = 'https://...';
  *   window.SUPABASE_ANON_KEY = 'eyJ...';
  */
-var SUPABASE_URL      = (https://qjkjtqioizvuqextiqch.supabase.co)      || 'https://SEU_PROJECT_ID.supabase.co';
-var SUPABASE_ANON_KEY = (eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqa2p0cWlvaXp2dXFleHRpcWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDA1MDAsImV4cCI6MjA4NzE3NjUwMH0.WPHfYpvmk7V0JFNRsmdJIwJmQK_Mp0LGXSsNWQrdCIs) || 'SUA_ANON_PUBLIC_KEY';
+var SUPABASE_URL      = (window.SUPABASE_URL      || 'https://qjkjtqioizvuqextiqch.supabase.co');
+var SUPABASE_ANON_KEY = (window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqa2p0cWlvaXp2dXFleHRpcWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDA1MDAsImV4cCI6MjA4NzE3NjUwMH0.WPHfYpvmk7V0JFNRsmdJIwJmQK_Mp0LGXSsNWQrdCIs');
 
 /* Cliente global — disponível para outros módulos */
 var supabaseClient = null;

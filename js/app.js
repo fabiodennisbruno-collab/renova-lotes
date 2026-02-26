@@ -67,7 +67,7 @@ const App = (() => {
 
   /* ---- Inicializa a aplicação ---- */
   async function init() {
-    if (!supabase) {
+    if (!supabaseClient) {
       console.error('[App] Supabase não configurado.');
       return;
     }
