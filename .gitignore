@@ -1,0 +1,12 @@
+# Variáveis de ambiente — nunca commitar o .env real
+.env
+.env.local
+.env.*.local
+
+# Dependências
+node_modules/
+
+# Build
+dist/
+.vercel/
+.netlify/

@@ -3451,5 +3451,12 @@
     updateCalcPreview();
     render();
   </script>
+
+  <!-- Supabase CDN — necessário para sincronização em nuvem -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <!-- Módulo de sincronização localStorage ↔ Supabase -->
+  <script src="js/modules/sync-cloud.js"></script>
+  <!-- Inicialização do cliente Supabase (configure credenciais neste arquivo) -->
+  <script src="js/config/supabase-init.js"></script>
 </body>
 </html>
