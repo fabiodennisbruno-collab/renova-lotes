@@ -958,6 +958,39 @@
             </div>
           </div>
 
+          <div class="card" style="margin-top:12px;">
+            <div class="head"><h3>Supabase (nuvem)</h3><span class="muted2">Sincronização manual com backup remoto</span></div>
+            <div class="body">
+              <div class="form">
+                <div class="field" style="grid-column: span 2;">
+                  <label>Project URL</label>
+                  <input id="sbUrl" placeholder="https://SEU-PROJETO.supabase.co">
+                </div>
+                <div class="field" style="grid-column: span 2;">
+                  <label>Anon Key</label>
+                  <input id="sbAnon" placeholder="eyJ...">
+                </div>
+                <div class="field">
+                  <label>Tabela</label>
+                  <input id="sbTable" placeholder="renova_state">
+                </div>
+                <div class="field">
+                  <label>Registro (id)</label>
+                  <input id="sbRecordId" placeholder="default">
+                </div>
+              </div>
+              <div class="mini-note" style="margin-top:8px;">Estrutura esperada no Supabase: tabela com colunas <b>id (text, PK)</b>, <b>payload (jsonb)</b> e <b>updated_at (timestamptz)</b>.</div>
+              <div class="photo-actions" style="margin-top:10px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button class="btn primary" id="sbSaveCfgBtn" type="button">Salvar conexão</button>
+                  <button class="btn" id="sbPushBtn" type="button">Enviar para nuvem</button>
+                  <button class="btn ok" id="sbPullBtn" type="button">Baixar da nuvem</button>
+                </div>
+                <div class="muted2" id="sbStatus" style="font-size:12px;">Não conectado.</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -1239,6 +1272,7 @@
     const STORAGE_KEY = "renova_lotes_html_v6";
     const TRASH_KEY   = "renova_lotes_html_v6_trash";
     const CONFIG_KEY  = "renova_lotes_html_v6_config";
+    const SUPABASE_CFG_KEY = "renova_lotes_html_v6_supabase";
 
     const DEFAULT_TOTAL_LOTE_1 = 6050;
 
@@ -1347,6 +1381,7 @@
     let trash = [];
     let config = structuredClone(DEFAULT_CONFIG);
     let lots = structuredClone(DEFAULT_LOTS);
+    let supabaseCfg = { url:"", anonKey:"", table:"renova_state", recordId:"default" };
 
     let editingId = null;
 
@@ -1429,6 +1464,124 @@
       };
     }
 
+
+
+    function loadSupabaseCfg(){
+      try{
+        const raw = localStorage.getItem(SUPABASE_CFG_KEY);
+        if(!raw) return;
+        const p = JSON.parse(raw);
+        supabaseCfg = {
+          url: String(p?.url || "").trim(),
+          anonKey: String(p?.anonKey || "").trim(),
+          table: String(p?.table || "renova_state").trim() || "renova_state",
+          recordId: String(p?.recordId || "default").trim() || "default"
+        };
+      }catch(e){}
+    }
+
+    function saveSupabaseCfg(){
+      localStorage.setItem(SUPABASE_CFG_KEY, JSON.stringify(supabaseCfg));
+    }
+
+    function applySupabaseCfgToUI(){
+      if(!$("sbUrl")) return;
+      $("sbUrl").value = supabaseCfg.url || "";
+      $("sbAnon").value = supabaseCfg.anonKey || "";
+      $("sbTable").value = supabaseCfg.table || "renova_state";
+      $("sbRecordId").value = supabaseCfg.recordId || "default";
+      $("sbStatus").textContent = supabaseCfg.url && supabaseCfg.anonKey ? "Configuração pronta." : "Não conectado.";
+    }
+
+    function readSupabaseCfgFromUI(){
+      supabaseCfg = {
+        url: String($("sbUrl")?.value || "").trim().replace(/\/$/,""),
+        anonKey: String($("sbAnon")?.value || "").trim(),
+        table: String($("sbTable")?.value || "renova_state").trim() || "renova_state",
+        recordId: String($("sbRecordId")?.value || "default").trim() || "default"
+      };
+      return supabaseCfg;
+    }
+
+    function supabaseReady(){
+      return !!(supabaseCfg.url && supabaseCfg.anonKey && supabaseCfg.table && supabaseCfg.recordId);
+    }
+
+    function buildBackupPayload(){
+      return { version: 6, exportedAt: isoNow(), config, lots, items, trash };
+    }
+
+    function applyImportedPayload(parsed){
+      if(parsed.config){
+        const pc = parsed.config;
+        config = {
+          canaisAnuncio: normalizeArray(pc.canaisAnuncio).length ? normalizeArray(pc.canaisAnuncio) : DEFAULT_CONFIG.canaisAnuncio,
+          canaisVenda: normalizeArray(pc.canaisVenda).length ? normalizeArray(pc.canaisVenda) : DEFAULT_CONFIG.canaisVenda,
+          entregas: normalizeArray(pc.entregas).length ? normalizeArray(pc.entregas) : DEFAULT_CONFIG.entregas,
+          tiposProduto: normalizeArray(pc.tiposProduto).length ? normalizeArray(pc.tiposProduto) : DEFAULT_CONFIG.tiposProduto,
+          locaisEstoque: normalizeArray(pc.locaisEstoque).length ? normalizeArray(pc.locaisEstoque) : DEFAULT_CONFIG.locaisEstoque,
+          vendedores: normalizeArray(pc.vendedores).length ? normalizeArray(pc.vendedores) : DEFAULT_CONFIG.vendedores
+        };
+      }
+      if(Array.isArray(parsed.lots) && parsed.lots.length){
+        lots = parsed.lots.map(l=>({ id: String(l.id||uid()), nome: String(l.nome||"Lote"), total: safe(Number(l.total)), criadoEm: String(l.criadoEm||isoNow()) }));
+      }
+      if(Array.isArray(parsed.items)) items = parsed.items.map(normalizeItemShape);
+      if(Array.isArray(parsed.trash)) trash = parsed.trash.map(t=>({ deletedAt: String(t.deletedAt||isoNow()), item: normalizeItemShape(t.item||{}) }));
+      saveConfig(); saveItems(); saveTrash();
+      lots.forEach(l=>recalcLotCosts(l.id));
+      mountDynamicSelectors();
+      render();
+    }
+
+    async function supabasePush(){
+      readSupabaseCfgFromUI();
+      if(!supabaseReady()) return alert("Preencha URL, Anon Key, tabela e id.");
+      $("sbStatus").textContent = "Enviando para Supabase...";
+      try{
+        const payload = buildBackupPayload();
+        const res = await fetch(`${supabaseCfg.url}/rest/v1/${encodeURIComponent(supabaseCfg.table)}`, {
+          method: "POST",
+          headers: {
+            "apikey": supabaseCfg.anonKey,
+            "Authorization": `Bearer ${supabaseCfg.anonKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates,return=representation"
+          },
+          body: JSON.stringify([{ id: supabaseCfg.recordId, payload, updated_at: isoNow() }])
+        });
+        if(!res.ok) throw new Error(await res.text());
+        saveSupabaseCfg();
+        $("sbStatus").textContent = "Backup enviado com sucesso.";
+      }catch(e){
+        $("sbStatus").textContent = "Erro ao enviar para Supabase.";
+        alert("Falha no envio Supabase: " + (e?.message || e));
+      }
+    }
+
+    async function supabasePull(){
+      readSupabaseCfgFromUI();
+      if(!supabaseReady()) return alert("Preencha URL, Anon Key, tabela e id.");
+      $("sbStatus").textContent = "Baixando do Supabase...";
+      try{
+        const url = `${supabaseCfg.url}/rest/v1/${encodeURIComponent(supabaseCfg.table)}?select=payload,updated_at&id=eq.${encodeURIComponent(supabaseCfg.recordId)}&limit=1`;
+        const res = await fetch(url, {
+          headers: {
+            "apikey": supabaseCfg.anonKey,
+            "Authorization": `Bearer ${supabaseCfg.anonKey}`
+          }
+        });
+        if(!res.ok) throw new Error(await res.text());
+        const arr = await res.json();
+        if(!Array.isArray(arr) || !arr.length || !arr[0].payload) throw new Error("Registro não encontrado ou sem payload");
+        applyImportedPayload(arr[0].payload);
+        saveSupabaseCfg();
+        $("sbStatus").textContent = `Dados baixados (${arr[0].updated_at || "sem data"}).`;
+      }catch(e){
+        $("sbStatus").textContent = "Erro ao baixar do Supabase.";
+        alert("Falha no download Supabase: " + (e?.message || e));
+      }
+    }
     // ============================
     // LOAD/SAVE
     // ============================
@@ -2613,14 +2766,7 @@
     // EXPORT/IMPORT
     // ============================
     function exportJSON(){
-      const payload = {
-        version: 6,
-        exportedAt: isoNow(),
-        config,
-        lots,
-        items,
-        trash
-      };
+      const payload = buildBackupPayload();
       const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -3145,6 +3291,7 @@
       renderMulti("anuncio");
       renderMulti("venda");
       renderConfig();
+      applySupabaseCfgToUI();
       saveConfig();
     }
 
@@ -3712,10 +3859,20 @@
     $("addLocalBtn").addEventListener("click",        ()=>addToList("locaisEstoque","newLocal"));
     $("addVendedorBtn").addEventListener("click",     ()=>addToList("vendedores","newVendedor"));
 
+    $("sbSaveCfgBtn").addEventListener("click", ()=>{
+      readSupabaseCfgFromUI();
+      saveSupabaseCfg();
+      applySupabaseCfgToUI();
+      alert("Configuração Supabase salva.");
+    });
+    $("sbPushBtn").addEventListener("click", ()=>{ supabasePush(); });
+    $("sbPullBtn").addEventListener("click", ()=>{ if(confirm("Importar da nuvem e sobrescrever dados locais?")) supabasePull(); });
+
     // ============================
     // BOOT
     // ============================
     loadConfig();
+    loadSupabaseCfg();
     loadTrash();
     loadItems();
     purgeTrash();
