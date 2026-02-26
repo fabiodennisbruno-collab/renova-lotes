@@ -1,12 +1,40 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>My App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renova Lotes</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+    <div class="dark-theme">
+        <header>
+            <h1>Renova Lotes</h1>
+            <button id="loginModalBtn">Login</button>
+        </header>
+        <div id="dashboard">
+            <!-- Dashboard contents here -->
+        </div>
+        <div id="cloudSyncEngine">
+            <!-- Cloud Sync engine implementation here -->
+        </div>
+        <div id="syncQueue">
+            <!-- Sync queue implementation here -->
+        </div>
+        <footer>
+            <p>Real-time status indicators</p>
+        </footer>
+        <div id="loginModal" style="display:none;">
+            <!-- Login modal implementation here -->
+        </div>
+    </div>
+
     <script>
         const supabaseUrl = 'https://qjkjtqioizvuqextiqch.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqa2p0cWlvaXp2dXFleHRpcWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDA1MDAsImV4cCI6MjA4NzE3NjUwMH0.WPHfYpvmk7V0JFNRsmdJIwJmQK_Mp0LGXSsNWQrdCIs';
+        // Initialize Supabase or further implementation
     </script>
-</head>
-<body>
-    <h1>Welcome to My App</h1>
 </body>
 </html>
