@@ -107,8 +107,8 @@ ALTER TABLE crm_caixa        DISABLE ROW LEVEL SECURITY;
 Abra o arquivo `js/config/supabase-init.js` e substitua os valores:
 
 ```js
-var SUPABASE_URL      = 'https://SEU_PROJECT_ID.supabase.co';  // ← seu Project URL
-var SUPABASE_ANON_KEY = 'SUA_ANON_PUBLIC_KEY';                  // ← sua anon key
+var SUPABASE_URL      = 'https://qjkjtqioizvuqextiqch.supabase.co';  // ← seu Project URL
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqa2p0cWlvaXp2dXFleHRpcWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDA1MDAsImV4cCI6MjA4NzE3NjUwMH0.WPHfYpvmk7V0JFNRsmdJIwJmQK_Mp0LGXSsNWQrdCIs';                  // ← sua anon key
 ```
 
 **Alternativa via variável global** (útil para deploy automatizado):
