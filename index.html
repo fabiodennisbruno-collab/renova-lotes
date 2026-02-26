@@ -108,7 +108,7 @@
 
     .tabs{
       display:grid;
-      grid-template-columns: repeat(8, 1fr);
+      grid-template-columns: repeat(11, 1fr);
       gap:10px;
       margin: 14px 0 14px;
       padding: 8px;
@@ -120,7 +120,7 @@
       -webkit-backdrop-filter: blur(16px);
     }
     @media (max-width: 980px){
-      .tabs{ grid-template-columns: repeat(3, 1fr); }
+      .tabs{ grid-template-columns: repeat(4, 1fr); }
     }
     .tab{
       padding: 10px 12px;
@@ -546,6 +546,25 @@
       background: rgba(0,0,0,.14);
       padding: 12px;
     }
+    .pdv-prod{
+      border:1px solid var(--border);
+      border-radius:var(--radius2);
+      background:rgba(255,255,255,.045);
+      padding:10px;
+      cursor:pointer;
+      transition:.15s ease;
+      text-align:center;
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+    }
+    .pdv-prod:hover{ background:rgba(255,255,255,.08); transform:translateY(-2px); box-shadow:var(--shadow2); }
+    .pdv-prod .name{ font-size:12px; font-weight:700; margin:6px 0 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pdv-prod .sku{ font-size:11px; color:var(--muted2); }
+    .pdv-prod .price{ font-size:15px; font-weight:800; color:rgba(90,255,170,.9); margin-top:4px; }
+    .pdv-prod .stock{ font-size:11px; color:var(--muted); }
+    .pdv-cart-item{ display:flex; align-items:center; gap:8px; padding:8px; border-radius:12px; background:rgba(255,255,255,.04); margin-bottom:6px; border:1px solid rgba(255,255,255,.06); }
+    .pdv-cart-item .qty-btn{ background:rgba(255,255,255,.08); border:1px solid var(--border); color:var(--text); width:24px; height:24px; border-radius:8px; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; justify-content:center; }
+    .pdv-cart-item .qty-btn:hover{ background:rgba(255,255,255,.14); }
 
   </style>
 </head>
@@ -596,6 +615,9 @@
       <button class="tab" data-tab="local" type="button">Por local</button>
       <button class="tab" data-tab="lixeira" type="button">Lixeira</button>
       <button class="tab" data-tab="config" type="button">Configurações</button>
+      <button class="tab" data-tab="pdv" type="button">PDV</button>
+      <button class="tab" data-tab="clientes" type="button">Clientes</button>
+      <button class="tab" data-tab="caixa" type="button">Caixa</button>
     </div>
 
     <!-- VISÃO GERAL -->
@@ -919,6 +941,126 @@
             </div>
           </div>
 
+        </div>
+      </div>
+    </section>
+
+    <!-- PDV -->
+    <section id="pdv" class="tabpane hidden">
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:14px;align-items:start;">
+        <!-- Produtos -->
+        <div>
+          <div class="card">
+            <div class="head"><h3>Produtos</h3><span class="muted2">Clique para adicionar ao carrinho</span></div>
+            <div class="body">
+              <input id="pdvSearch" placeholder="Buscar por nome ou SKU..." style="width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--text);outline:none;margin-bottom:12px;">
+              <div id="pdvGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;max-height:420px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Carrinho -->
+        <div style="position:sticky;top:20px;">
+          <div class="card">
+            <div class="head"><h3>🛒 Carrinho</h3><span id="pdvCartCount" class="muted2">0 itens</span></div>
+            <div class="body" style="padding:10px;">
+              <div id="pdvCartItems" style="max-height:280px;overflow-y:auto;margin-bottom:10px;"></div>
+              <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:10px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+                  <span class="muted">Subtotal:</span><span id="pdvSubtotal">R$ 0,00</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;">
+                  <span class="muted">Desconto (R$):</span>
+                  <input id="pdvDiscount" type="number" min="0" value="0" style="width:90px;padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--text);outline:none;text-align:right;">
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;margin-bottom:10px;">
+                  <span>Total:</span><span id="pdvTotal" style="color:rgba(90,255,170,.9);">R$ 0,00</span>
+                </div>
+                <div style="margin-bottom:10px;">
+                  <div class="section-title">FORMA DE PAGAMENTO</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="pdvPay" value="pix" checked> PIX</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="pdvPay" value="dinheiro"> 💵 Dinheiro</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="pdvPay" value="cartao"> 💳 Cartão</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="radio" name="pdvPay" value="parcelado"> 📊 A Prazo</label>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <button class="btn danger" id="pdvClearBtn" type="button">🗑 Limpar</button>
+                  <button class="btn ok" id="pdvFinishBtn" type="button">✅ Finalizar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Últimas vendas PDV -->
+          <div class="card" style="margin-top:12px;">
+            <div class="head"><h3>Últimas vendas</h3><span class="muted2">Hoje</span></div>
+            <div class="body" style="padding:10px;"><div id="pdvRecentSales" style="font-size:13px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section id="clientes" class="tabpane hidden">
+      <div class="card">
+        <div class="head">
+          <h3>Clientes</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="clientSearch" placeholder="Buscar cliente..." style="padding:8px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--text);outline:none;font-size:13px;">
+            <button class="btn primary" id="newClientBtn" type="button">+ Novo Cliente</button>
+          </div>
+        </div>
+        <div class="body">
+          <div class="kpis" id="kpiClientes" style="margin-bottom:12px;"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>E-mail</th>
+                  <th>Compras</th><th>Total gasto</th><th>Última compra</th><th>Tags</th><th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbClientes"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAIXA -->
+    <section id="caixa" class="tabpane hidden">
+      <div class="kpis" id="kpiCaixa" style="margin-bottom:14px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="card">
+          <div class="head"><h3>Controle do Caixa</h3><span class="muted2">Abertura e fechamento</span></div>
+          <div class="body">
+            <div id="caixaStatus" style="margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn ok" id="abrirCaixaBtn" type="button">🟢 Abrir Caixa</button>
+              <button class="btn danger" id="fecharCaixaBtn" type="button">🔴 Fechar Caixa</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="head"><h3>Fluxo de Caixa (7 dias)</h3><span class="muted2">Previsto</span></div>
+          <div class="body"><canvas id="cCaixaFlow" style="width:100%;height:180px;display:block;" width="600" height="180"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Transações do Dia</h3><span class="muted2">Entradas e saídas</span></div>
+        <div class="body">
+          <div id="caixaTransactions" style="max-height:300px;overflow-y:auto;font-size:13px;"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Contas a Receber</h3><span class="muted2">Vencimentos próximos</span></div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Status</th><th>Vencimento</th><th>Produto</th><th>Parcela</th><th>Valor</th><th>Forma</th><th>Ações</th></tr></thead>
+              <tbody id="tbCaixaReceiver"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -3183,6 +3325,10 @@
       if(!$("config").classList.contains("hidden")){
         renderConfig();
       }
+
+      renderIfVisible("pdv", ()=>{ renderPdvGrid(); renderPdvCart(); renderPdvRecentSales(); });
+      renderIfVisible("clientes", renderClientes);
+      renderIfVisible("caixa", renderCaixa);
     }
 
     // ============================
@@ -3426,12 +3572,44 @@
     $("addLocalBtn").addEventListener("click",        ()=>addToList("locaisEstoque","newLocal"));
     $("addVendedorBtn").addEventListener("click",     ()=>addToList("vendedores","newVendedor"));
 
+    // PDV events
+    $("pdvSearch").addEventListener("input", renderPdvGrid);
+    $("pdvDiscount").addEventListener("input", renderPdvCart);
+    $("pdvClearBtn").addEventListener("click", ()=>{ pdvCart=[]; if($("pdvDiscount"))$("pdvDiscount").value="0"; renderPdvCart(); });
+    $("pdvFinishBtn").addEventListener("click", pdvFinish);
+    document.querySelectorAll("input[name='pdvPay']").forEach(r=>r.addEventListener("change",()=>{}));
+
+    // Clientes events
+    $("newClientBtn").addEventListener("click", openNewClientModal);
+    $("clientSearch").addEventListener("input", renderClientes);
+
+    // Caixa events
+    $("abrirCaixaBtn").addEventListener("click", ()=>{
+      if(caixaData.aberto){ alert("Caixa já está aberto."); return; }
+      const saldo = parseMoney(prompt("Saldo inicial do caixa (R$):", "0") || "0");
+      caixaData.aberto = true;
+      caixaData.abertoEm = new Date().toLocaleString("pt-BR");
+      caixaData.saldoInicial = saldo;
+      saveCaixa();
+      renderCaixa();
+    });
+    $("fecharCaixaBtn").addEventListener("click", ()=>{
+      if(!caixaData.aberto){ alert("Caixa já está fechado."); return; }
+      if(!confirm("Fechar o caixa agora?")) return;
+      caixaData.aberto = false;
+      caixaData.abertoEm = null;
+      saveCaixa();
+      renderCaixa();
+    });
+
     // ============================
     // BOOT
     // ============================
     loadConfig();
     loadTrash();
     loadItems();
+    loadClients();
+    loadCaixa();
     purgeTrash();
 
     const existingLotIds = new Set(lots.map(l=>l.id));
@@ -3450,6 +3628,415 @@
 
     updateCalcPreview();
     render();
+
+    // ============================
+    // CLIENTES
+    // ============================
+    const CLIENTS_KEY = "renova_lotes_clientes_v1";
+    let clients = [];
+
+    function loadClients(){
+      try {
+        const raw = localStorage.getItem(CLIENTS_KEY);
+        if(raw) clients = JSON.parse(raw);
+      } catch(e) { clients = []; }
+    }
+
+    function saveClients(){ localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients)); }
+
+    function renderClientes(){
+      const q = ($("clientSearch")?.value || "").toLowerCase();
+      const filtered = clients.filter(c =>
+        !q ||
+        (c.nome||"").toLowerCase().includes(q) ||
+        (c.cpf||"").toLowerCase().includes(q) ||
+        (c.email||"").toLowerCase().includes(q) ||
+        (c.telefone||"").toLowerCase().includes(q)
+      );
+
+      const totalClients = clients.length;
+      const totalRevenue = clients.reduce((s,c) => s + (c.totalGasto||0), 0);
+      const avgLTV = totalClients ? totalRevenue / totalClients : 0;
+      const activeClients = clients.filter(c => c.ultimaCompra && daysBetweenISO(c.ultimaCompra, nowISO()) <= 90).length;
+
+      const kpiEl = $("kpiClientes");
+      if(kpiEl){
+        kpiEl.innerHTML = `
+          <div class="kpi"><div class="label">Total Clientes</div><div class="value">${totalClients}</div></div>
+          <div class="kpi"><div class="label">Clientes Ativos (90d)</div><div class="value">${activeClients}</div></div>
+          <div class="kpi"><div class="label">Receita Total</div><div class="value">${brl(totalRevenue)}</div></div>
+          <div class="kpi"><div class="label">LTV Médio</div><div class="value">${brl(avgLTV)}</div></div>
+        `;
+      }
+
+      const tb = $("tbClientes");
+      if(!tb) return;
+      if(filtered.length === 0){
+        tb.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted2);padding:24px;">Nenhum cliente encontrado</td></tr>`;
+        return;
+      }
+      tb.innerHTML = filtered.map(c => {
+        const tags = (c.tags||[]).map(t=>`<span class="chip" style="font-size:11px;padding:4px 8px;">${escapeHtml(t)}</span>`).join(" ");
+        const lastBuy = c.ultimaCompra ? new Date(c.ultimaCompra+"T00:00:00").toLocaleDateString("pt-BR") : "—";
+        const since = c.ultimaCompra ? daysBetweenISO(c.ultimaCompra, nowISO()) : null;
+        const alert2 = since !== null && since > 90 ? `<span style="color:rgba(255,120,80,.9);font-size:11px;margin-left:4px;">⚠ ${since}d sem comprar</span>` : "";
+        return `<tr>
+          <td><b>${escapeHtml(c.nome||"")}</b></td>
+          <td>${escapeHtml(c.cpf||"")}</td>
+          <td>${escapeHtml(c.telefone||"")}</td>
+          <td>${escapeHtml(c.email||"")}</td>
+          <td style="text-align:center;">${c.totalCompras||0}</td>
+          <td>${brl(c.totalGasto||0)}</td>
+          <td>${lastBuy}${alert2}</td>
+          <td>${tags}</td>
+          <td>
+            <button class="btn small" onclick="editClient('${c.id}')">Editar</button>
+            <button class="btn small danger" onclick="deleteClient('${c.id}')">Excluir</button>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    function editClient(id){
+      const c = clients.find(x=>x.id===id);
+      if(!c) return;
+      const nome = prompt("Nome:", c.nome||""); if(nome===null) return;
+      const cpf = prompt("CPF/CNPJ:", c.cpf||""); if(cpf===null) return;
+      const telefone = prompt("Telefone:", c.telefone||""); if(telefone===null) return;
+      const email = prompt("E-mail:", c.email||""); if(email===null) return;
+      const tagsStr = prompt("Tags (separadas por vírgula):", (c.tags||[]).join(",")); if(tagsStr===null) return;
+      c.nome = nome.trim();
+      c.cpf = cpf.trim();
+      c.telefone = telefone.trim();
+      c.email = email.trim();
+      c.tags = tagsStr.split(",").map(t=>t.trim()).filter(Boolean);
+      saveClients();
+      renderClientes();
+    }
+
+    function deleteClient(id){
+      if(!confirm("Excluir este cliente?")) return;
+      clients = clients.filter(x=>x.id!==id);
+      saveClients();
+      renderClientes();
+    }
+
+    function openNewClientModal(){
+      const nome = prompt("Nome do cliente:"); if(!nome) return;
+      const cpf = prompt("CPF/CNPJ (opcional):") || "";
+      const telefone = prompt("Telefone (opcional):") || "";
+      const email = prompt("E-mail (opcional):") || "";
+      const tagsStr = prompt("Tags (separadas por vírgula, ex: vip,recorrente):") || "";
+      const newClient = {
+        id: uid(),
+        nome: nome.trim(),
+        cpf: cpf.trim(),
+        telefone: telefone.trim(),
+        email: email.trim(),
+        tags: tagsStr.split(",").map(t=>t.trim()).filter(Boolean),
+        totalCompras: 0,
+        totalGasto: 0,
+        ultimaCompra: null,
+        criadoEm: nowISO()
+      };
+      clients.push(newClient);
+      saveClients();
+      renderClientes();
+    }
+
+    // ============================
+    // PDV
+    // ============================
+    let pdvCart = [];
+
+    function getPdvProducts(){
+      return items.filter(i => !i.vendido && safe(i.valorAnuncio) > 0);
+    }
+
+    function renderPdvGrid(){
+      const q = ($("pdvSearch")?.value || "").toLowerCase();
+      const prods = getPdvProducts().filter(p =>
+        !q ||
+        (p.nomeProduto||"").toLowerCase().includes(q) ||
+        (p.codigo||"").toString().toLowerCase().includes(q)
+      );
+      const grid = $("pdvGrid");
+      if(!grid) return;
+      if(prods.length === 0){
+        grid.innerHTML = `<div style="color:var(--muted2);font-size:13px;padding:20px;text-align:center;grid-column:1/-1;">Nenhum produto no estoque.</div>`;
+        return;
+      }
+      grid.innerHTML = prods.map(p => `
+        <div class="pdv-prod" onclick="pdvAddToCart('${p.id}')">
+          <div style="font-size:22px;">📦</div>
+          <div class="name">${escapeHtml(p.nomeProduto||"")}</div>
+          <div class="sku">${escapeHtml(String(p.codigo||""))}</div>
+          <div class="price">${brl(safe(p.valorAnuncio))}</div>
+          <div class="stock">Est: 1 un.</div>
+        </div>
+      `).join("");
+    }
+
+    function pdvAddToCart(id){
+      const prod = items.find(i=>i.id===id);
+      if(!prod || prod.vendido) return;
+      const existing = pdvCart.find(c=>c.id===id);
+      if(existing){ existing.qty = (existing.qty||0)+1; }
+      else { pdvCart.push({ id, nome: prod.nomeProduto||"", preco: safe(prod.valorAnuncio), qty: 1 }); }
+      renderPdvCart();
+    }
+
+    function pdvRemoveFromCart(id){
+      pdvCart = pdvCart.filter(c=>c.id!==id);
+      renderPdvCart();
+    }
+
+    function pdvChangeQty(id, delta){
+      const item = pdvCart.find(c=>c.id===id);
+      if(!item) return;
+      item.qty = Math.max(1, (item.qty||0)+delta);
+      renderPdvCart();
+    }
+
+    function renderPdvCart(){
+      const cartEl = $("pdvCartItems");
+      const countEl = $("pdvCartCount");
+      const subtotalEl = $("pdvSubtotal");
+      const totalEl = $("pdvTotal");
+      if(!cartEl) return;
+
+      const subtotal = pdvCart.reduce((s,c)=>s+(c.preco*c.qty),0);
+      const discount = parseFloat($("pdvDiscount")?.value||"0") || 0;
+      const total = Math.max(0, subtotal - discount);
+
+      if(countEl) countEl.textContent = pdvCart.length + " " + (pdvCart.length===1?"item":"itens");
+      if(subtotalEl) subtotalEl.textContent = brl(subtotal);
+      if(totalEl) totalEl.textContent = brl(total);
+
+      if(pdvCart.length === 0){
+        cartEl.innerHTML = `<div style="text-align:center;color:var(--muted2);padding:24px;font-size:13px;">Carrinho vazio<br><span style="font-size:11px;">Clique em um produto para adicionar</span></div>`;
+        return;
+      }
+      cartEl.innerHTML = pdvCart.map(c => `
+        <div class="pdv-cart-item">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(c.nome)}</div>
+            <div style="font-size:12px;color:var(--muted);">${brl(c.preco)} × ${c.qty} = ${brl(c.preco*c.qty)}</div>
+          </div>
+          <button class="qty-btn" onclick="pdvChangeQty('${c.id}',-1)">−</button>
+          <span style="font-size:13px;min-width:18px;text-align:center;">${c.qty}</span>
+          <button class="qty-btn" onclick="pdvChangeQty('${c.id}',1)">+</button>
+          <button class="qty-btn" onclick="pdvRemoveFromCart('${c.id}')" style="color:rgba(255,100,80,.9);">✕</button>
+        </div>
+      `).join("");
+    }
+
+    function pdvFinish(){
+      if(pdvCart.length === 0){ alert("Carrinho vazio."); return; }
+      const discount = parseFloat($("pdvDiscount")?.value||"0") || 0;
+      const subtotal = pdvCart.reduce((s,c)=>s+(c.preco*c.qty),0);
+      const total = Math.max(0, subtotal - discount);
+      const payEl = document.querySelector("input[name='pdvPay']:checked");
+      const pay = payEl ? payEl.value : "pix";
+
+      const payLabels = { pix:"PIX", dinheiro:"Dinheiro", cartao:"Cartão", parcelado:"A Prazo" };
+      if(!confirm(`Finalizar venda?\n\nTotal: ${brl(total)}\nForma: ${payLabels[pay]||pay}\nItens: ${pdvCart.length}`)) return;
+
+      const today = nowISO();
+      pdvCart.forEach(c=>{
+        const prod = items.find(i=>i.id===c.id);
+        if(!prod) return;
+        prod.vendido = true;
+        prod.valorVenda = c.preco;
+        prod.dataVendaISO = today;
+        prod.quemVendeu = "PDV";
+        prod.canaisVenda = ["PDV"];
+        prod.custoEntrega = 0;
+        prod.lucroFinal = safe(c.preco) - safe(prod.custoProduto);
+        prod.pagamento = {
+          tipo: pay === "parcelado" ? "parcelado" : "avista",
+          forma: pay === "parcelado" ? "pix" : pay,
+          obs: "",
+          recebidoAvistaEm: pay !== "parcelado" ? today : "",
+          recebimentoUnicoEm: pay !== "parcelado" ? today : "",
+          parcelas: []
+        };
+      });
+
+      saveItems();
+      addCaixaTransaction({ tipo:"entrada", descricao:`Venda PDV (${pdvCart.length} item${pdvCart.length>1?"s":""})`, valor:total, forma:pay });
+
+      renderPdvRecentSales();
+      pdvCart = [];
+      if($("pdvDiscount")) $("pdvDiscount").value = "0";
+      renderPdvCart();
+      renderPdvGrid();
+      render();
+      alert(`✅ Venda finalizada!\nTotal: ${brl(total)}\nForma: ${payLabels[pay]||pay}`);
+    }
+
+    function renderPdvRecentSales(){
+      const el = $("pdvRecentSales");
+      if(!el) return;
+      const today = nowISO();
+      const sold = items.filter(i=>i.vendido && i.dataVendaISO===today && (i.canaisVenda||[]).includes("PDV"))
+        .slice(0,5);
+      if(sold.length===0){
+        el.innerHTML = `<div style="color:var(--muted2);text-align:center;padding:16px;">Nenhuma venda PDV hoje.</div>`;
+        return;
+      }
+      el.innerHTML = sold.map(i=>`
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);">
+          <span>${escapeHtml(i.nomeProduto||"")}</span>
+          <span style="color:rgba(90,255,170,.9);font-weight:700;">${brl(safe(i.valorVenda))}</span>
+        </div>
+      `).join("");
+    }
+
+    // ============================
+    // CAIXA
+    // ============================
+    const CAIXA_KEY = "renova_lotes_caixa_v1";
+    let caixaData = { aberto: false, abertoEm: null, saldoInicial: 0, transacoes: [] };
+
+    function loadCaixa(){
+      try {
+        const raw = localStorage.getItem(CAIXA_KEY);
+        if(raw) caixaData = JSON.parse(raw);
+      } catch(e) {}
+    }
+
+    function saveCaixa(){ localStorage.setItem(CAIXA_KEY, JSON.stringify(caixaData)); }
+
+    function addCaixaTransaction(tx){
+      caixaData.transacoes = caixaData.transacoes || [];
+      caixaData.transacoes.push({ ...tx, id: uid(), dataISO: nowISO(), hora: new Date().toLocaleTimeString("pt-BR") });
+      saveCaixa();
+    }
+
+    function renderCaixa(){
+      const today = nowISO();
+      const todayTxs = (caixaData.transacoes||[]).filter(t=>t.dataISO===today);
+      const entradas = todayTxs.filter(t=>t.tipo==="entrada").reduce((s,t)=>s+safe(t.valor),0);
+      const saidas = todayTxs.filter(t=>t.tipo==="saida").reduce((s,t)=>s+safe(t.valor),0);
+      const saldo = safe(caixaData.saldoInicial||0) + entradas - saidas;
+
+      const vendas = items.filter(i=>i.vendido && i.dataVendaISO===today);
+      const totalVendas = vendas.reduce((s,i)=>s+safe(i.valorVenda),0);
+
+      const kpiEl = $("kpiCaixa");
+      if(kpiEl){
+        kpiEl.innerHTML = `
+          <div class="kpi"><div class="label">Saldo em Caixa</div><div class="value">${brl(saldo)}</div><div class="hint">Hoje</div></div>
+          <div class="kpi"><div class="label">Entradas Hoje</div><div class="value" style="color:rgba(90,255,170,.9);">${brl(entradas + totalVendas)}</div></div>
+          <div class="kpi"><div class="label">Saídas Hoje</div><div class="value" style="color:rgba(255,100,80,.9);">${brl(saidas)}</div></div>
+          <div class="kpi"><div class="label">Vendas Hoje</div><div class="value">${vendas.length}</div><div class="hint">${brl(totalVendas)}</div></div>
+        `;
+      }
+
+      const statusEl = $("caixaStatus");
+      if(statusEl){
+        statusEl.innerHTML = caixaData.aberto
+          ? `<div style="display:inline-flex;align-items:center;gap:8px;background:var(--ok);border:1px solid rgba(90,255,170,.25);padding:8px 14px;border-radius:12px;font-size:13px;">🟢 <b>Caixa aberto</b> — desde ${caixaData.abertoEm || "—"} — Saldo inicial: ${brl(caixaData.saldoInicial||0)}</div>`
+          : `<div style="display:inline-flex;align-items:center;gap:8px;background:var(--danger);border:1px solid rgba(255,70,70,.25);padding:8px 14px;border-radius:12px;font-size:13px;">🔴 <b>Caixa fechado</b></div>`;
+      }
+
+      const txEl = $("caixaTransactions");
+      if(txEl){
+        const recentTxs = [...(caixaData.transacoes||[])].filter(t=>t.dataISO===today).reverse().slice(0,20);
+        if(recentTxs.length===0){
+          txEl.innerHTML = `<div style="color:var(--muted2);text-align:center;padding:24px;">Nenhuma transação hoje.</div>`;
+        } else {
+          txEl.innerHTML = recentTxs.map(t=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,.03);">
+              <span style="font-size:16px;">${t.tipo==="entrada"?"🟢":"🔴"}</span>
+              <div style="flex:1;">
+                <div style="font-weight:600;">${escapeHtml(t.descricao||"")}</div>
+                <div style="font-size:11px;color:var(--muted2);">${t.hora||""} · ${escapeHtml(t.forma||"")}</div>
+              </div>
+              <span style="font-weight:800;color:${t.tipo==="entrada"?"rgba(90,255,170,.9)":"rgba(255,100,80,.9)"};">${t.tipo==="saida"?"-":""}${brl(safe(t.valor))}</span>
+            </div>
+          `).join("");
+        }
+      }
+
+      const rows = buildPaymentRows();
+      const pending = rows.filter(r=>!r.received).slice(0,15);
+      const tb = $("tbCaixaReceiver");
+      if(tb){
+        if(pending.length===0){
+          tb.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);padding:20px;">Nenhuma conta a receber pendente.</td></tr>`;
+        } else {
+          tb.innerHTML = pending.map(r=>{
+            const overdue = r.dueISO && r.dueISO < nowISO();
+            const dueLabel = r.dueISO ? new Date(r.dueISO+"T00:00:00").toLocaleDateString("pt-BR") : "—";
+            return `<tr style="${overdue?"background:var(--danger);":""}">
+              <td>${overdue?"🔴 Vencida":"🟡 Pendente"}</td>
+              <td>${dueLabel}</td>
+              <td>${escapeHtml(r.nomeProduto||"")}</td>
+              <td>${r.parcelaLabel||""}</td>
+              <td>${brl(safe(r.valor))}</td>
+              <td>${r.forma||""}</td>
+              <td><button class="btn small ok" onclick="markParcelaReceived('${r.itemId}','${r.parcelaIdx}')">✓ Recebido</button></td>
+            </tr>`;
+          }).join("");
+        }
+      }
+
+      renderCaixaFlowChart();
+    }
+
+    function renderCaixaFlowChart(){
+      const c = $("cCaixaFlow");
+      if(!c) return;
+
+      const today = new Date(nowISO()+"T00:00:00");
+      const labels = [];
+      const values = [];
+
+      for(let i=0;i<7;i++){
+        const d = new Date(today);
+        d.setDate(d.getDate()+i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd2 = String(d.getDate()).padStart(2,"0");
+        const iso = `${yyyy}-${mm}-${dd2}`;
+        labels.push(`${dd2}/${mm}`);
+
+        const dayVendas = items.filter(i=>i.vendido && i.dataVendaISO===iso).reduce((s,x)=>s+safe(x.valorVenda),0);
+        const dayTxs = (caixaData.transacoes||[]).filter(t=>t.dataISO===iso);
+        const dayEntradas = dayTxs.filter(t=>t.tipo==="entrada").reduce((s,t)=>s+safe(t.valor),0);
+        const daySaidas = dayTxs.filter(t=>t.tipo==="saida").reduce((s,t)=>s+safe(t.valor),0);
+        values.push(dayVendas + dayEntradas - daySaidas);
+      }
+
+      drawBarChart("cCaixaFlow", labels, values);
+    }
+
+    function markParcelaReceived(itemId, parcelaIdx){
+      const item = items.find(x=>x.id===itemId);
+      if(!item || !item.pagamento) return;
+      const pay = item.pagamento;
+      if(pay.tipo === "parcelado" && pay.parcelas){
+        const idx = parseInt(parcelaIdx)||0;
+        if(pay.parcelas[idx]){
+          pay.parcelas[idx].recebidoEm = nowISO();
+        }
+      } else {
+        pay.recebidoAvistaEm = nowISO();
+      }
+      saveItems();
+      renderFinanceiro();
+      renderCaixa();
+    }
+
+    // ============================
+    // EXTENDED RENDER
+    // ============================
+    function renderIfVisible(tabId, fn){
+      const el = $(tabId);
+      if(el && !el.classList.contains("hidden")) fn();
+    }
   </script>
 </body>
 </html>
