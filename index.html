@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Renova Lotes — Dashboard</title>
 
+  <script>
+    /* ── Supabase Cloud Sync v2 – Configuração ─────────────────────────
+       Substitua os valores abaixo pelos do seu projeto Supabase:
+       https://app.supabase.com/project/YOUR_ID/settings/api          */
+    window.SUPABASE_URL      = "https://seu-projeto.supabase.co";
+    window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+  </script>
+
   <style>
     :root{
       --bg: #0b0f19;
@@ -547,6 +555,97 @@
       padding: 12px;
     }
 
+    /* ── Cloud Sync v2 – Estilos ─────────────────────────────────────── */
+
+    /* Sync status badge (fixed, top-right) */
+    #syncStatusBadge{
+      position:fixed; top:14px; right:16px; z-index:9000;
+      display:flex; align-items:center; gap:8px;
+      background:rgba(11,15,25,.88); border:1px solid var(--border);
+      border-radius:22px; padding:6px 14px 6px 10px;
+      font-size:12px; color:var(--muted);
+      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+      cursor:pointer; user-select:none;
+      transition:.2s ease;
+    }
+    #syncStatusBadge:hover{ background:rgba(30,40,60,.92); color:var(--text); }
+    #syncStatusBadge .dot{
+      width:8px; height:8px; border-radius:50%;
+      background:#666; flex-shrink:0;
+      transition:background .3s;
+    }
+    #syncStatusBadge.online  .dot{ background:#5aff9a; }
+    #syncStatusBadge.offline .dot{ background:#ff4646; }
+    #syncStatusBadge.syncing .dot{
+      background:#ffc850;
+      animation:pulseDot 1s ease-in-out infinite;
+    }
+    @keyframes pulseDot{
+      0%,100%{ opacity:1; transform:scale(1); }
+      50%{ opacity:.5; transform:scale(1.35); }
+    }
+
+    /* Auth modal */
+    #authOverlay{
+      display:none; position:fixed; inset:0; z-index:9100;
+      background:rgba(0,0,0,.65); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:center; justify-content:center;
+    }
+    #authOverlay.open{ display:flex; }
+    #authBox{
+      background:rgba(15,20,35,.96); border:1px solid var(--border);
+      border-radius:22px; padding:32px 28px; width:min(380px,92vw);
+      box-shadow:0 30px 80px rgba(0,0,0,.55);
+    }
+    #authBox h2{ margin:0 0 6px; font-size:20px; }
+    #authBox p.sub{ margin:0 0 22px; color:var(--muted); font-size:13px; }
+    #authBox label{ display:block; font-size:12px; color:var(--muted); margin-bottom:5px; margin-top:14px; }
+    #authBox input[type=email],
+    #authBox input[type=password]{
+      width:100%; padding:10px 12px; border-radius:12px;
+      border:1px solid var(--border); background:rgba(0,0,0,.28);
+      color:var(--text); font-size:14px; outline:none;
+    }
+    #authBox input:focus{
+      border-color:rgba(140,160,255,.55);
+      box-shadow:0 0 0 3px rgba(140,160,255,.12);
+    }
+    #authBox .auth-actions{ display:flex; gap:10px; margin-top:22px; }
+    #authBox .auth-actions button{ flex:1; }
+    #authMsg{ font-size:13px; min-height:18px; margin-top:12px; color:rgba(255,120,120,.9); }
+
+    /* Sync dashboard */
+    #syncDash{
+      display:none; position:fixed; inset:0; z-index:9200;
+      background:rgba(0,0,0,.65); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:center; justify-content:center;
+    }
+    #syncDash.open{ display:flex; }
+    #syncDashBox{
+      background:rgba(15,20,35,.96); border:1px solid var(--border);
+      border-radius:22px; padding:28px 24px; width:min(420px,92vw);
+      box-shadow:0 30px 80px rgba(0,0,0,.55);
+    }
+    #syncDashBox h2{ margin:0 0 4px; font-size:18px; }
+    #syncDashBox .dsub{ color:var(--muted); font-size:12px; margin:0 0 20px; }
+    .sync-metrics{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }
+    .sync-metric{
+      background:rgba(255,255,255,.05); border:1px solid var(--border);
+      border-radius:14px; padding:12px; text-align:center;
+    }
+    .sync-metric .val{ font-size:22px; font-weight:700; }
+    .sync-metric .lbl{ font-size:11px; color:var(--muted); margin-top:3px; }
+    .sync-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-top:1px solid var(--border); font-size:13px; }
+    .sync-row span{ color:var(--muted); }
+    .sync-dash-actions{ display:flex; gap:10px; margin-top:18px; }
+    .sync-dash-actions button{ flex:1; }
+    .btn.danger{ background:rgba(255,70,70,.16); border-color:rgba(255,70,70,.3); }
+    .btn.danger:hover{ background:rgba(255,70,70,.26); }
+    .btn.success{ background:rgba(90,255,154,.14); border-color:rgba(90,255,154,.3); }
+    .btn.success:hover{ background:rgba(90,255,154,.22); }
+
   </style>
 </head>
 
@@ -584,6 +683,60 @@
         </label>
 
         <button class="btn primary" id="newBtn" type="button">Novo item</button>
+        <button class="btn" id="cloudLoginBtn" type="button" title="Sincronização em nuvem">🔐 Login Nuvem</button>
+      </div>
+    </div>
+
+    <!-- Sync status badge (fixed top-right) -->
+    <div id="syncStatusBadge" title="Ver dashboard de sincronização">
+      <span class="dot"></span>
+      <span id="syncStatusText">Desconectado</span>
+    </div>
+
+    <!-- Auth modal -->
+    <div id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div id="authBox">
+        <h2 id="authTitle">☁️ Login Nuvem</h2>
+        <p class="sub">Entre com email e senha para sincronizar seus dados em nuvem.</p>
+        <label for="authEmail">Email</label>
+        <input id="authEmail" type="email" placeholder="seu@email.com" autocomplete="email" />
+        <label for="authPass">Senha (mín. 6 caracteres)</label>
+        <input id="authPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+        <div id="authMsg"></div>
+        <div class="auth-actions">
+          <button class="btn primary" id="authSubmitBtn" type="button">Entrar / Criar conta</button>
+          <button class="btn" id="authCancelBtn" type="button">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync dashboard modal -->
+    <div id="syncDash" role="dialog" aria-modal="true" aria-labelledby="syncDashTitle">
+      <div id="syncDashBox">
+        <h2 id="syncDashTitle">📊 Dashboard de Sincronização</h2>
+        <p class="dsub" id="syncDashUser"></p>
+        <div class="sync-metrics">
+          <div class="sync-metric">
+            <div class="val" id="smSent">0</div>
+            <div class="lbl">Enviados</div>
+          </div>
+          <div class="sync-metric">
+            <div class="val" id="smRecv">0</div>
+            <div class="lbl">Recebidos</div>
+          </div>
+          <div class="sync-metric">
+            <div class="val" id="smQueue">0</div>
+            <div class="lbl">Na fila</div>
+          </div>
+        </div>
+        <div class="sync-row"><span>Status</span><strong id="smStatus">—</strong></div>
+        <div class="sync-row"><span>Último sync</span><strong id="smLastSync">—</strong></div>
+        <div class="sync-row"><span>Conexão</span><strong id="smConn">—</strong></div>
+        <div class="sync-dash-actions">
+          <button class="btn success" id="syncNowBtn" type="button">🔄 Sincronizar agora</button>
+          <button class="btn danger"  id="logoutBtn"   type="button">🚪 Sair</button>
+          <button class="btn"         id="syncDashCloseBtn" type="button">Fechar</button>
+        </div>
       </div>
     </div>
 
@@ -3450,6 +3603,312 @@
 
     updateCalcPreview();
     render();
+
+    // ============================
+    // CLOUD SYNC v2 – SUPABASE
+    // ============================
+    (function(){
+      "use strict";
+
+      /* ── Config ───────────────────────────────────────────────────── */
+      const SB_URL  = (window.SUPABASE_URL  || "").replace(/\/$/, "");
+      const SB_KEY  = window.SUPABASE_ANON_KEY || "";
+      const PLACEHOLDER_URL = "https://seu-projeto.supabase.co";
+      const PLACEHOLDER_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+      const isConfigured = SB_URL !== "" && SB_URL !== PLACEHOLDER_URL &&
+                           SB_KEY !== "" && SB_KEY !== PLACEHOLDER_KEY;
+
+      /* ── Storage keys ─────────────────────────────────────────────── */
+      const K_QUEUE = "renova_sync_queue_v2";
+      const K_TS    = "renova_sync_timestamp";
+      const K_TOKEN = "renova_auth_token_v2";
+      const K_USER  = "renova_auth_user_v2";
+
+      /* ── State ────────────────────────────────────────────────────── */
+      let authToken = localStorage.getItem(K_TOKEN) || null;
+      let authUser  = null;
+      try { authUser = JSON.parse(localStorage.getItem(K_USER) || "null"); } catch(e) { authUser = null; }
+      let isOnline  = navigator.onLine;
+      let isSyncing = false;
+      let metrics   = { sent: 0, recv: 0 };
+      let syncTimer = null;
+      const MAX_RETRIES  = 3;
+      const SYNC_INTERVAL_MS = 30000;
+
+      /* ── Queue helpers ────────────────────────────────────────────── */
+      function loadQueue(){ try{ return JSON.parse(localStorage.getItem(K_QUEUE)||"[]"); }catch(e){ return []; } }
+      function saveQueue(q){ localStorage.setItem(K_QUEUE, JSON.stringify(q)); }
+      function enqueue(op){ const q=loadQueue(); q.push({...op, retries:0, ts:Date.now()}); saveQueue(q); updateDash(); }
+      function dequeue(op){
+        const q = loadQueue().filter(x => !(x.type===op.type && x.key===op.key && x.ts===op.ts));
+        saveQueue(q); updateDash();
+      }
+
+      /* ── HTTP helpers ─────────────────────────────────────────────── */
+      async function sbFetch(path, opts={}){
+        const headers = {
+          "apikey": SB_KEY,
+          "Content-Type": "application/json",
+          "Prefer": opts.prefer || "return=representation",
+          ...(authToken ? { "Authorization": "Bearer " + authToken } : {}),
+          ...(opts.headers||{}),
+        };
+        const res = await fetch(SB_URL + path, { ...opts, headers });
+        let body = null;
+        try{ body = await res.json(); }catch(e){}
+        if(!res.ok) throw new Error((body&&body.error_description)||(body&&body.message)||"HTTP "+res.status);
+        return body;
+      }
+
+      /* ── Auth ─────────────────────────────────────────────────────── */
+      async function signUp(email, pass){
+        const data = await sbFetch("/auth/v1/signup", { method:"POST", body: JSON.stringify({email, password:pass}), prefer:"" });
+        return data;
+      }
+      async function signIn(email, pass){
+        const data = await sbFetch("/auth/v1/token?grant_type=password", { method:"POST", body: JSON.stringify({email, password:pass}), prefer:"" });
+        return data;
+      }
+      async function signOut(){
+        try{ await sbFetch("/auth/v1/logout", { method:"POST", prefer:"" }); }catch(e){}
+        authToken = null; authUser = null;
+        localStorage.removeItem(K_TOKEN); localStorage.removeItem(K_USER);
+        updateBadge(); updateDash(); renderLoginBtn();
+      }
+
+      function saveSession(data){
+        authToken = data.access_token || null;
+        authUser  = data.user || null;
+        if(authToken) localStorage.setItem(K_TOKEN, authToken);
+        if(authUser)  localStorage.setItem(K_USER, JSON.stringify(authUser));
+      }
+
+      /* ── Sync – Push (local → Supabase) ───────────────────────────── */
+      async function push(){
+        const q = loadQueue();
+        if(!q.length) return 0;
+        let sent = 0;
+        const remaining = [];
+        for(const op of q){
+          try{
+            if(op.type === "upsert_items"){
+              await sbFetch("/rest/v1/cloud_items", {
+                method: "POST",
+                prefer: "resolution=merge-duplicates,return=representation",
+                body: JSON.stringify({ user_id: authUser?.id, data: op.payload }),
+              });
+            } else if(op.type === "upsert_config"){
+              await sbFetch("/rest/v1/cloud_config", {
+                method: "POST",
+                prefer: "resolution=merge-duplicates,return=representation",
+                body: JSON.stringify({ user_id: authUser?.id, data: op.payload }),
+              });
+            }
+            sent++;
+          } catch(e){
+            op.retries = (op.retries||0) + 1;
+            if(op.retries < MAX_RETRIES) remaining.push(op);
+          }
+        }
+        saveQueue(remaining);
+        metrics.sent += sent;
+        return sent;
+      }
+
+      /* ── Sync – Pull (Supabase → local) ───────────────────────────── */
+      async function pull(){
+        const since = localStorage.getItem(K_TS) || "1970-01-01T00:00:00Z";
+        let recv = 0;
+        try{
+          const rows = await sbFetch(
+            `/rest/v1/cloud_items?user_id=eq.${encodeURIComponent(authUser?.id)}&updated_at=gt.${encodeURIComponent(since)}&order=updated_at.asc`,
+            { prefer:"" }
+          );
+          if(rows && rows.length){
+            rows.forEach(row => {
+              if(row.data) {
+                const incoming = Array.isArray(row.data) ? row.data : [row.data];
+                incoming.forEach(it => {
+                  if(!it || !it.id) return;
+                  const idx = items.findIndex(x => x.id === it.id);
+                  if(idx >= 0) items[idx] = { ...items[idx], ...it };
+                  else items.push(it);
+                });
+                recv++;
+              }
+            });
+            if(recv){ saveItems(); render(); }
+          }
+        }catch(e){}
+        localStorage.setItem(K_TS, new Date().toISOString());
+        metrics.recv += recv;
+        return recv;
+      }
+
+      /* ── Full sync ────────────────────────────────────────────────── */
+      async function syncNow(){
+        if(!authToken || !isOnline || !isConfigured) return;
+        if(isSyncing) return;
+        isSyncing = true;
+        updateBadge("syncing");
+        try{
+          await push();
+          await pull();
+        }catch(e){ console.warn("[CloudSync]", e); }
+        isSyncing = false;
+        updateBadge();
+        updateDash();
+      }
+
+      /* ── Auto sync every 30 s ─────────────────────────────────────── */
+      function startAutoSync(){
+        if(syncTimer) clearInterval(syncTimer);
+        syncTimer = setInterval(syncNow, SYNC_INTERVAL_MS);
+      }
+      function stopAutoSync(){ clearInterval(syncTimer); syncTimer = null; }
+
+      /* ── Online / Offline ─────────────────────────────────────────── */
+      window.addEventListener("online",  ()=>{ isOnline=true;  updateBadge(); if(authToken) syncNow(); });
+      window.addEventListener("offline", ()=>{ isOnline=false; updateBadge(); });
+
+      /* ── Intercept saves to enqueue ───────────────────────────────── */
+      // Uses the storage event to detect when saveItems/saveConfig write to localStorage.
+      // This works because saveItems uses localStorage.setItem which fires the 'storage' event
+      // in other windows, but NOT in the same window. For same-window detection we listen
+      // via a custom event dispatched by patching the storage helper functions below.
+
+      /* ── Badge UI ─────────────────────────────────────────────────── */
+      function updateBadge(state){
+        const badge = document.getElementById("syncStatusBadge");
+        const txt   = document.getElementById("syncStatusText");
+        if(!badge || !txt) return;
+        badge.classList.remove("online","offline","syncing");
+        if(!authToken){ txt.textContent = "Desconectado"; return; }
+        if(state==="syncing" || isSyncing){ badge.classList.add("syncing"); txt.textContent = "Sincronizando…"; return; }
+        if(isOnline){ badge.classList.add("online");  txt.textContent = "Online"; }
+        else         { badge.classList.add("offline"); txt.textContent = "Offline"; }
+      }
+
+      /* ── Login button ─────────────────────────────────────────────── */
+      function renderLoginBtn(){
+        const btn = document.getElementById("cloudLoginBtn");
+        if(!btn) return;
+        if(authUser){
+          btn.textContent = "☁️ " + (authUser.email || "Nuvem");
+        } else {
+          btn.textContent = "🔐 Login Nuvem";
+        }
+      }
+
+      /* ── Auth modal ───────────────────────────────────────────────── */
+      function openAuthModal(){
+        const ov = document.getElementById("authOverlay");
+        if(ov){ ov.classList.add("open"); document.getElementById("authEmail")?.focus(); }
+      }
+      function closeAuthModal(){
+        const ov = document.getElementById("authOverlay");
+        if(ov){ ov.classList.remove("open"); document.getElementById("authMsg").textContent = ""; }
+      }
+
+      document.getElementById("cloudLoginBtn")?.addEventListener("click", ()=>{
+        if(authUser) openSyncDash();
+        else openAuthModal();
+      });
+      document.getElementById("authCancelBtn")?.addEventListener("click", closeAuthModal);
+      document.getElementById("authOverlay")?.addEventListener("click", e=>{
+        if(e.target === document.getElementById("authOverlay")) closeAuthModal();
+      });
+
+      document.getElementById("authSubmitBtn")?.addEventListener("click", async ()=>{
+        if(!isConfigured){
+          document.getElementById("authMsg").textContent = "⚠️ Configure SUPABASE_URL e SUPABASE_ANON_KEY no arquivo HTML.";
+          return;
+        }
+        const email = (document.getElementById("authEmail")?.value||"").trim();
+        const pass  = (document.getElementById("authPass")?.value||"").trim();
+        const msg   = document.getElementById("authMsg");
+        if(!email || !pass){ msg.textContent = "Preencha email e senha."; return; }
+        if(pass.length < 6){ msg.textContent = "Senha deve ter ao menos 6 caracteres."; return; }
+        msg.textContent = "Aguarde…"; msg.style.color = "var(--muted)";
+        try{
+          let data;
+          try{ data = await signIn(email, pass); }
+          catch(e){
+            // If sign-in fails, try sign-up
+            data = await signUp(email, pass);
+            if(data?.user){ data = await signIn(email, pass); }
+          }
+          saveSession(data);
+          closeAuthModal();
+          updateBadge(); renderLoginBtn(); updateDash();
+          startAutoSync();
+          syncNow();
+        }catch(e){
+          msg.style.color = "rgba(255,120,120,.9)";
+          msg.textContent = "Erro: " + (e.message || "Tente novamente.");
+        }
+      });
+
+      /* ── Sync dashboard ───────────────────────────────────────────── */
+      function openSyncDash(){
+        updateDash();
+        const d = document.getElementById("syncDash");
+        if(d) d.classList.add("open");
+      }
+      function closeSyncDash(){
+        const d = document.getElementById("syncDash");
+        if(d) d.classList.remove("open");
+      }
+      function updateDash(){
+        const q = loadQueue();
+        const el = id => document.getElementById(id);
+        if(el("smSent"))   el("smSent").textContent   = metrics.sent;
+        if(el("smRecv"))   el("smRecv").textContent   = metrics.recv;
+        if(el("smQueue"))  el("smQueue").textContent  = q.length;
+        if(el("smStatus")) el("smStatus").textContent = !authToken ? "Desconectado" : (isSyncing ? "Sincronizando" : "Pronto");
+        const lastTs = localStorage.getItem(K_TS);
+        if(el("smLastSync")) el("smLastSync").textContent = lastTs ? new Date(lastTs).toLocaleString("pt-BR") : "Nunca";
+        if(el("smConn"))   el("smConn").textContent   = isOnline ? "🟢 Online" : "🔴 Offline";
+        if(el("syncDashUser")) el("syncDashUser").textContent = authUser ? "Conta: " + authUser.email : "Sem sessão ativa";
+      }
+
+      document.getElementById("syncStatusBadge")?.addEventListener("click", ()=>{
+        if(authToken) openSyncDash();
+        else openAuthModal();
+      });
+      document.getElementById("syncDashCloseBtn")?.addEventListener("click", closeSyncDash);
+      document.getElementById("syncDash")?.addEventListener("click", e=>{
+        if(e.target === document.getElementById("syncDash")) closeSyncDash();
+      });
+      document.getElementById("syncNowBtn")?.addEventListener("click", ()=>{ syncNow(); closeSyncDash(); });
+      document.getElementById("logoutBtn")?.addEventListener("click", ()=>{
+        if(confirm("Deseja sair da conta nuvem?")){ signOut(); stopAutoSync(); closeSyncDash(); }
+      });
+
+      /* ── Enqueue on data mutation ─────────────────────────────────── */
+      // Listen to storage changes triggered by saveItems / saveConfig
+      window.addEventListener("storage", e=>{
+        if(!authToken) return;
+        if(e.key === "renova_lotes_html_v6"){
+          try{ const payload = JSON.parse(e.newValue||"[]"); enqueue({type:"upsert_items", key:"items", payload}); }catch(_){}
+        }
+        if(e.key === "renova_lotes_html_v6_config"){
+          try{ const payload = JSON.parse(e.newValue||"{}"); enqueue({type:"upsert_config", key:"config", payload}); }catch(_){}
+        }
+      });
+
+      /* ── Boot ─────────────────────────────────────────────────────── */
+      updateBadge();
+      renderLoginBtn();
+      updateDash();
+
+      if(authToken && isConfigured){
+        startAutoSync();
+        syncNow();
+      }
+
+    })(); // end Cloud Sync v2
+
   </script>
 </body>
 </html>
