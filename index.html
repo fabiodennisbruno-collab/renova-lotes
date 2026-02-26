@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Clube Dos Achadinhos - VIP — Dashboard</title>
+  <title>Renova Lotes — CRM Premium</title>
+  <link rel="stylesheet" href="css/crm-premium.css" />
 
   <style>
     :root{
@@ -588,15 +589,356 @@
     </div>
 
     <div class="tabs" role="tablist" aria-label="Navegação">
+      <button class="tab" data-tab="dashboardCRM" type="button">📊 Dashboard</button>
       <button class="tab active" data-tab="visao" type="button">Visão geral</button>
       <button class="tab" data-tab="estoque" type="button">Estoque</button>
       <button class="tab" data-tab="vendas" type="button">Vendas</button>
       <button class="tab" data-tab="financeiro" type="button">Financeiro</button>
       <button class="tab" data-tab="graficos" type="button">Gráficos</button>
+      <button class="tab" data-tab="clientes" type="button">👥 Clientes</button>
+      <button class="tab" data-tab="pdvPro" type="button">🛒 PDV</button>
+      <button class="tab" data-tab="caixa" type="button">💰 Caixa</button>
+      <button class="tab" data-tab="estoqueCRM" type="button">📦 Est. CRM</button>
       <button class="tab" data-tab="local" type="button">Por local</button>
       <button class="tab" data-tab="lixeira" type="button">Lixeira</button>
       <button class="tab" data-tab="config" type="button">Configurações</button>
     </div>
+
+    <!-- ===================================================== -->
+    <!-- DASHBOARD CRM PREMIUM                                 -->
+    <!-- ===================================================== -->
+    <section id="dashboardCRM" class="tabpane hidden">
+
+      <!-- KPIs -->
+      <div class="crm-card crm-animate">
+        <div class="crm-card-head">
+          <h3>📊 KPIs em Tempo Real</h3>
+          <button class="crm-btn sm" onclick="DashboardPremium.render()">🔄 Atualizar</button>
+        </div>
+        <div class="crm-card-body">
+          <div class="crm-kpis" id="dashKPIs"></div>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="crm-charts-grid crm-mt">
+        <div class="crm-chart-wrap crm-animate">
+          <div class="crm-chart-title">📈 Receita por Mês</div>
+          <canvas id="chartVendasMes" data-height="220"></canvas>
+        </div>
+        <div class="crm-chart-wrap crm-animate">
+          <div class="crm-chart-title">📦 Estoque por Categoria</div>
+          <canvas id="chartEstoqueCategoria" data-height="220"></canvas>
+        </div>
+        <div class="crm-chart-wrap crm-animate">
+          <div class="crm-chart-title">🏆 Top Produtos</div>
+          <canvas id="chartTopProdutos" data-height="220"></canvas>
+        </div>
+        <div class="crm-chart-wrap crm-animate">
+          <div class="crm-chart-title">👥 Clientes por Categoria</div>
+          <canvas id="chartClientesCat" data-height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Alertas + Últimas Vendas -->
+      <div class="crm-charts-grid crm-mt">
+        <div class="crm-card crm-animate">
+          <div class="crm-card-head"><h3>🛒 Últimas Vendas (PDV)</h3></div>
+          <div class="crm-card-body">
+            <div class="crm-timeline" id="dashUltimasVendas"></div>
+          </div>
+        </div>
+        <div class="crm-card crm-animate">
+          <div class="crm-card-head"><h3>⚠️ Alertas de Estoque</h3></div>
+          <div class="crm-card-body">
+            <div class="crm-timeline" id="dashProdAlerta"></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- CLIENTES CRM                                          -->
+    <!-- ===================================================== -->
+    <section id="clientes" class="tabpane hidden">
+
+      <!-- Cabeçalho -->
+      <div class="crm-card crm-animate">
+        <div class="crm-card-head">
+          <div class="crm-flex">
+            <h3>👥 Gestão de Clientes</h3>
+            <div class="crm-flex" id="cliStats" style="font-size:13px;color:var(--crm-muted);"></div>
+          </div>
+          <div class="crm-flex">
+            <div class="crm-search">
+              <span class="s-icon">🔍</span>
+              <input id="cliSearch" placeholder="Buscar por nome, e-mail, telefone..." />
+            </div>
+            <select id="cliFilter" class="crm-field" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);font-size:13px;outline:none;">
+              <option value="">Todos</option>
+              <option value="VIP">VIP</option>
+              <option value="Regular">Regular</option>
+              <option value="Novo">Novo</option>
+            </select>
+            <button class="crm-btn success" id="cliNewBtn">➕ Novo Cliente</button>
+            <button class="crm-btn" onclick="ClientesMod.exportCSV()">⬇️ CSV</button>
+          </div>
+        </div>
+        <div class="crm-card-body" style="padding:0;">
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Telefone</th>
+                  <th>Cidade / UF</th>
+                  <th>Categoria</th>
+                  <th>Total Compras</th>
+                  <th>Última Compra</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="cliTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal cadastro de cliente -->
+      <div id="cliModalBackdrop" class="crm-modal-backdrop">
+        <div class="crm-modal">
+          <div class="crm-modal-head">
+            <h3 id="cliModalTitle">Novo Cliente</h3>
+            <button class="crm-btn sm" id="cliModalClose">✕</button>
+          </div>
+          <div class="crm-modal-body">
+            <div class="crm-form">
+              <div class="crm-field">
+                <label>Nome *</label>
+                <input id="cliNome" placeholder="Nome completo" />
+              </div>
+              <div class="crm-field">
+                <label>Telefone</label>
+                <input id="cliTel" placeholder="(11) 99999-9999" />
+              </div>
+              <div class="crm-field">
+                <label>E-mail</label>
+                <input id="cliEmail" type="email" placeholder="email@exemplo.com" />
+              </div>
+              <div class="crm-field">
+                <label>Cidade</label>
+                <input id="cliCidade" placeholder="São Paulo" />
+              </div>
+              <div class="crm-field">
+                <label>Estado (UF)</label>
+                <input id="cliEstado" placeholder="SP" maxlength="2" />
+              </div>
+              <div class="crm-field">
+                <label>Categoria</label>
+                <select id="cliCategoria">
+                  <option value="Regular">Regular</option>
+                  <option value="VIP">VIP</option>
+                  <option value="Novo">Novo</option>
+                </select>
+              </div>
+              <div class="crm-field full">
+                <label>Observações</label>
+                <textarea id="cliObs" placeholder="Anotações sobre o cliente..."></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="crm-modal-foot">
+            <button class="crm-btn" id="cliCancelBtn">Cancelar</button>
+            <button class="crm-btn success" id="cliSaveBtn">💾 Salvar</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- PDV PROFISSIONAL                                       -->
+    <!-- ===================================================== -->
+    <section id="pdvPro" class="tabpane hidden">
+      <div class="pdv-layout">
+
+        <!-- Produtos -->
+        <div>
+          <div class="crm-card crm-animate" style="margin-bottom:14px;">
+            <div class="crm-card-head">
+              <h3>🛒 PDV Profissional</h3>
+              <div class="crm-flex">
+                <div class="crm-search">
+                  <span class="s-icon">🔍</span>
+                  <input id="pdvSearch" placeholder="Buscar produto..." />
+                </div>
+                <select id="pdvCatFilter" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);font-size:13px;outline:none;"></select>
+              </div>
+            </div>
+            <div class="crm-card-body">
+              <div class="pdv-product-grid" id="pdvProductGrid"></div>
+            </div>
+          </div>
+
+          <!-- Histórico de Vendas PDV -->
+          <div class="crm-card crm-animate">
+            <div class="crm-card-head"><h3>📋 Histórico de Vendas</h3></div>
+            <div class="crm-card-body" style="padding:0;">
+              <div class="crm-table-wrap" style="max-height:280px;">
+                <table class="crm-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th><th>Cliente</th><th>Itens</th>
+                      <th>Subtotal</th><th>Desconto</th><th>Total</th><th>Pagamento</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pdvHistTb"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Carrinho -->
+        <div class="pdv-cart">
+          <div>
+            <h3 style="margin:0 0 12px;font-size:16px;">🛒 Carrinho</h3>
+
+            <!-- Cliente -->
+            <div class="crm-field" style="margin-bottom:10px;">
+              <label>Cliente</label>
+              <select id="pdvCliente" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);font-size:13px;outline:none;"></select>
+            </div>
+          </div>
+
+          <!-- Items -->
+          <div id="pdvCartItems" style="flex:1;overflow-y:auto;min-height:80px;"></div>
+
+          <!-- Totals -->
+          <div class="pdv-total-box">
+            <div class="pdv-total-row">
+              <span style="color:var(--crm-muted);">Subtotal</span>
+              <span id="pdvSubtotal">R$ 0,00</span>
+            </div>
+            <div class="pdv-total-row">
+              <span style="color:var(--crm-muted);">Desconto (R$)</span>
+              <input id="pdvDesconto" type="number" value="0" min="0" style="width:90px;padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);text-align:right;font-size:13px;outline:none;" />
+            </div>
+            <div class="pdv-total-row grand">
+              <span>Total</span>
+              <span id="pdvTotal">R$ 0,00</span>
+            </div>
+          </div>
+
+          <!-- Pagamento -->
+          <div>
+            <div style="font-size:11px;color:var(--crm-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Pagamento</div>
+            <div class="pdv-payment-opts">
+              <button class="pdv-pay-btn active" data-pag="dinheiro">💵 Dinheiro</button>
+              <button class="pdv-pay-btn" data-pag="pix">📱 PIX</button>
+              <button class="pdv-pay-btn" data-pag="credito">💳 Crédito</button>
+              <button class="pdv-pay-btn" data-pag="debito">💳 Débito</button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="crm-flex" style="gap:8px;">
+            <button class="crm-btn danger" id="pdvClearBtn" style="flex:1;">🗑️ Limpar</button>
+            <button class="crm-btn success" id="pdvFinalizarBtn" style="flex:2;" disabled>✅ Finalizar Venda</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- CAIXA                                                  -->
+    <!-- ===================================================== -->
+    <section id="caixa" class="tabpane hidden">
+
+      <!-- Saldo -->
+      <div class="crm-card crm-animate">
+        <div class="crm-card-head">
+          <h3>💰 Gestão de Caixa</h3>
+        </div>
+        <div class="crm-card-body">
+          <div class="crm-kpis" style="grid-template-columns:repeat(3,1fr);">
+            <div class="crm-kpi green">
+              <div class="kpi-icon">💰</div>
+              <div class="kpi-label">Saldo Atual</div>
+              <div class="kpi-value" id="caixaSaldo">R$ 0,00</div>
+            </div>
+            <div class="crm-kpi blue">
+              <div class="kpi-icon">⬆️</div>
+              <div class="kpi-label">Total Entradas</div>
+              <div class="kpi-value" id="caixaEntradas">R$ 0,00</div>
+            </div>
+            <div class="crm-kpi red">
+              <div class="kpi-icon">⬇️</div>
+              <div class="kpi-label">Total Saídas</div>
+              <div class="kpi-value" id="caixaSaidas">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nova movimentação -->
+      <div class="crm-card crm-mt crm-animate">
+        <div class="crm-card-head"><h3>➕ Registrar Movimentação</h3></div>
+        <div class="crm-card-body">
+          <div class="crm-flex" style="gap:10px;flex-wrap:wrap;">
+            <input id="caixaNovaDesc" placeholder="Descrição (ex: Pagamento fornecedor)" style="flex:2;min-width:200px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);font-size:13px;outline:none;" />
+            <input id="caixaNovaVal" type="number" placeholder="Valor (R$)" min="0" step="0.01" style="width:140px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);font-size:13px;outline:none;" />
+            <select id="caixaNovaTipo" style="padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.22);color:var(--crm-text);font-size:13px;outline:none;">
+              <option value="entrada">⬆️ Entrada</option>
+              <option value="saida">⬇️ Saída</option>
+            </select>
+            <button class="crm-btn success" onclick="caixaRegistrar()">💾 Registrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico de movimentações -->
+      <div class="crm-card crm-mt crm-animate">
+        <div class="crm-card-head"><h3>📋 Histórico de Movimentações</h3></div>
+        <div class="crm-card-body">
+          <div class="crm-timeline" id="caixaTimeline"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- ESTOQUE CRM (PDV)                                     -->
+    <!-- ===================================================== -->
+    <section id="estoqueCRM" class="tabpane hidden">
+      <div class="crm-card crm-animate">
+        <div class="crm-card-head">
+          <h3>📦 Estoque (CRM)</h3>
+          <div class="crm-flex">
+            <div class="crm-search">
+              <span class="s-icon">🔍</span>
+              <input id="estoqueCRMSearch" placeholder="Buscar produto..." oninput="renderEstoqueCRM()" />
+            </div>
+            <button class="crm-btn" onclick="exportProdutosPDV()">⬇️ CSV</button>
+          </div>
+        </div>
+        <div class="crm-card-body" style="padding:0;">
+          <div class="crm-table-wrap">
+            <table class="crm-table">
+              <thead>
+                <tr>
+                  <th>SKU</th><th>Produto</th><th>Categoria</th><th>Local</th>
+                  <th>Estoque</th><th>Mínimo</th><th>Preço</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="estoqueCRMTb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- VISÃO GERAL -->
     <section id="visao" class="tabpane">
@@ -1474,7 +1816,7 @@
     // ============================
     function setTab(tab){
       document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config","dashboardCRM","clientes","pdvPro","caixa","estoqueCRM"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
       render();
     }
 
@@ -3451,5 +3793,13 @@
     updateCalcPreview();
     render();
   </script>
+
+  <!-- CRM Premium modules -->
+  <script src="js/data/seed-crm.js"></script>
+  <script src="js/utils/charts-premium.js"></script>
+  <script src="js/modules/dashboard-premium.js"></script>
+  <script src="js/modules/clientes.js"></script>
+  <script src="js/modules/pdv-pro.js"></script>
+  <script src="js/crm-app.js"></script>
 </body>
 </html>
