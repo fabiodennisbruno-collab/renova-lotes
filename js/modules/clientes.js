@@ -13,7 +13,22 @@ const ClientesMod = (() => {
 
   /* ---- Persistência ---- */
   function load()  { clientes = JSON.parse(localStorage.getItem(KEY) || '[]'); }
-  function save()  { localStorage.setItem(KEY, JSON.stringify(clientes)); }
+  function save()  {
+    localStorage.setItem(KEY, JSON.stringify(clientes));
+    _dispatchUpdated();
+  }
+
+  /* ---- Emite evento de atualização para outras abas e módulos ---- */
+  function _dispatchUpdated() {
+    try {
+      var ev = new CustomEvent('clientesUpdated', { detail: clientes, bubbles: true });
+      window.dispatchEvent(ev);
+    } catch (e) {
+      var ev2 = document.createEvent('CustomEvent');
+      ev2.initCustomEvent('clientesUpdated', true, true, clientes);
+      window.dispatchEvent(ev2);
+    }
+  }
 
   /* ---- CRUD ---- */
   function upsert(data) {
@@ -47,6 +62,9 @@ const ClientesMod = (() => {
 
     const newBtn = document.getElementById('cliNewBtn');
     if (newBtn) newBtn.addEventListener('click', openNew);
+
+    /* Atualiza lista quando outra aba ou dispositivo sincroniza clientes */
+    window.addEventListener('clientesUpdated', () => { load(); render(); });
 
     setupModal();
     render();

@@ -576,6 +576,27 @@
       border-color: rgba(255,200,80,.28);
       color: #ffc850;
     }
+    #syncExtraInfo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    #syncExtraInfo .sync-sep {
+      opacity: .4;
+    }
+    #syncConflictBadge {
+      display: none;
+      background: rgba(255,90,90,.18);
+      border: 1px solid rgba(255,90,90,.35);
+      color: #ff7a7a;
+      padding: 3px 7px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
 
   </style>
 </head>
@@ -600,6 +621,12 @@
         <span id="syncStatusBadge" class="online" title="Status de sincronização" aria-live="polite">
           <span id="syncStatusDot" aria-hidden="true">🟢</span>
           <span id="syncStatusText">Online</span>
+        </span>
+        <span id="syncExtraInfo" title="Itens na fila de sincronização / Última sincronização">
+          <span>📤 <span id="syncQueueCount">0</span></span>
+          <span class="sync-sep">|</span>
+          <span>🔄 <span id="syncLastTime">—</span></span>
+          <span id="syncConflictBadge" title="Conflitos detectados">⚠️ <span id="syncConflictCount">0</span></span>
         </span>
         <div class="search">
           <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -3490,8 +3517,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <!-- Resolução de conflitos de dados -->
   <script src="js/modules/conflict-resolver.js"></script>
+  <!-- Detecção de conflitos com notificações para o usuário -->
+  <script src="js/utils/conflict-detector.js"></script>
   <!-- Gerenciador de sincronização offline com IndexedDB -->
   <script src="js/modules/offline-sync.js"></script>
+  <!-- Fila de sincronização de alto nível -->
+  <script src="js/sync-queue.js"></script>
+  <!-- Sincronização entre abas via Storage Events -->
+  <script src="js/cross-tab-sync.js"></script>
+  <!-- Sincronização em tempo real via Supabase Realtime -->
+  <script src="js/realtime-sync.js"></script>
   <!-- Módulo de sincronização localStorage ↔ Supabase -->
   <script src="js/modules/sync-cloud.js"></script>
   <!-- Inicialização do cliente Supabase (configure credenciais neste arquivo) -->
@@ -3503,9 +3538,13 @@
   <!-- Indicador de status online/offline e integração CRM -->
   <script>
     (function () {
-      var badge  = document.getElementById('syncStatusBadge');
-      var dot    = document.getElementById('syncStatusDot');
-      var label  = document.getElementById('syncStatusText');
+      var badge      = document.getElementById('syncStatusBadge');
+      var dot        = document.getElementById('syncStatusDot');
+      var label      = document.getElementById('syncStatusText');
+      var queueEl    = document.getElementById('syncQueueCount');
+      var lastSyncEl = document.getElementById('syncLastTime');
+      var conflictEl = document.getElementById('syncConflictBadge');
+      var conflictCt = document.getElementById('syncConflictCount');
 
       function updateStatus(online, syncing) {
         if (!badge) return;
@@ -3514,22 +3553,80 @@
         if (label) label.textContent = syncing ? 'Sincronizando…' : (online ? 'Online' : 'Offline');
       }
 
+      function updateQueueCount() {
+        if (!queueEl) return;
+        if (typeof SyncQueue !== 'undefined') {
+          SyncQueue.getQueueStatus().then(function (s) {
+            queueEl.textContent = s.pendingCount;
+            if (s.lastProcessedAt && lastSyncEl) {
+              var diff = Math.round((Date.now() - new Date(s.lastProcessedAt).getTime()) / 1000);
+              lastSyncEl.textContent = diff < 60 ? diff + 's atrás' : Math.round(diff / 60) + 'min atrás';
+            }
+          }).catch(function () {});
+        }
+      }
+
+      function updateConflictCount(total) {
+        if (!conflictEl || !conflictCt) return;
+        conflictCt.textContent = total;
+        conflictEl.style.display = total > 0 ? '' : 'none';
+      }
+
       updateStatus(navigator.onLine, false);
 
       window.addEventListener('offline', function () { updateStatus(false, false); });
 
       window.addEventListener('online', function () {
         updateStatus(true, true);
-        /* Usa OfflineSync para sinalizar fim da sincronização, ou timeout de fallback */
-        if (typeof OfflineSync !== 'undefined') {
-          OfflineSync.processQueue().then(function () {
-            updateStatus(true, false);
-          }).catch(function () {
-            updateStatus(true, false);
-          });
+        /* Usa SyncQueue/OfflineSync para sinalizar fim da sincronização */
+        var finalize = function () { updateStatus(true, false); updateQueueCount(); };
+        if (typeof SyncQueue !== 'undefined') {
+          SyncQueue.processQueue().then(finalize).catch(finalize);
+        } else if (typeof OfflineSync !== 'undefined') {
+          OfflineSync.processQueue().then(finalize).catch(finalize);
         } else {
-          updateStatus(true, false);
+          finalize();
         }
+      });
+
+      /* Atualiza contagem ao processar fila */
+      window.addEventListener('syncQueueChanged', function (e) {
+        if (e && e.detail && queueEl) queueEl.textContent = e.detail.pendingCount;
+        if (e && e.detail && e.detail.lastProcessedAt && lastSyncEl) {
+          var diff = Math.round((Date.now() - new Date(e.detail.lastProcessedAt).getTime()) / 1000);
+          lastSyncEl.textContent = diff < 60 ? diff + 's atrás' : Math.round(diff / 60) + 'min atrás';
+        }
+      });
+
+      /* Atualiza ao receber dados do Realtime */
+      window.addEventListener('syncStatusUpdated', function (e) {
+        if (!e || !e.detail) return;
+        if (queueEl && e.detail.queueCount !== undefined) queueEl.textContent = e.detail.queueCount;
+        if (lastSyncEl && e.detail.lastSync) {
+          var diff2 = Math.round((Date.now() - new Date(e.detail.lastSync).getTime()) / 1000);
+          lastSyncEl.textContent = diff2 < 60 ? diff2 + 's atrás' : Math.round(diff2 / 60) + 'min atrás';
+        }
+        if (e.detail.conflictCount !== undefined) updateConflictCount(e.detail.conflictCount);
+      });
+
+      /* Atualiza contador de conflitos */
+      window.addEventListener('conflictDetected', function (e) {
+        var total = e && e.detail && e.detail.total ? e.detail.total : 0;
+        updateConflictCount(total);
+      });
+
+      /* Inicializa CrossTabSync para a aba principal */
+      if (typeof CrossTabSync !== 'undefined') {
+        CrossTabSync.watchStorageChanges();
+      }
+
+      /* Inicializa RealtimeSync se Supabase estiver configurado */
+      document.addEventListener('DOMContentLoaded', function () {
+        var client = typeof supabaseClient !== 'undefined' ? supabaseClient : null;
+        if (typeof RealtimeSync !== 'undefined' && client) {
+          RealtimeSync.initRealtimeSync(client);
+        }
+        updateQueueCount();
       });
 
       /* Registro do Service Worker */
