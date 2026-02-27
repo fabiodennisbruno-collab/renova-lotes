@@ -18,3 +18,5 @@ const supabaseClient = (function() {
     return null;
   }
 })();
+
+window.supabaseClient = supabaseClient;
