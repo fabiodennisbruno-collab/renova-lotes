@@ -44,4 +44,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof SyncCloud !== 'undefined') {
     SyncCloud.init(supabaseClient);
   }
+  /* Inicializa fila offline (funciona mesmo sem Supabase configurado) */
+  if (typeof OfflineSync !== 'undefined') {
+    OfflineSync.init(supabaseClient);
+  }
 });

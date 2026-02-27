@@ -250,6 +250,11 @@ const PDVPro = (() => {
     vendas.push(venda);
     saveVendas(vendas);
 
+    // Enfileira venda para sincronização
+    if (typeof OfflineSync !== 'undefined') {
+      OfflineSync.enqueue('create', 'vendas', venda);
+    }
+
     // Atualiza caixa
     addMovCaixa(`Venda #${venda.id} - ${nomeCliente}`, tot, 'entrada');
 

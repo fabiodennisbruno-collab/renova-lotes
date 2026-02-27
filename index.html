@@ -547,6 +547,36 @@
       padding: 12px;
     }
 
+    /* Indicador de status online/offline */
+    #syncStatusBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      user-select: none;
+      transition: background .3s, border-color .3s, color .3s;
+    }
+    #syncStatusBadge.online {
+      background: rgba(90,255,170,.14);
+      border-color: rgba(90,255,170,.28);
+      color: #5affaa;
+    }
+    #syncStatusBadge.offline {
+      background: rgba(255,90,90,.14);
+      border-color: rgba(255,90,90,.28);
+      color: #ff7a7a;
+    }
+    #syncStatusBadge.syncing {
+      background: rgba(255,200,80,.14);
+      border-color: rgba(255,200,80,.28);
+      color: #ffc850;
+    }
+
   </style>
 </head>
 
@@ -567,6 +597,10 @@
       </div>
 
       <div class="actions">
+        <span id="syncStatusBadge" class="online" title="Status de sincronização" aria-live="polite">
+          <span id="syncStatusDot" aria-hidden="true">🟢</span>
+          <span id="syncStatusText">Online</span>
+        </span>
         <div class="search">
           <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8"/>
@@ -3454,6 +3488,10 @@
 
   <!-- Supabase CDN — necessário para sincronização em nuvem -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <!-- Resolução de conflitos de dados -->
+  <script src="js/modules/conflict-resolver.js"></script>
+  <!-- Gerenciador de sincronização offline com IndexedDB -->
+  <script src="js/modules/offline-sync.js"></script>
   <!-- Módulo de sincronização localStorage ↔ Supabase -->
   <script src="js/modules/sync-cloud.js"></script>
   <!-- Inicialização do cliente Supabase (configure credenciais neste arquivo) -->
@@ -3462,5 +3500,45 @@
   <script src="js/modules/auth.js"></script>
   <!-- Orquestrador principal da integração Supabase -->
   <script src="js/app.js"></script>
+  <!-- Indicador de status online/offline e integração CRM -->
+  <script>
+    (function () {
+      var badge  = document.getElementById('syncStatusBadge');
+      var dot    = document.getElementById('syncStatusDot');
+      var label  = document.getElementById('syncStatusText');
+
+      function updateStatus(online, syncing) {
+        if (!badge) return;
+        badge.className = syncing ? 'syncing' : (online ? 'online' : 'offline');
+        if (dot)   dot.textContent   = syncing ? '🔄' : (online ? '🟢' : '🔴');
+        if (label) label.textContent = syncing ? 'Sincronizando…' : (online ? 'Online' : 'Offline');
+      }
+
+      updateStatus(navigator.onLine, false);
+
+      window.addEventListener('offline', function () { updateStatus(false, false); });
+
+      window.addEventListener('online', function () {
+        updateStatus(true, true);
+        /* Usa OfflineSync para sinalizar fim da sincronização, ou timeout de fallback */
+        if (typeof OfflineSync !== 'undefined') {
+          OfflineSync.processQueue().then(function () {
+            updateStatus(true, false);
+          }).catch(function () {
+            updateStatus(true, false);
+          });
+        } else {
+          updateStatus(true, false);
+        }
+      });
+
+      /* Registro do Service Worker */
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function (err) {
+          console.warn('[SW] Falha no registro:', err);
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -3,6 +3,15 @@
 
 (function () {
   /* ============================================================
+     0. Inicializa sistema de sincronização offline
+     ============================================================ */
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof OfflineSync !== 'undefined') {
+      /* supabaseClient pode ser null em modo offline — isso é tratado internamente */
+      OfflineSync.init(typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+    }
+  });
+  /* ============================================================
      1. Inicializa dados de exemplo (apenas na primeira visita)
      ============================================================ */
   if (typeof seedCRMIfEmpty === 'function') {
