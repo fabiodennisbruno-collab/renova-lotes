@@ -36,54 +36,49 @@ Este guia explica como conectar o Renova Lotes ao Supabase para sincronizar dado
 No painel do projeto, vá em **SQL Editor** e execute o script abaixo:
 
 ```sql
--- Clientes CRM
-CREATE TABLE IF NOT EXISTS crm_clientes (
+-- Produtos / Estoque
+CREATE TABLE IF NOT EXISTS products (
   id                  TEXT PRIMARY KEY,
-  nome                TEXT,
-  email               TEXT,
-  telefone            TEXT,
-  cidade              TEXT,
-  categoria           TEXT,
-  totalCompras        FLOAT,
+  codigo              TEXT,
+  nome_produto        TEXT,
+  tipo_produto        TEXT,
+  local_estoque       TEXT,
+  lote_id             TEXT,
+  custo_produto       FLOAT,
+  valor_anuncio       FLOAT,
+  canais_anuncio      JSONB,
+  data_anuncio_iso    TEXT,
+  vendido             BOOLEAN DEFAULT FALSE,
+  valor_venda         FLOAT,
+  canais_venda        JSONB,
+  data_venda_iso      TEXT,
+  quem_vendeu         TEXT,
+  forma_entrega       TEXT,
+  custo_entrega       FLOAT,
+  pagamento           JSONB,
+  observacoes         TEXT,
+  photos              JSONB,
   data_sincronizacao  TIMESTAMP,
+  deletado_em         TIMESTAMP,
   criado_em           TIMESTAMP DEFAULT NOW()
 );
 
--- Produtos PDV
-CREATE TABLE IF NOT EXISTS crm_produtos_pdv (
-  id                  TEXT PRIMARY KEY,
-  nome                TEXT,
-  categoria           TEXT,
-  preco               FLOAT,
-  estoque             INT,
-  estoqueMin          INT,
-  data_sincronizacao  TIMESTAMP,
-  criado_em           TIMESTAMP DEFAULT NOW()
+-- Configurações (canais, categorias, etc.)
+CREATE TABLE IF NOT EXISTS configs (
+  id            TEXT PRIMARY KEY,
+  tipo          TEXT,
+  valor         JSONB,
+  atualizado_em TIMESTAMP DEFAULT NOW()
 );
 
--- Vendas PDV
-CREATE TABLE IF NOT EXISTS crm_vendas_pdv (
+-- Lotes de compra
+CREATE TABLE IF NOT EXISTS lotes (
   id                  TEXT PRIMARY KEY,
-  clienteId           TEXT,
-  itens               JSONB,
+  nome                TEXT,
   total               FLOAT,
-  pagamento           TEXT,
-  data                TEXT,
-  dataISO             TEXT,
-  data_sincronizacao  TIMESTAMP,
-  criado_em           TIMESTAMP DEFAULT NOW()
-);
-
--- Caixa / movimentações financeiras
-CREATE TABLE IF NOT EXISTS crm_caixa (
-  id                  TEXT PRIMARY KEY,
-  descricao           TEXT,
-  valor               FLOAT,
-  tipo                TEXT,
-  data                TEXT,
-  dataISO             TEXT,
-  data_sincronizacao  TIMESTAMP,
-  criado_em           TIMESTAMP DEFAULT NOW()
+  criado_em           TIMESTAMP DEFAULT NOW(),
+  atualizado_em       TIMESTAMP,
+  data_sincronizacao  TIMESTAMP
 );
 ```
 
@@ -92,10 +87,9 @@ CREATE TABLE IF NOT EXISTS crm_caixa (
 Para desenvolvimento/teste, você pode desativar o RLS temporariamente:
 
 ```sql
-ALTER TABLE crm_clientes     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE crm_produtos_pdv DISABLE ROW LEVEL SECURITY;
-ALTER TABLE crm_vendas_pdv   DISABLE ROW LEVEL SECURITY;
-ALTER TABLE crm_caixa        DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE configs  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE lotes    DISABLE ROW LEVEL SECURITY;
 ```
 
 > ⚠️ Para produção, configure políticas RLS adequadas conforme sua necessidade de segurança.
@@ -168,10 +162,8 @@ Configure as credenciais diretamente em `js/config/supabase-init.js` (a anon key
 
 | localStorage key | Tabela Supabase |
 |---|---|
-| `crm_clientes` | `crm_clientes` |
-| `crm_produtos_pdv` | `crm_produtos_pdv` |
-| `crm_vendas_pdv` | `crm_vendas_pdv` |
-| `crm_caixa` | `crm_caixa` |
+| `renova_lotes_html_v6` | `products` |
+| `renova_lotes_html_v6_config` | `configs` |
 
 ---
 

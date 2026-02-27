@@ -11,15 +11,14 @@
  *    da UI se re-renderizem automaticamente
  *
  * Chaves monitoradas:
- *  crm_clientes, crm_produtos_pdv, crm_vendas_pdv, crm_caixa
+ *  renova_lotes_html_v6, renova_lotes_html_v6_config, renova_lotes_html_v6_trash
  */
 var CrossTabSync = (function () {
 
   var KEY_EVENT_MAP = {
-    'crm_clientes':     'clientesUpdated',
-    'crm_produtos_pdv': 'produtosUpdated',
-    'crm_vendas_pdv':   'vendasUpdated',
-    'crm_caixa':        'caixaUpdated'
+    'renova_lotes_html_v6':        'itemsUpdated',
+    'renova_lotes_html_v6_config': 'configUpdated',
+    'renova_lotes_html_v6_trash':  'trashUpdated'
   };
 
   var _callbacks    = [];

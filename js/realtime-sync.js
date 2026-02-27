@@ -11,15 +11,13 @@
  *  - Emite CustomEvents para que os módulos da UI se atualizem automaticamente
  *
  * Tabelas monitoradas:
- *  crm_clientes, crm_produtos_pdv, crm_vendas_pdv, crm_caixa
+ *  products (→ renova_lotes_html_v6), configs (→ renova_lotes_html_v6_config)
  */
 var RealtimeSync = (function () {
 
   var TABLES = [
-    { table: 'crm_clientes',     lsKey: 'crm_clientes',     event: 'clientesUpdated' },
-    { table: 'crm_produtos_pdv', lsKey: 'crm_produtos_pdv', event: 'produtosUpdated' },
-    { table: 'crm_vendas_pdv',   lsKey: 'crm_vendas_pdv',   event: 'vendasUpdated'   },
-    { table: 'crm_caixa',        lsKey: 'crm_caixa',        event: 'caixaUpdated'    }
+    { table: 'products', lsKey: 'renova_lotes_html_v6',        event: 'itemsUpdated',  isObject: false },
+    { table: 'configs',  lsKey: 'renova_lotes_html_v6_config', event: 'configUpdated', isObject: true  }
   ];
 
   /* Janela de tempo (ms) para considerar duas edições como conflito simultâneo */
@@ -43,40 +41,25 @@ var RealtimeSync = (function () {
     _client = client;
     _active = true;
 
-    subscribeToClientes();
-    subscribeToProducts();
-    subscribeToVendas();
-    subscribeToCaixa();
+    TABLES.forEach(function (tableConfig) {
+      _subscribe(tableConfig);
+    });
 
     console.log('[RealtimeSync] Conectado ao Supabase Realtime. Monitorando:', TABLES.map(function (t) { return t.table; }).join(', '));
   }
 
   /* ------------------------------------------------------------------ */
-  /* Subscreve mudanças de clientes                                      */
+  /* Subscreve mudanças de produtos (items)                              */
   /* ------------------------------------------------------------------ */
-  function subscribeToClientes() {
+  function subscribeToItems() {
     _subscribe(TABLES[0]);
   }
 
   /* ------------------------------------------------------------------ */
-  /* Subscreve mudanças de produtos                                      */
+  /* Subscreve mudanças de configs                                        */
   /* ------------------------------------------------------------------ */
-  function subscribeToProducts() {
+  function subscribeToConfigs() {
     _subscribe(TABLES[1]);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Subscreve mudanças de vendas                                        */
-  /* ------------------------------------------------------------------ */
-  function subscribeToVendas() {
-    _subscribe(TABLES[2]);
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Subscreve mudanças de caixa                                         */
-  /* ------------------------------------------------------------------ */
-  function subscribeToCaixa() {
-    _subscribe(TABLES[3]);
   }
 
   /* ------------------------------------------------------------------ */
@@ -116,6 +99,18 @@ var RealtimeSync = (function () {
     var lsKey      = tableConfig.lsKey;
 
     try {
+
+      /* Config: trata como objeto único — extrai campo valor */
+      if (tableConfig.isObject) {
+        if (eventType !== 'DELETE' && remoteRow.valor) {
+          localStorage.setItem(lsKey, JSON.stringify(remoteRow.valor));
+          _lastSync = new Date();
+          _emitUpdateEvent(tableConfig.event, remoteRow.valor);
+          _notifySyncStatus();
+        }
+        return;
+      }
+
       var localList = JSON.parse(localStorage.getItem(lsKey) || '[]');
       var updated   = false;
 
@@ -263,10 +258,8 @@ var RealtimeSync = (function () {
   /* ------------------------------------------------------------------ */
   return {
     initRealtimeSync  : initRealtimeSync,
-    subscribeToClientes : subscribeToClientes,
-    subscribeToProducts : subscribeToProducts,
-    subscribeToVendas   : subscribeToVendas,
-    subscribeToCaixa    : subscribeToCaixa,
+    subscribeToItems    : subscribeToItems,
+    subscribeToConfigs  : subscribeToConfigs,
     handleRemoteUpdate  : handleRemoteUpdate,
     detectConflict      : detectConflict,
     unsubscribeAll      : unsubscribeAll,
