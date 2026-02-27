@@ -14,7 +14,7 @@
 var OfflineSync = (function () {
 
   var DB_NAME    = 'renova_lotes_sync';
-  var DB_VERSION = 1;
+  var DB_VERSION = 2;
   var STORE_NAME = 'sync_queue';
 
   var _db             = null;
@@ -29,11 +29,13 @@ var OfflineSync = (function () {
 
       req.onupgradeneeded = function (e) {
         var db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          var store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-          store.createIndex('sincronizado', 'sincronizado', { unique: false });
-          store.createIndex('tabela',       'tabela',       { unique: false });
+        /* Recria o store ao fazer upgrade para garantir schema correto */
+        if (db.objectStoreNames.contains(STORE_NAME)) {
+          db.deleteObjectStore(STORE_NAME);
         }
+        var store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        store.createIndex('sincronizado', 'sincronizado', { unique: false });
+        store.createIndex('tabela',       'tabela',       { unique: false });
       };
 
       req.onsuccess = function (e) {
@@ -44,6 +46,25 @@ var OfflineSync = (function () {
       req.onerror = function (e) {
         reject(e.target.error);
       };
+
+      req.onblocked = function () {
+        reject(new Error('IndexedDB blocked'));
+      };
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Deleta e recria o banco — usado quando o DB está corrompido         */
+  /* ------------------------------------------------------------------ */
+  function _resetDB() {
+    _db = null;
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.deleteDatabase(DB_NAME);
+      req.onsuccess = function () {
+        console.log('[OfflineSync] IndexedDB resetado com sucesso.');
+        _openDB().then(resolve).catch(reject);
+      };
+      req.onerror = function (e) { reject(e.target.error); };
     });
   }
 
@@ -66,7 +87,7 @@ var OfflineSync = (function () {
       tabela       : tabela,     /* 'clientes' | 'produtos' | 'vendas' | 'caixa' */
       dados        : dados,
       timestamp    : new Date().toISOString(),
-      sincronizado : false
+      sincronizado : 0
     };
 
     return new Promise(function (resolve, reject) {
@@ -88,7 +109,7 @@ var OfflineSync = (function () {
       var tx    = _db.transaction(STORE_NAME, 'readonly');
       var store = tx.objectStore(STORE_NAME);
       var index = store.index('sincronizado');
-      var req   = index.getAll(false);
+      var req   = index.getAll(IDBKeyRange.only(0));
       req.onsuccess = function (e) { resolve(e.target.result || []); };
       req.onerror   = function (e) { reject(e.target.error); };
     });
@@ -108,7 +129,7 @@ var OfflineSync = (function () {
       get.onsuccess = function (e) {
         var item = e.target.result;
         if (!item) { resolve(); return; }
-        item.sincronizado = true;
+        item.sincronizado = 1;
         var put = store.put(item);
         put.onsuccess = function ()  { resolve(); };
         put.onerror   = function (ev) { reject(ev.target.error); };
@@ -144,7 +165,11 @@ var OfflineSync = (function () {
 
         if (upsertItems.length) {
           var rows = upsertItems.map(function (i) {
-            return Object.assign({}, i.dados, { data_sincronizacao: ts });
+            var data = Object.assign({}, i.dados, { data_sincronizacao: ts });
+            /* Aplica mapeamento camelCase → snake_case se SyncCloud estiver disponível */
+            return (typeof SyncCloud !== 'undefined' && SyncCloud.toSupabaseRow)
+              ? SyncCloud.toSupabaseRow(data, tabela)
+              : data;
           });
 
           ops.push(
@@ -245,7 +270,10 @@ var OfflineSync = (function () {
         console.log('[OfflineSync] IndexedDB inicializado. DB:', DB_NAME);
       })
       .catch(function (err) {
-        console.warn('[OfflineSync] Erro ao abrir IndexedDB:', err);
+        console.warn('[OfflineSync] Erro ao abrir IndexedDB, tentando resetar:', err);
+        return _resetDB().catch(function (resetErr) {
+          console.error('[OfflineSync] IndexedDB não disponível — fila offline desativada:', resetErr);
+        });
       });
   }
 
