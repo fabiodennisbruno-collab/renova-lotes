@@ -3,17 +3,73 @@
 
 (function () {
   /* ============================================================
-     0. Inicializa sistema de sincronização offline
+     0. Inicializa sistemas de sincronização
      ============================================================ */
   document.addEventListener('DOMContentLoaded', function () {
+    var client = typeof supabaseClient !== 'undefined' ? supabaseClient : null;
+
+    /* Sincronização offline (IndexedDB) */
     if (typeof OfflineSync !== 'undefined') {
-      /* supabaseClient pode ser null em modo offline — isso é tratado internamente */
-      OfflineSync.init(typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+      OfflineSync.init(client);
     }
+
+    /* Fila de sincronização de alto nível */
+    /* (SyncQueue delega ao OfflineSync — sem init separado necessário) */
+
+    /* Sincronização em tempo real via Supabase Realtime */
+    if (typeof RealtimeSync !== 'undefined' && client) {
+      RealtimeSync.initRealtimeSync(client);
+    }
+
+    /* Atualiza painel de status quando a fila ou conflitos mudam */
+    window.addEventListener('syncQueueChanged',  _updateSyncStatusPanel);
+    window.addEventListener('syncStatusUpdated', _updateSyncStatusPanel);
+    window.addEventListener('conflictDetected',  _updateSyncStatusPanel);
+
+    /* Re-renderiza caixa quando outra aba ou dispositivo registra movimentação */
+    window.addEventListener('caixaUpdated', function () { renderCaixa(); });
   });
   /* ============================================================
-     1. Inicializa dados de exemplo (apenas na primeira visita)
+     1.5. Atualiza painel de status de sincronização
      ============================================================ */
+  function _updateSyncStatusPanel(e) {
+    var detail = (e && e.detail) || {};
+
+    /* Atualiza contagem da fila */
+    var queueEl = document.getElementById('syncQueueCount');
+    if (queueEl && detail.pendingCount !== undefined) {
+      queueEl.textContent = detail.pendingCount;
+    } else if (queueEl && typeof SyncQueue !== 'undefined') {
+      SyncQueue.getQueueStatus().then(function (s) {
+        queueEl.textContent = s.pendingCount;
+      }).catch(function () {});
+    }
+
+    /* Atualiza última sincronização */
+    var lastSyncEl = document.getElementById('syncLastTime');
+    if (lastSyncEl) {
+      var ts = detail.lastSync
+            || (typeof RealtimeSync !== 'undefined' ? RealtimeSync.getLastSync() : null);
+      if (ts) {
+        var diff = Math.round((Date.now() - new Date(ts).getTime()) / 1000);
+        lastSyncEl.textContent = diff < 60
+          ? diff + 's atrás'
+          : Math.round(diff / 60) + 'min atrás';
+      }
+    }
+
+    /* Atualiza contador de conflitos */
+    var conflictEl = document.getElementById('syncConflictCount');
+    if (conflictEl) {
+      var total = detail.conflictCount !== undefined
+        ? detail.conflictCount
+        : (typeof ConflictDetector !== 'undefined' ? ConflictDetector.getTotalConflicts() : 0);
+      conflictEl.textContent = total;
+      conflictEl.style.display = total > 0 ? '' : 'none';
+    }
+  }
+
+
   if (typeof seedCRMIfEmpty === 'function') {
     seedCRMIfEmpty();
   }
@@ -88,7 +144,13 @@
   const CAIXA_KEY = 'crm_caixa';
 
   function loadCaixa()  { return JSON.parse(localStorage.getItem(CAIXA_KEY) || '[]'); }
-  function saveCaixa(m) { localStorage.setItem(CAIXA_KEY, JSON.stringify(m)); }
+  function saveCaixa(m) {
+    localStorage.setItem(CAIXA_KEY, JSON.stringify(m));
+    try {
+      const ev = new CustomEvent('caixaUpdated', { detail: m, bubbles: true });
+      window.dispatchEvent(ev);
+    } catch (e) { /* silencia */ }
+  }
 
   const fmtBRL = (v) =>
     new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v || 0);

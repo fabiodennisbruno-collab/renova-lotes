@@ -23,12 +23,16 @@ const PDVPro = (() => {
   /* ---- Persistência ---- */
   function loadProd()   { produtos = JSON.parse(localStorage.getItem(PROD_KEY)  || '[]'); }
   function loadVendas() { return JSON.parse(localStorage.getItem(VENDAS_KEY) || '[]'); }
-  function saveVendas(v){ localStorage.setItem(VENDAS_KEY, JSON.stringify(v)); }
+  function saveVendas(v){
+    localStorage.setItem(VENDAS_KEY, JSON.stringify(v));
+    _dispatch('vendasUpdated', v);
+  }
 
   function addMovCaixa(desc, valor, tipo) {
     const mov = JSON.parse(localStorage.getItem(CAIXA_KEY) || '[]');
     mov.push({ id: Date.now(), descricao: desc, valor, tipo, data: new Date().toLocaleString('pt-BR'), dataISO: new Date().toISOString().slice(0,10) });
     localStorage.setItem(CAIXA_KEY, JSON.stringify(mov));
+    _dispatch('caixaUpdated', mov);
   }
 
   function updateStock(id, qtdVendida) {
@@ -37,6 +41,19 @@ const PDVPro = (() => {
     if (p) {
       p.estoque = Math.max(0, (p.estoque || 0) - qtdVendida);
       localStorage.setItem(PROD_KEY, JSON.stringify(produtos));
+      _dispatch('produtosUpdated', produtos);
+    }
+  }
+
+  /* ---- Emite CustomEvent ---- */
+  function _dispatch(eventName, detail) {
+    try {
+      const ev = new CustomEvent(eventName, { detail, bubbles: true });
+      window.dispatchEvent(ev);
+    } catch (e) {
+      const ev2 = document.createEvent('CustomEvent');
+      ev2.initCustomEvent(eventName, true, true, detail);
+      window.dispatchEvent(ev2);
     }
   }
 
@@ -98,6 +115,11 @@ const PDVPro = (() => {
     // Finalizar venda
     const finBtn = document.getElementById('pdvFinalizarBtn');
     if (finBtn) finBtn.addEventListener('click', finalizarVenda);
+
+    /* Atualiza histórico quando outra aba ou dispositivo registra uma venda */
+    window.addEventListener('vendasUpdated', () => renderHistorico());
+    /* Atualiza grade de produtos quando estoque muda remotamente */
+    window.addEventListener('produtosUpdated', () => { loadProd(); renderProducts(); });
 
     renderProducts();
     renderCart();
@@ -249,6 +271,9 @@ const PDVPro = (() => {
     const vendas = loadVendas();
     vendas.push(venda);
     saveVendas(vendas);
+
+    // Emite evento de venda registrada (cross-tab + realtime)
+    _dispatch('vendaRegistrada', venda);
 
     // Enfileira venda para sincronização
     if (typeof OfflineSync !== 'undefined') {
