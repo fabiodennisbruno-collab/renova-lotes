@@ -17,14 +17,22 @@ const ClientesMod = (() => {
 
   /* ---- CRUD ---- */
   function upsert(data) {
-    const idx = clientes.findIndex(c => c.id === data.id);
+    const idx   = clientes.findIndex(c => c.id === data.id);
+    const isNew = idx < 0;
     if (idx >= 0) { clientes[idx] = data; }
     else           { clientes.push(data); }
     save();
+    if (typeof OfflineSync !== 'undefined') {
+      OfflineSync.enqueue(isNew ? 'create' : 'update', 'clientes', data);
+    }
   }
   function remove(id) {
+    const toRemove = get(id);
     clientes = clientes.filter(c => c.id !== id);
     save();
+    if (typeof OfflineSync !== 'undefined' && toRemove) {
+      OfflineSync.enqueue('delete', 'clientes', { id });
+    }
   }
   function get(id) { return clientes.find(c => c.id === id); }
 
