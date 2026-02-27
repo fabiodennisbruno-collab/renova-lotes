@@ -3615,6 +3615,36 @@
         updateConflictCount(total);
       });
 
+      /* Re-renderiza quando items são atualizados por outra aba ou Realtime */
+      window.addEventListener('itemsUpdated', function (e) {
+        try {
+          var newData = e && e.detail;
+          if (Array.isArray(newData)) {
+            items = newData.map(normalizeItemShape);
+          } else {
+            var raw = localStorage.getItem('renova_lotes_html_v6');
+            if (raw) items = JSON.parse(raw).map(normalizeItemShape);
+          }
+          render();
+        } catch (err) { console.warn('[itemsUpdated] Erro ao re-renderizar:', err); }
+      });
+
+      /* Re-renderiza quando config é atualizada por outra aba ou Realtime */
+      window.addEventListener('configUpdated', function (e) {
+        try {
+          loadConfig();
+          render();
+        } catch (err) { console.warn('[configUpdated] Erro ao re-renderizar:', err); }
+      });
+
+      /* Re-renderiza quando lixeira é atualizada por outra aba */
+      window.addEventListener('trashUpdated', function (e) {
+        try {
+          loadTrash();
+          render();
+        } catch (err) { console.warn('[trashUpdated] Erro ao re-renderizar:', err); }
+      });
+
       /* Inicializa CrossTabSync para a aba principal */
       if (typeof CrossTabSync !== 'undefined') {
         CrossTabSync.watchStorageChanges();

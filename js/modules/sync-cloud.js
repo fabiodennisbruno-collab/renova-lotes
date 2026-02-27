@@ -10,16 +10,19 @@
  *              e na abertura da página os dados mais recentes são puxados (pull)
  *
  * Tabelas sincronizadas:
- *  crm_clientes, crm_produtos_pdv, crm_vendas_pdv, crm_caixa
+ *  products (renova_lotes_html_v6), configs (renova_lotes_html_v6_config)
  */
 var SyncCloud = (function () {
 
   /* Mapa chave localStorage → tabela Supabase */
   var SYNC_MAP = {
-    'crm_clientes':     'crm_clientes',
-    'crm_produtos_pdv': 'crm_produtos_pdv',
-    'crm_vendas_pdv':   'crm_vendas_pdv',
-    'crm_caixa':        'crm_caixa'
+    'renova_lotes_html_v6':        'products',
+    'renova_lotes_html_v6_config': 'configs'
+  };
+
+  /* Chaves que armazenam um objeto JSON (não array) e precisam de tratamento especial */
+  var OBJECT_KEYS = {
+    'renova_lotes_html_v6_config': true
   };
 
   var _client      = null;
@@ -45,6 +48,15 @@ var SyncCloud = (function () {
     window.addEventListener('online', function () {
       console.log('[SyncCloud] Conexão restaurada — sincronizando dados...');
       _pullAll();
+    });
+
+    /* Re-push quando outra aba grava no localStorage (cross-tab) */
+    window.addEventListener('storage', function (e) {
+      if (_active && e.key && SYNC_MAP[e.key] && e.newValue) {
+        _pushToCloud(e.key, e.newValue).catch(function (err) {
+          console.warn('[SyncCloud] Erro cross-tab push', e.key, ':', err.message || err);
+        });
+      }
     });
 
     console.log('[SyncCloud] Sincronização ativada para as tabelas:', Object.keys(SYNC_MAP).join(', '));
@@ -80,6 +92,37 @@ var SyncCloud = (function () {
     var table = SYNC_MAP[key];
     if (!table) return Promise.resolve();
 
+    var ts = new Date().toISOString();
+
+    /* Config: armazena objeto completo como uma única linha */
+    if (OBJECT_KEYS[key]) {
+      var configObj;
+      try {
+        configObj = JSON.parse(jsonValue || '{}');
+      } catch (e) {
+        return Promise.resolve();
+      }
+      if (!configObj || typeof configObj !== 'object') return Promise.resolve();
+
+      var configRow = {
+        id            : key,
+        tipo          : 'main_config',
+        valor         : configObj,
+        atualizado_em : ts
+      };
+
+      return _client
+        .from(table)
+        .upsert([configRow], { onConflict: 'id' })
+        .then(function (result) {
+          if (result.error) throw result.error;
+        })
+        .catch(function (err) {
+          console.warn('[SyncCloud] pushToCloud (config) falhou:', err.message || err);
+        });
+    }
+
+    /* Array (items): upsert cada registro individualmente */
     var records;
     try {
       records = JSON.parse(jsonValue || '[]');
@@ -89,8 +132,6 @@ var SyncCloud = (function () {
 
     if (!Array.isArray(records) || records.length === 0) return Promise.resolve();
 
-    var ts   = new Date().toISOString();
-    /* data_sincronizacao registra o momento do envio ao Supabase (não a criação do registro) */
     var rows = records.map(function (r) {
       return Object.assign({}, r, { data_sincronizacao: ts });
     });
@@ -117,9 +158,31 @@ var SyncCloud = (function () {
     var keys   = Object.keys(SYNC_MAP);
     var pulls  = keys.map(function (lsKey) {
       var table = SYNC_MAP[lsKey];
+
+      /* Config: busca linha única pelo id e extrai o campo valor */
+      if (OBJECT_KEYS[lsKey]) {
+        return _client
+          .from(table)
+          .select('id, valor')
+          .eq('id', lsKey)
+          .maybeSingle()
+          .then(function (result) {
+            if (result.error) throw result.error;
+            if (result.data && result.data.valor) {
+              _origSetItem.call(localStorage, lsKey, JSON.stringify(result.data.valor));
+              console.log('[SyncCloud] Config puxada:', table);
+            }
+          })
+          .catch(function (err) {
+            console.warn('[SyncCloud] pullAll (config) falhou para', table, ':', err.message || err);
+          });
+      }
+
+      /* Array (items): busca todos os registros não deletados */
       return _client
         .from(table)
         .select('*')
+        .is('deletado_em', null)
         .then(function (result) {
           if (result.error) throw result.error;
           if (result.data && result.data.length > 0) {
