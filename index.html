@@ -3534,86 +3534,13 @@
   <script src="js/modules/auth.js"></script>
   <!-- Orquestrador principal da integração Supabase -->
   <script src="js/app.js"></script>
-  <!-- Indicador de status online/offline e integração CRM -->
+  <!-- Módulo de UI para badge de status de sincronização -->
+  <script src="js/modules/sync-status-ui.js"></script>
+  <!-- Orquestrador principal: inicializa SyncCloud, OfflineSync, RealtimeSync, CrossTabSync, SyncStatusUI e Service Worker -->
+  <script src="js/main-app.js"></script>
+  <!-- Re-renderiza a UI da aplicação quando dados mudam via outra aba ou Realtime -->
   <script>
     (function () {
-      var badge      = document.getElementById('syncStatusBadge');
-      var dot        = document.getElementById('syncStatusDot');
-      var label      = document.getElementById('syncStatusText');
-      var queueEl    = document.getElementById('syncQueueCount');
-      var lastSyncEl = document.getElementById('syncLastTime');
-      var conflictEl = document.getElementById('syncConflictBadge');
-      var conflictCt = document.getElementById('syncConflictCount');
-
-      function updateStatus(online, syncing) {
-        if (!badge) return;
-        badge.className = syncing ? 'syncing' : (online ? 'online' : 'offline');
-        if (dot)   dot.textContent   = syncing ? '🔄' : (online ? '🟢' : '🔴');
-        if (label) label.textContent = syncing ? 'Sincronizando…' : (online ? 'Online' : 'Offline');
-      }
-
-      function updateQueueCount() {
-        if (!queueEl) return;
-        if (typeof SyncQueue !== 'undefined') {
-          SyncQueue.getQueueStatus().then(function (s) {
-            queueEl.textContent = s.pendingCount;
-            if (s.lastProcessedAt && lastSyncEl) {
-              var diff = Math.round((Date.now() - new Date(s.lastProcessedAt).getTime()) / 1000);
-              lastSyncEl.textContent = diff < 60 ? diff + 's atrás' : Math.round(diff / 60) + 'min atrás';
-            }
-          }).catch(function () {});
-        }
-      }
-
-      function updateConflictCount(total) {
-        if (!conflictEl || !conflictCt) return;
-        conflictCt.textContent = total;
-        conflictEl.style.display = total > 0 ? '' : 'none';
-      }
-
-      updateStatus(navigator.onLine, false);
-
-      window.addEventListener('offline', function () { updateStatus(false, false); });
-
-      window.addEventListener('online', function () {
-        updateStatus(true, true);
-        /* Usa SyncQueue/OfflineSync para sinalizar fim da sincronização */
-        var finalize = function () { updateStatus(true, false); updateQueueCount(); };
-        if (typeof SyncQueue !== 'undefined') {
-          SyncQueue.processQueue().then(finalize).catch(finalize);
-        } else if (typeof OfflineSync !== 'undefined') {
-          OfflineSync.processQueue().then(finalize).catch(finalize);
-        } else {
-          finalize();
-        }
-      });
-
-      /* Atualiza contagem ao processar fila */
-      window.addEventListener('syncQueueChanged', function (e) {
-        if (e && e.detail && queueEl) queueEl.textContent = e.detail.pendingCount;
-        if (e && e.detail && e.detail.lastProcessedAt && lastSyncEl) {
-          var diff = Math.round((Date.now() - new Date(e.detail.lastProcessedAt).getTime()) / 1000);
-          lastSyncEl.textContent = diff < 60 ? diff + 's atrás' : Math.round(diff / 60) + 'min atrás';
-        }
-      });
-
-      /* Atualiza ao receber dados do Realtime */
-      window.addEventListener('syncStatusUpdated', function (e) {
-        if (!e || !e.detail) return;
-        if (queueEl && e.detail.queueCount !== undefined) queueEl.textContent = e.detail.queueCount;
-        if (lastSyncEl && e.detail.lastSync) {
-          var diff2 = Math.round((Date.now() - new Date(e.detail.lastSync).getTime()) / 1000);
-          lastSyncEl.textContent = diff2 < 60 ? diff2 + 's atrás' : Math.round(diff2 / 60) + 'min atrás';
-        }
-        if (e.detail.conflictCount !== undefined) updateConflictCount(e.detail.conflictCount);
-      });
-
-      /* Atualiza contador de conflitos */
-      window.addEventListener('conflictDetected', function (e) {
-        var total = e && e.detail && e.detail.total ? e.detail.total : 0;
-        updateConflictCount(total);
-      });
-
       /* Re-renderiza quando items são atualizados por outra aba ou Realtime */
       window.addEventListener('itemsUpdated', function (e) {
         try {
@@ -3643,27 +3570,6 @@
           render();
         } catch (err) { console.warn('[trashUpdated] Erro ao re-renderizar:', err); }
       });
-
-      /* Inicializa CrossTabSync para a aba principal */
-      if (typeof CrossTabSync !== 'undefined') {
-        CrossTabSync.watchStorageChanges();
-      }
-
-      /* Inicializa RealtimeSync se Supabase estiver configurado */
-      document.addEventListener('DOMContentLoaded', function () {
-        var client = typeof supabaseClient !== 'undefined' ? supabaseClient : null;
-        if (typeof RealtimeSync !== 'undefined' && client) {
-          RealtimeSync.initRealtimeSync(client);
-        }
-        updateQueueCount();
-      });
-
-      /* Registro do Service Worker */
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(function (err) {
-          console.warn('[SW] Falha no registro:', err);
-        });
-      }
     })();
   </script>
 </body>
