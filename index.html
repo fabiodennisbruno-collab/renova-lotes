@@ -1,9 +1,3685 @@
-<!-- Supabase sync scripts -->
-<script src="https://cdn.supabase.io/your_script.js"></script>
-<script src="supabase-init.js"></script>
-<script src="offline-sync.js"></script>
-<script src="realtime-sync.js"></script>
-<script src="sync-cloud.js"></script>
-<script src="sync-status-ui.js"></script>
-<!-- Main script -->
-<script src="main.js"></script>
+<!doctype html>
+<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Renova Lotes — Dashboard</title>
+
+  <style>
+    :root{
+      --bg: #0b0f19;
+      --border: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --muted2: rgba(255,255,255,.45);
+      --shadow: 0 20px 55px rgba(0,0,0,.38);
+      --shadow2: 0 12px 34px rgba(0,0,0,.28);
+      --radius: 18px;
+      --radius2: 14px;
+      --btn: rgba(255,255,255,.10);
+      --btn2: rgba(255,255,255,.14);
+      --danger: rgba(255,70,70,.18);
+      --ok: rgba(90,255,170,.18);
+      --warn: rgba(255,200,80,.16);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; font-family:var(--sans);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(120,160,255,.25), transparent 60%),
+        radial-gradient(900px 500px at 110% 30%, rgba(90,255,170,.12), transparent 60%),
+        radial-gradient(1000px 700px at 40% 120%, rgba(255,255,255,.06), transparent 65%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .muted { color: var(--muted); }
+    .muted2 { color: var(--muted2); }
+
+    .container{ max-width:1180px; margin:0 auto; padding:22px 16px 30px; }
+
+    .topbar{ display:flex; gap:14px; align-items:flex-start; justify-content:space-between; margin-bottom: 14px; }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .logo{
+      width:46px; height:46px; border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow2);
+      display:grid; place-items:center;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      cursor: pointer;
+      user-select:none;
+    }
+    .title{ line-height:1.15; }
+    .title h1{ font-size: 18px; margin:0; letter-spacing:.2px; }
+    .title p{ margin:4px 0 0; color:var(--muted); font-size: 13px; }
+
+    .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .search{ position:relative; min-width: 270px; }
+    .search input{
+      width:100%;
+      padding: 11px 12px 11px 40px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.22);
+      color:var(--text);
+      outline:none;
+    }
+    .search input:focus{
+      border-color: rgba(140,160,255,.55);
+      box-shadow: 0 0 0 4px rgba(140,160,255,.12);
+    }
+    .search .icon{
+      position:absolute; left:12px; top:50%;
+      transform: translateY(-50%);
+      opacity:.82;
+      width:18px; height:18px;
+      color: rgba(255,255,255,.80);
+    }
+
+    .btn{
+      border:1px solid var(--border);
+      background: var(--btn);
+      color:var(--text);
+      padding: 10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      display:inline-flex; align-items:center; gap:8px;
+      transition: .15s ease;
+      user-select:none;
+      white-space: nowrap;
+    }
+    .btn:hover{ background: var(--btn2); transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0px); }
+    .btn.primary{
+      background: rgba(140,160,255,.16);
+      border-color: rgba(140,160,255,.35);
+    }
+    .btn.primary:hover{ background: rgba(140,160,255,.22); }
+    .btn.danger{ background: var(--danger); border-color: rgba(255,70,70,.25); }
+    .btn.ok{ background: var(--ok); border-color: rgba(90,255,170,.25); }
+    .btn.warn{ background: var(--warn); border-color: rgba(255,200,80,.22); }
+    .btn.small{ padding: 8px 10px; border-radius: 12px; font-size: 13px; }
+
+    .tabs{
+      display:grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap:10px;
+      margin: 14px 0 14px;
+      padding: 8px;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    @media (max-width: 980px){
+      .tabs{ grid-template-columns: repeat(3, 1fr); }
+    }
+    .tab{
+      padding: 10px 12px;
+      border-radius: 14px;
+      border:1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor:pointer;
+      display:flex; justify-content:center; align-items:center; gap:8px;
+      transition:.15s ease;
+      font-weight: 650;
+      letter-spacing: .15px;
+      text-align:center;
+    }
+    .tab.active{
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.12);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .tabpane.hidden{ display:none !important; }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.045));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .card .head{
+      padding: 14px 14px 10px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 10px;
+      border-bottom:1px solid rgba(255,255,255,.07);
+    }
+    .card .head h3{ margin:0; font-size: 14px; letter-spacing:.2px; }
+    .card .body{ padding: 14px; }
+
+    .kpis{ display:grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+    .kpi{
+      grid-column: span 6;
+      background: rgba(255,255,255,.045);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius2);
+      padding: 12px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.10);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      min-height: 76px;
+    }
+    @media (min-width: 920px){ .kpi{ grid-column: span 4; } }
+    @media (min-width: 1120px){ .kpi{ grid-column: span 3; } }
+    .kpi .label{ font-size: 12px; color:var(--muted); }
+    .kpi .value{ margin-top: 6px; font-size: 20px; font-weight: 820; }
+    .kpi .hint{ margin-top: 4px; font-size: 11px; color:var(--muted2); }
+
+    .table-wrap{
+      overflow:auto;
+      max-height: 520px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    table{ width:100%; border-collapse: collapse; min-width: 1120px; }
+    thead th{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(18,22,32,.92);
+      border-bottom:1px solid rgba(255,255,255,.10);
+      user-select:none;
+    }
+    th, td{
+      padding: 10px 10px;
+      text-align:left;
+      font-size: 13px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    th{ color: var(--muted); font-weight: 750; }
+    tbody tr:hover td{ background: rgba(255,255,255,.03); }
+
+    th.sortable{ cursor:pointer; }
+    th.sortable:hover{ background: rgba(255,255,255,.06); }
+    .sort-ind{ opacity:.9; margin-left:6px; font-size: 12px; }
+
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      font-size: 12px;
+      color: var(--text);
+      user-select:none;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .footer{
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted2);
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .footer code{
+      font-family: var(--mono);
+      font-size: 12px;
+      background: rgba(0,0,0,.25);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.85);
+    }
+
+    .modal-backdrop{
+      position: fixed; inset:0;
+      background: rgba(0,0,0,.58);
+      display:none;
+      place-items: center;
+      padding: 18px;
+      z-index: 99;
+    }
+    .modal{
+      width: min(980px, 100%);
+      background: rgba(18,22,32,.92);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .modal .mhead{
+      padding: 14px 14px 10px;
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .modal .mhead h3{ margin:0; font-size: 14px; }
+    .modal .mbody{ padding: 14px; }
+    .modal .mfoot{
+      padding: 14px;
+      display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;
+      border-top:1px solid rgba(255,255,255,.06);
+    }
+    .form{ display:grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 920px){ .form{ grid-template-columns: repeat(3, 1fr); } }
+    .field{ display:flex; flex-direction:column; gap:6px; }
+    .field label{ font-size: 12px; color: var(--muted); }
+    .field input, .field select, .field textarea{
+      padding: 10px 11px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      outline:none;
+    }
+    .field textarea{ min-height: 92px; resize: vertical; grid-column: 1 / -1; }
+    .hr{ height:1px; background: rgba(255,255,255,.08); margin: 12px 0; }
+
+    .section-title{
+      margin: 8px 0 2px;
+      font-size: 12px;
+      color: rgba(255,255,255,.78);
+      letter-spacing: .2px;
+      font-weight: 800;
+    }
+
+    .prod-link{
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      color: rgba(200,210,255,.95);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-weight: 700;
+    }
+    .prod-link:hover{ opacity: .88; }
+
+    /* FOTO 3 slots */
+    .photo-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    @media (max-width: 720px){
+      .photo-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .photo-slot{
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+      min-height: 150px;
+      position: relative;
+      cursor: pointer;
+    }
+    .photo-slot.active{
+      outline: 2px solid rgba(140,160,255,.55);
+      box-shadow: 0 0 0 4px rgba(140,160,255,.12);
+    }
+    .photo-slot img{
+      width:100%;
+      height:170px;
+      object-fit:cover;
+      display:block;
+    }
+    .photo-slot .empty{
+      height:170px;
+      display:grid;
+      place-items:center;
+      color: var(--muted2);
+      font-size: 12px;
+    }
+    .photo-slot .badge{
+      position:absolute;
+      top:8px; left:8px;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(18,22,32,.78);
+    }
+    .photo-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    /* GRÁFICOS */
+    .charts-grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 980px){
+      .charts-grid{ grid-template-columns: 1fr 1fr; }
+    }
+    canvas.chart{
+      width: 100%;
+      height: 260px;
+      display:block;
+      background: rgba(0,0,0,.14);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+    }
+
+    /* Multi-select chips */
+    .multi-wrap{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      padding: 10px 11px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      min-height: 44px;
+      align-items:center;
+    }
+    .pick{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.88);
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+      transition:.12s ease;
+    }
+    .pick:hover{ background: rgba(255,255,255,.08); }
+    .pick.active{
+      background: rgba(140,160,255,.18);
+      border-color: rgba(140,160,255,.35);
+    }
+
+    .mini-note{
+      font-size: 12px;
+      color: var(--muted2);
+      margin-top: 6px;
+    }
+
+    .two-col{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 980px){
+      .two-col{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .list-editor{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .list-badges{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .badge-x{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      font-size: 12px;
+    }
+    .xbtn{
+      border:0;
+      background: rgba(255,70,70,.16);
+      color: rgba(255,220,220,.95);
+      padding: 2px 8px;
+      border-radius: 999px;
+      cursor:pointer;
+    }
+    .xbtn:hover{ opacity:.9; }
+
+    /* =======================================================
+       ✅ AJUSTES PEDIDOS: MODAL COM ROLAGEM + MENOR NO CADASTRO
+       + 🔥 CADASTRO PRO (FASTBAR + 2 COLUNAS + ATALHOS)
+       ======================================================= */
+
+    /* rolagem interna do modal */
+    .modal{
+      max-height: calc(100vh - 40px);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal .mbody{
+      overflow: auto;
+      max-height: calc(100vh - 170px);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* modo compacto (apenas Novo item) */
+    .modal.compact{
+      width: min(860px, 100%);
+      max-height: calc(100vh - 70px);
+    }
+    .modal.compact .mhead,
+    .modal.compact .mfoot{
+      padding: 12px 12px 10px;
+    }
+    .modal.compact .mbody{
+      padding: 12px;
+      max-height: calc(100vh - 210px);
+    }
+    .modal.compact .field input,
+    .modal.compact .field select,
+    .modal.compact .field textarea{
+      padding: 9px 10px;
+    }
+
+    /* fastbar (atalhos de navegação dentro do modal) */
+    .fastbar{
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      margin: -12px -12px 12px;
+      padding: 10px 12px;
+      background: rgba(18,22,32,.92);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .fastbar .left,
+    .fastbar .right{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.85);
+    }
+
+    /* cadastro “pro”: 2 colunas no modo compacto (sem mexer na lógica) */
+    .modal.compact .form{
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .modal.compact #fProduto{ }
+    .modal.compact .field textarea{
+      min-height: 86px;
+    }
+
+    /* fotos no cadastro: limita altura e evita empurrar tudo */
+    .modal.compact #inlinePhotoGrid{
+      max-height: 320px;
+      overflow:auto;
+      padding-right: 4px;
+    }
+
+    /* bloco venda: visual mais “seção” */
+    .section-card{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      background: rgba(0,0,0,.14);
+      padding: 12px;
+    }
+
+    /* Indicador de status online/offline */
+    #syncStatusBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      user-select: none;
+      transition: background .3s, border-color .3s, color .3s;
+    }
+    #syncStatusBadge.online {
+      background: rgba(90,255,170,.14);
+      border-color: rgba(90,255,170,.28);
+      color: #5affaa;
+    }
+    #syncStatusBadge.offline {
+      background: rgba(255,90,90,.14);
+      border-color: rgba(255,90,90,.28);
+      color: #ff7a7a;
+    }
+    #syncStatusBadge.syncing {
+      background: rgba(255,200,80,.14);
+      border-color: rgba(255,200,80,.28);
+      color: #ffc850;
+    }
+    #syncExtraInfo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    #syncExtraInfo .sync-sep {
+      opacity: .4;
+    }
+    #syncConflictBadge {
+      display: none;
+      background: rgba(255,90,90,.18);
+      border: 1px solid rgba(255,90,90,.35);
+      color: #ff7a7a;
+      padding: 3px 7px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.supabase.io/js/supabase.min.js"></script>
+    <script src="supabase-init.js"></script>
+    <script src="offline-sync.js"></script>
+    <script src="realtime-sync.js"></script>
+    <script src="sync-cloud.js"></script>
+    <script src="sync-status-ui.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" id="homeLogo" title="Voltar para a página inicial" aria-label="Início">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 19V5a2 2 0 0 1 2-2h5v7l2-1 2 1V3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"
+              stroke="rgba(255,255,255,.86)" stroke-width="1.6" />
+          </svg>
+        </div>
+        <div class="title">
+          <h1>Renova Lotes</h1>
+          <p>Controle de lotes, estoque, vendas e indicadores. Tudo salvo no seu navegador.</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <span id="syncStatusBadge" class="online" title="Status de sincronização" aria-live="polite">
+          <span id="syncStatusDot" aria-hidden="true">🟢</span>
+          <span id="syncStatusText">Online</span>
+        </span>
+        <span id="syncExtraInfo" title="Itens na fila de sincronização / Última sincronização">
+          <span>📤 <span id="syncQueueCount">0</span></span>
+          <span class="sync-sep">|</span>
+          <span>🔄 <span id="syncLastTime">—</span></span>
+          <span id="syncConflictBadge" title="Conflitos detectados">⚠️ <span id="syncConflictCount">0</span></span>
+        </span>
+        <div class="search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <input id="q" placeholder="Buscar por código, produto, categoria, canal, vendedor, local..." />
+        </div>
+
+        <button class="btn" id="exportBtn" type="button">Exportar JSON</button>
+        <button class="btn" id="exportCsvBtn" type="button">Exportar CSV</button>
+
+        <label class="btn" style="gap:8px;">
+          Importar
+          <input id="importFile" type="file" accept="application/json" style="display:none;">
+        </label>
+
+        <button class="btn primary" id="newBtn" type="button">Novo item</button>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Navegação">
+      <button class="tab active" data-tab="visao" type="button">Visão geral</button>
+      <button class="tab" data-tab="estoque" type="button">Estoque</button>
+      <button class="tab" data-tab="vendas" type="button">Vendas</button>
+      <button class="tab" data-tab="financeiro" type="button">Financeiro</button>
+      <button class="tab" data-tab="graficos" type="button">Gráficos</button>
+      <button class="tab" data-tab="local" type="button">Por local</button>
+      <button class="tab" data-tab="lixeira" type="button">Lixeira</button>
+      <button class="tab" data-tab="config" type="button">Configurações</button>
+    </div>
+
+    <!-- VISÃO GERAL -->
+    <section id="visao" class="tabpane">
+      <div class="card">
+        <div class="head"><h3>Vendas</h3><span class="muted2">Resultado e desempenho</span></div>
+        <div class="body"><div class="kpis" id="kpiVendas"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Custos & Eficiência</h3><span class="muted2">Custos e eficiência</span></div>
+        <div class="body"><div class="kpis" id="kpiCustos"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Estoque</h3><span class="muted2">Saúde do estoque</span></div>
+        <div class="body"><div class="kpis" id="kpiEstoque"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Operação</h3><span class="muted2">Velocidade e volume</span></div>
+        <div class="body"><div class="kpis" id="kpiOperacao"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Resumo rápido</h3><span class="muted2">Indicadores principais</span></div>
+        <div class="body" id="quickSummary"></div>
+      </div>
+    </section>
+
+    <!-- FINANCEIRO -->
+    <section id="financeiro" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Resumo financeiro</h3><span class="muted2">Recebido, a receber e caixa</span></div>
+        <div class="body"><div class="kpis" id="kpiFinanceiro"></div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Agenda de recebimentos</h3><span class="muted2">Controle por parcela</span></div>
+        <div class="body">
+          <div id="financeSummary"></div>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Previsto para</th>
+                  <th>Recebido em</th>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Parcela</th>
+                  <th>Valor</th>
+                  <th>Forma</th>
+                  <th>Vendedor</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbFinanceiro"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTOQUE -->
+    <section id="estoque" class="tabpane hidden">
+      <div class="card">
+        <div class="head">
+          <h3>Itens em estoque</h3>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código numérico • Clique no produto: fotos</span>
+        </div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-table="estoque" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="estoque:codigo">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="estoque:nomeProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="tipoProduto" data-sort-type="text">Categoria <span class="sort-ind" data-ind="estoque:tipoProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="localEstoque" data-sort-type="text">Local <span class="sort-ind" data-ind="estoque:localEstoque">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="loteId" data-sort-type="text">Lote <span class="sort-ind" data-ind="estoque:loteId">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="canaisAnuncio" data-sort-type="text">Canais anúncio <span class="sort-ind" data-ind="estoque:canaisAnuncio">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="dataAnuncioISO" data-sort-type="date">Data anúncio <span class="sort-ind" data-ind="estoque:dataAnuncioISO">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="custoProduto" data-sort-type="number">Custo (rateado) <span class="sort-ind" data-ind="estoque:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="valorAnuncio" data-sort-type="number">Valor anúncio <span class="sort-ind" data-ind="estoque:valorAnuncio">↕</span></th>
+                  <th class="sortable" data-table="estoque" data-sort-key="lucroProj" data-sort-type="number">Lucro proj. <span class="sort-ind" data-ind="estoque:lucroProj">↕</span></th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbEstoque"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VENDAS -->
+    <section id="vendas" class="tabpane hidden">
+      <div class="card">
+        <div class="head">
+          <h3>Vendas</h3>
+          <span class="muted2">Clique no cabeçalho para ordenar • Código numérico • Clique no produto: fotos</span>
+        </div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-table="vendas" data-sort-key="codigo" data-sort-type="number">Código <span class="sort-ind" data-ind="vendas:codigo">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="nomeProduto" data-sort-type="text">Produto <span class="sort-ind" data-ind="vendas:nomeProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="tipoProduto" data-sort-type="text">Categoria <span class="sort-ind" data-ind="vendas:tipoProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="valorVenda" data-sort-type="number">Venda <span class="sort-ind" data-ind="vendas:valorVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoProduto" data-sort-type="number">Custo <span class="sort-ind" data-ind="vendas:custoProduto">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="custoEntrega" data-sort-type="number">Entrega <span class="sort-ind" data-ind="vendas:custoEntrega">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="lucroFinal" data-sort-type="number">Lucro <span class="sort-ind" data-ind="vendas:lucroFinal">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="canaisVenda" data-sort-type="text">Canais venda <span class="sort-ind" data-ind="vendas:canaisVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="dataVendaISO" data-sort-type="date">Data venda <span class="sort-ind" data-ind="vendas:dataVendaISO">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="tempoVenda" data-sort-type="number">Tempo (dias) <span class="sort-ind" data-ind="vendas:tempoVenda">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="quemVendeu" data-sort-type="text">Vendedor <span class="sort-ind" data-ind="vendas:quemVendeu">↕</span></th>
+                  <th class="sortable" data-table="vendas" data-sort-key="pagamentoResumo" data-sort-type="text">Pagamento <span class="sort-ind" data-ind="vendas:pagamentoResumo">↕</span></th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbVendas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRÁFICOS -->
+    <section id="graficos" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Gráficos</h3><span class="muted2">Tendências e comparativos</span></div>
+        <div class="body">
+          <div class="charts-grid">
+            <div class="card">
+              <div class="head"><h3>Vendas por dia (últimos 30)</h3><span class="muted2">Quantidade</span></div>
+              <div class="body"><canvas id="cSales30" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Faturamento por dia (últimos 30)</h3><span class="muted2">R$</span></div>
+              <div class="body"><canvas id="cRevenue30" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Vendas por canal</h3><span class="muted2">Quantidade (multi-canal)</span></div>
+              <div class="body"><canvas id="cSalesByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="head"><h3>Lucro por canal</h3><span class="muted2">R$ (multi-canal)</span></div>
+              <div class="body"><canvas id="cProfitByChannel" class="chart" width="900" height="260"></canvas></div>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+              <div class="head"><h3>Aging do estoque</h3><span class="muted2">0–6d / 7–14d / 15–30d / 30+d</span></div>
+              <div class="body"><canvas id="cStockAging" class="chart" width="900" height="260"></canvas></div>
+            </div>
+          </div>
+
+          <div class="muted2" style="margin-top:10px; font-size:12px;">
+            Observação: os gráficos são recalculados automaticamente ao editar itens, vender, importar, etc.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- POR LOCAL -->
+    <section id="local" class="tabpane hidden">
+      <div class="two-col">
+        <div class="card">
+          <div class="head"><h3>Local: Fábio</h3><span class="muted2">Estoque e indicadores</span></div>
+          <div class="body"><div class="kpis" id="kpiLocalFabio"></div></div>
+        </div>
+        <div class="card">
+          <div class="head"><h3>Local: Tom</h3><span class="muted2">Estoque e indicadores</span></div>
+          <div class="body"><div class="kpis" id="kpiLocalTom"></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="head"><h3>Detalhe por local</h3><span class="muted2">Resumo rápido</span></div>
+        <div class="body" id="localSummary"></div>
+      </div>
+    </section>
+
+    <!-- LIXEIRA -->
+    <section id="lixeira" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Lixeira</h3><span class="muted2">Itens excluídos ficam aqui por 30 dias</span></div>
+        <div class="body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Excluído em</th>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Categoria</th>
+                  <th>Local</th>
+                  <th>Lote</th>
+                  <th>Vendido?</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbTrash"></tbody>
+            </table>
+          </div>
+          <div class="mini-note" style="margin-top:10px;">
+            Itens são removidos automaticamente após 30 dias. Você pode restaurar ou excluir definitivamente.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section id="config" class="tabpane hidden">
+      <div class="card">
+        <div class="head"><h3>Configurações</h3><span class="muted2">Edite listas a qualquer momento</span></div>
+        <div class="body">
+
+          <div class="two-col">
+            <div class="card">
+              <div class="head"><h3>Lotes (compra)</h3><span class="muted2">Rateio automático do custo</span></div>
+              <div class="body">
+                <div class="mini-note">
+                  Regra: custo por item do lote = <b>Total do lote</b> ÷ <b>quantidade de produtos no lote</b>. Ao cadastrar um novo produto, o custo é recalculado para todos os itens do lote.
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="field">
+                  <label>Novo lote</label>
+                  <div class="list-editor">
+                    <input id="newLotName" placeholder="Ex: Lote 2 - Março/2026" style="flex:1;">
+                    <input id="newLotTotal" placeholder="Total (ex: 6050)" style="width:180px;">
+                    <button class="btn primary" id="addLotBtn" type="button">Adicionar lote</button>
+                  </div>
+                </div>
+
+                <div class="list-badges" id="lotsList"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="head"><h3>Listas editáveis</h3><span class="muted2">Canais, entrega e categorias</span></div>
+              <div class="body">
+                <div class="field">
+                  <label>Canais (anúncio)</label>
+                  <div class="list-editor">
+                    <input id="newCanalAnuncio" placeholder="Adicionar canal anúncio" style="flex:1;">
+                    <button class="btn primary" id="addCanalAnuncioBtn" type="button">Adicionar</button>
+                  </div>
+                  <div class="list-badges" id="canalAnuncioList"></div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="field">
+                  <label>Canais (venda)</label>
+                  <div class="list-editor">
+                    <input id="newCanalVenda" placeholder="Adicionar canal venda" style="flex:1;">
+                    <button class="btn primary" id="addCanalVendaBtn" type="button">Adicionar</button>
+                  </div>
+                  <div class="list-badges" id="canalVendaList"></div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="field">
+                  <label>Formas de entrega</label>
+                  <div class="list-editor">
+                    <input id="newEntrega" placeholder="Adicionar forma de entrega" style="flex:1;">
+                    <button class="btn primary" id="addEntregaBtn" type="button">Adicionar</button>
+                  </div>
+                  <div class="list-badges" id="entregaList"></div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="field">
+                  <label>Tipos de produto (categoria)</label>
+                  <div class="list-editor">
+                    <input id="newTipo" placeholder="Adicionar categoria" style="flex:1;">
+                    <button class="btn primary" id="addTipoBtn" type="button">Adicionar</button>
+                  </div>
+                  <div class="list-badges" id="tipoList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <div class="head"><h3>Pessoas e locais</h3><span class="muted2">Conforme seu pedido</span></div>
+            <div class="body">
+              <div class="two-col">
+                <div class="field">
+                  <label>Locais de estoque (padrão)</label>
+                  <div class="list-badges" id="locaisList"></div>
+                  <div class="mini-note">Por padrão: <b>Fábio</b> e <b>Tom</b>. (Pode editar aqui se quiser.)</div>
+                  <div class="list-editor" style="margin-top:10px;">
+                    <input id="newLocal" placeholder="Adicionar local" style="flex:1;">
+                    <button class="btn primary" id="addLocalBtn" type="button">Adicionar</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Vendedores (quem vendeu)</label>
+                  <div class="list-badges" id="vendedoresList"></div>
+                  <div class="mini-note">Por padrão: <b>Fábio</b>, <b>Karla</b>, <b>Nayane</b>, <b>Toom</b>.</div>
+                  <div class="list-editor" style="margin-top:10px;">
+                    <input id="newVendedor" placeholder="Adicionar vendedor" style="flex:1;">
+                    <button class="btn primary" id="addVendedorBtn" type="button">Adicionar</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+
+              <div class="mini-note">
+                Dica: essas listas impactam o cadastro e a venda. Você pode ajustar a qualquer momento.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <div>Dados salvos em <code>localStorage</code>. Use Exportar/Importar para backup.</div>
+      <div class="muted2">Sem filtros “tudo/estoque/vendas” • Exclusão com lixeira 30 dias • Canais multi-seleção</div>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRO/EDIÇÃO -->
+  <div class="modal-backdrop" id="backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="mhead">
+        <h3 id="modalTitle">Novo item</h3>
+        <button class="btn small" id="closeModal" type="button" title="Fechar">X</button>
+      </div>
+
+      <div class="mbody" id="modalBody">
+        <!-- 🔥 FASTBAR (cadastro rápido) -->
+        <div class="fastbar">
+          <div class="left">
+            <button class="btn small" id="goProduto" type="button">🧾 Produto</button>
+            <button class="btn small" id="goFotos" type="button">📷 Fotos</button>
+            <button class="btn small" id="goVenda" type="button">✅ Venda</button>
+            <span class="muted2" style="font-size:12px;">Salvar: <span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></span>
+          </div>
+          <div class="right">
+            <button class="btn small warn" id="jumpCalc" type="button">📌 Prévia</button>
+          </div>
+        </div>
+
+        <div id="secProduto">
+          <div class="section-title">DADOS DO PRODUTO</div>
+          <div class="form">
+            <div class="field">
+              <label>Código</label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input id="fCodigo" placeholder="Ex: 70" style="flex:1;">
+                <button class="btn small" id="nextCodeBtn" type="button" title="Gerar próximo código">🔁 Próximo</button>
+              </div>
+            </div>
+
+            <div class="field" style="grid-column: span 2;">
+              <label>Nome do produto</label>
+              <input id="fProduto" placeholder="Ex: Camiseta Barcelona">
+            </div>
+
+            <div class="field">
+              <label>Categoria (tipo de produto)</label>
+              <select id="fTipoProduto"></select>
+            </div>
+
+            <div class="field">
+              <label>Local de estoque</label>
+              <select id="fLocalEstoque"></select>
+            </div>
+
+            <div class="field">
+              <label>Lote</label>
+              <select id="fLote"></select>
+            </div>
+
+            <div class="field">
+              <label>Custo do produto (rateado pelo lote)</label>
+              <input id="fCusto" placeholder="Auto" disabled>
+              <div class="mini-note">Automático: Total do lote ÷ quantidade de produtos no lote.</div>
+            </div>
+
+            <div class="field">
+              <label>Valor anúncio</label>
+              <input id="fAnuncio" placeholder="Ex: 150">
+            </div>
+
+            <div class="field" style="grid-column: span 2;">
+              <label>Canais do anúncio (pode marcar mais de um)</label>
+              <div class="multi-wrap" id="fCanaisAnuncio"></div>
+              <div class="mini-note">Para adicionar novos canais: vá em <b>Configurações</b>.</div>
+            </div>
+
+            <div class="field">
+              <label>Data do anúncio</label>
+              <input id="fDataAnuncio" type="date">
+            </div>
+
+            <div class="field">
+              <label>Vendido?</label>
+              <select id="fVendido">
+                <option value="nao">Não</option>
+                <option value="sim">Sim</option>
+              </select>
+            </div>
+
+            <div class="field" style="grid-column: 1 / -1;">
+              <label>Observações</label>
+              <textarea id="fObs" placeholder="Links do anúncio, detalhes do cliente, etc."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div id="secFotos">
+          <div class="section-title">FOTOS (opcional — já no cadastro)</div>
+          <div class="muted2" id="inlinePhotoMeta">—</div>
+          <div style="margin-top:12px;" class="photo-grid" id="inlinePhotoGrid"></div>
+          <div class="photo-actions">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <label class="btn primary">
+                Anexar na foto selecionada
+                <input id="inlinePhotoFile" type="file" accept="image/*" style="display:none;">
+              </label>
+              <button class="btn danger" id="inlineRemovePhotoBtn" type="button">Remover foto selecionada</button>
+            </div>
+            <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
+          </div>
+        </div>
+
+        <div id="salesBlock" style="display:none;">
+          <div class="hr"></div>
+
+          <div id="secVenda" class="section-card">
+            <div class="section-title">DADOS DA VENDA (obrigatórios quando Vendido = Sim)</div>
+
+            <div class="form">
+              <div class="field">
+                <label>Valor da venda *</label>
+                <input id="fVenda" placeholder="Ex: 145">
+              </div>
+
+              <div class="field" style="grid-column: span 2;">
+                <label>Canais da venda (pode marcar mais de um) *</label>
+                <div class="multi-wrap" id="fCanaisVenda"></div>
+                <div class="mini-note">Para adicionar novos canais: vá em <b>Configurações</b>.</div>
+              </div>
+
+              <div class="field">
+                <label>Data da venda *</label>
+                <input id="fDataVenda" type="date">
+              </div>
+
+              <div class="field">
+                <label>Quem vendeu *</label>
+                <select id="fVendedor"></select>
+              </div>
+
+              <div class="field">
+                <label>Forma de entrega *</label>
+                <select id="fEntrega"></select>
+                <div class="mini-note">Para adicionar formas: vá em <b>Configurações</b>.</div>
+              </div>
+
+              <div class="field">
+                <label>Custo entrega *</label>
+                <input id="fCustoEntrega" placeholder="Ex: 5,00">
+              </div>
+            </div>
+
+            <div class="hr"></div>
+            <div class="section-title">PAGAMENTO</div>
+
+            <div class="form">
+              <div class="field">
+                <label>Tipo</label>
+                <select id="fPagamentoTipo">
+                  <option value="avista">À vista</option>
+                  <option value="parcelado">Parcelado</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Forma</label>
+                <select id="fPagamentoForma">
+                  <option value="pix">Pix</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao">Cartão</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Observação do pagamento</label>
+                <input id="fPagamentoObs" placeholder="Ex: combinado para dia 28/02">
+              </div>
+
+              <div class="field" style="grid-column: 1 / -1;" id="parcelasBlock" style="display:none;">
+                <label>Parcelas (datas e valores)</label>
+                <div class="mini-note">Clique em “Adicionar parcela” e informe data + valor. (Opcional)</div>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                  <button class="btn" id="addParcelaBtn" type="button">➕ Adicionar parcela</button>
+                  <button class="btn danger" id="clearParcelasBtn" type="button">Limpar parcelas</button>
+                </div>
+
+                <div class="table-wrap" style="margin-top:10px; max-height:220px;">
+                  <table style="min-width:640px;">
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbParcelas"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="hint-red" id="requiredHint" style="color: rgba(255,170,170,.92); font-size: 12px; margin-top: 6px; display:none;">
+              Preencha todos os campos obrigatórios da venda para salvar como “Vendido”.
+            </div>
+          </div>
+        </div>
+
+        <div id="secCalc" class="card" style="margin-top:12px;">
+          <div class="head"><h3>Prévia de cálculos</h3><span class="muted2">Atualiza conforme você digita</span></div>
+          <div class="body" id="calcPreview"></div>
+        </div>
+      </div>
+
+      <div class="mfoot">
+        <button class="btn" id="cancelBtn" type="button">Cancelar</button>
+        <button class="btn danger" id="deleteBtn" type="button" style="display:none;">Excluir</button>
+        <button class="btn primary" id="saveBtn" type="button">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FOTOS (3 por produto) - mantém para abrir ao clicar no produto -->
+  <div class="modal-backdrop" id="photoBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="photoTitle">
+      <div class="mhead">
+        <h3 id="photoTitle">Fotos do produto</h3>
+        <button class="btn small" id="closePhoto" type="button" title="Fechar">X</button>
+      </div>
+      <div class="mbody">
+        <div class="muted2" id="photoMetaLine">—</div>
+
+        <div style="margin-top:12px;" class="photo-grid" id="photoGrid"></div>
+
+        <div class="photo-actions">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <label class="btn primary">
+              Anexar na foto selecionada
+              <input id="photoFile" type="file" accept="image/*" style="display:none;">
+            </label>
+            <button class="btn danger" id="removeSelectedPhotoBtn" type="button">Remover foto selecionada</button>
+          </div>
+          <div class="muted2" style="font-size:12px;">Dica: clique em um slot (1/2/3) para selecionar.</div>
+        </div>
+
+        <div class="muted2" style="margin-top:10px; font-size:12px;">
+          As fotos ficam salvas no seu navegador (junto do item). Ao exportar, elas vão no JSON também.
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="btn" id="closePhoto2" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===========================
+    // STORAGE (v6) + LIXEIRA
+    // ===========================
+    const STORAGE_KEY = "renova_lotes_html_v6";
+    const TRASH_KEY   = "renova_lotes_html_v6_trash";
+    const CONFIG_KEY  = "renova_lotes_html_v6_config";
+
+    const DEFAULT_TOTAL_LOTE_1 = 6050;
+
+    // Config (editável em Configurações)
+    const DEFAULT_CONFIG = {
+      canaisAnuncio: ["Instagram","Facebook","Google Ads","WhatsApp","TikTok","Marketplace","Indicação","Orgânico","Outro"],
+      canaisVenda:   ["Pix","Cartão","Dinheiro","Marketplace","Indicação","Orgânico","Outro"],
+      entregas:      ["Retirada","Motoboy","Correios","Transportadora","Entrega própria","Digital","Outro","Uber"],
+      tiposProduto:  ["Beleza","Vestuário","Tecnologia","Casa","Esportes","Acessórios","Outros"],
+      locaisEstoque: ["Fábio","Tom"],
+      vendedores:    ["Fábio","Karla","Nayane","Toom"]
+    };
+
+    // Lotes (compra)
+    const DEFAULT_LOTS = [
+      { id: "lote-1", nome: "Lote 1", total: DEFAULT_TOTAL_LOTE_1, criadoEm: new Date().toISOString() }
+    ];
+
+    // Seed minimal (sem seus dados enormes — você pode importar seu JSON)
+    const SEED = [];
+
+    const $ = (id) => document.getElementById(id);
+    function uid(){ return (Math.random().toString(16).slice(2) + Date.now().toString(16)); }
+    function safe(n){ return Number.isFinite(n) ? n : 0; }
+
+    function parseMoney(v){
+      if (v === null || v === undefined) return 0;
+      if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+      const s = String(v).replace(/R\$\s?/g,"").replace(/\./g,"").replace(/,/g,".").trim();
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function brl(n){
+      const num = Number.isFinite(n) ? n : 0;
+      return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(num);
+    }
+    function pct(p){
+      const num = Number.isFinite(p) ? p : 0;
+      return new Intl.NumberFormat("pt-BR",{style:"percent",maximumFractionDigits:1}).format(num);
+    }
+    function daysBetweenISO(a,b){
+      if(!a || !b) return null;
+      const da = new Date(a + "T00:00:00");
+      const db = new Date(b + "T00:00:00");
+      const diff = db.getTime() - da.getTime();
+      if(!Number.isFinite(diff)) return null;
+      return Math.round(diff / (1000*60*60*24));
+    }
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+    function dateValue(iso){
+      if(!iso) return null;
+      const d = new Date(iso + "T00:00:00");
+      return Number.isFinite(d.getTime()) ? d.getTime() : null;
+    }
+    function nowISO(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    function isoNow(){ return new Date().toISOString(); }
+
+    // ============================
+    // 🔥 CADASTRO PRO: navegação rápida + atalho salvar + Enter avança
+    // ============================
+    function scrollToSection(id){
+      const el = $(id);
+      if(!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    function isModalOpen(){
+      return $("backdrop").style.display === "grid";
+    }
+    function focusFirstField(){
+      setTimeout(()=>{ $("fProduto")?.focus(); }, 40);
+    }
+
+    // ============================
+    // ✅ CÓDIGO AUTO + NUMÉRICO
+    // ============================
+    function extractCodigoNumber(codigo){
+      const raw = String(codigo ?? "").trim();
+      const m = raw.match(/^\d+/);
+      if(!m) return null;
+      const n = Number(m[0]);
+      return Number.isFinite(n) ? n : null;
+    }
+    function getNextCodigo(){
+      const nums = items.map(i => extractCodigoNumber(i.codigo)).filter(n => n !== null);
+      const max = nums.length ? Math.max(...nums) : 0;
+      return String(max + 1);
+    }
+    function setNextCodigoIntoField(){
+      $("fCodigo").value = getNextCodigo();
+    }
+
+    // ============================
+    // ESTADO
+    // ============================
+    let items = [];
+    let trash = [];
+    let config = structuredClone(DEFAULT_CONFIG);
+    let lots = structuredClone(DEFAULT_LOTS);
+
+    let editingId = null;
+
+    let photoEditingId = null;
+    let activePhotoSlot = 0;
+
+    // Inline photo editor (dentro do modal principal)
+    let inlineActiveSlot = 0;
+
+    // Parcelas (pagamento)
+    let parcelasDraft = [];
+
+    // Ordenação
+    const sortState = {
+      estoque: { key: "codigo", dir: "asc", type: "number" },
+      vendas:  { key: "dataVendaISO", dir: "desc", type: "date" }
+    };
+
+    // ============================
+    // NORMALIZAÇÃO DO ITEM
+    // ============================
+    function normalizeArray(x){
+      if(Array.isArray(x)) return x.filter(Boolean).map(s=>String(s));
+      if(typeof x === "string" && x.trim()) return [x.trim()];
+      return [];
+    }
+
+    function normalizePagamento(p){
+      const base = p && typeof p === "object" ? p : {};
+      const tipo = (base.tipo === "parcelado") ? "parcelado" : "avista";
+      const forma = ["pix","dinheiro","cartao"].includes(base.forma) ? base.forma : "pix";
+      const obs = String(base.obs ?? "");
+      const recebidoAvistaEm = String(base.recebidoAvistaEm ?? "");
+      const recebimentoUnicoEm = String(base.recebimentoUnicoEm ?? "");
+      const parcelas = Array.isArray(base.parcelas) ? base.parcelas.map(x=>({
+        data: String(x?.data ?? ""),
+        valor: safe(Number(x?.valor)),
+        recebidoEm: String(x?.recebidoEm ?? "")
+      })) : [];
+      return { tipo, forma, obs, parcelas, recebidoAvistaEm, recebimentoUnicoEm };
+    }
+
+    function normalizeItemShape(x){
+      const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+      while(photos.length < 3) photos.push("");
+
+      if(x.photoDataUrl && !photos.some(Boolean)){
+        photos[0] = String(x.photoDataUrl || "");
+      }
+
+      const loteId = String(x.loteId ?? "lote-1") || "lote-1";
+
+      return {
+        id: x.id || uid(),
+        codigo: String(x.codigo ?? "").trim(),
+        nomeProduto: String(x.nomeProduto ?? "").trim(),
+        tipoProduto: String(x.tipoProduto ?? "").trim(),
+        localEstoque: String(x.localEstoque ?? ""),
+        loteId,
+
+        custoProduto: safe(Number(x.custoProduto)),
+        valorAnuncio: safe(Number(x.valorAnuncio)),
+
+        canaisAnuncio: normalizeArray(x.canaisAnuncio ?? x.canalAnuncio),
+        dataAnuncioISO: String(x.dataAnuncioISO ?? ""),
+
+        vendido: Boolean(x.vendido),
+        valorVenda: safe(Number(x.valorVenda)),
+        canaisVenda: normalizeArray(x.canaisVenda ?? x.canalVenda),
+        dataVendaISO: String(x.dataVendaISO ?? ""),
+        quemVendeu: String(x.quemVendeu ?? ""),
+        formaEntrega: String(x.formaEntrega ?? ""),
+        custoEntrega: safe(Number(x.custoEntrega)),
+
+        pagamento: normalizePagamento(x.pagamento),
+
+        observacoes: String(x.observacoes ?? ""),
+        photos
+      };
+    }
+
+    // ============================
+    // LOAD/SAVE
+    // ============================
+    function loadConfig(){
+      try{
+        const raw = localStorage.getItem(CONFIG_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(parsed && typeof parsed === "object"){
+            config = {
+              canaisAnuncio: normalizeArray(parsed.canaisAnuncio).length ? normalizeArray(parsed.canaisAnuncio) : DEFAULT_CONFIG.canaisAnuncio,
+              canaisVenda:   normalizeArray(parsed.canaisVenda).length ? normalizeArray(parsed.canaisVenda) : DEFAULT_CONFIG.canaisVenda,
+              entregas:      normalizeArray(parsed.entregas).length ? normalizeArray(parsed.entregas) : DEFAULT_CONFIG.entregas,
+              tiposProduto:  normalizeArray(parsed.tiposProduto).length ? normalizeArray(parsed.tiposProduto) : DEFAULT_CONFIG.tiposProduto,
+              locaisEstoque: normalizeArray(parsed.locaisEstoque).length ? normalizeArray(parsed.locaisEstoque) : DEFAULT_CONFIG.locaisEstoque,
+              vendedores:    normalizeArray(parsed.vendedores).length ? normalizeArray(parsed.vendedores) : DEFAULT_CONFIG.vendedores
+            };
+            lots = Array.isArray(parsed.lots) && parsed.lots.length ? parsed.lots.map(l=>({
+              id: String(l.id||uid()),
+              nome: String(l.nome||"Lote"),
+              total: safe(Number(l.total)),
+              criadoEm: String(l.criadoEm||isoNow())
+            })) : structuredClone(DEFAULT_LOTS);
+          }
+        }
+      }catch(e){}
+    }
+
+    function saveConfig(){
+      localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...config, lots }));
+    }
+
+    function loadTrash(){
+      try{
+        const raw = localStorage.getItem(TRASH_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(Array.isArray(parsed)){
+            trash = parsed.map(t=>({
+              deletedAt: String(t.deletedAt||isoNow()),
+              item: normalizeItemShape(t.item||{})
+            }));
+          }
+        }
+      }catch(e){}
+    }
+    function saveTrash(){
+      localStorage.setItem(TRASH_KEY, JSON.stringify(trash));
+    }
+
+    function purgeTrash(){
+      const now = Date.now();
+      const THIRTY_DAYS = 30*24*60*60*1000;
+      const before = trash.length;
+      trash = trash.filter(t=>{
+        const ts = new Date(t.deletedAt).getTime();
+        return Number.isFinite(ts) && (now - ts) <= THIRTY_DAYS;
+      });
+      if(trash.length !== before) saveTrash();
+    }
+
+    function loadItems(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const parsed = JSON.parse(raw);
+          if(Array.isArray(parsed)){ items = parsed.map(normalizeItemShape); return; }
+        }
+      }catch(e){}
+      items = SEED.map(normalizeItemShape);
+    }
+    function saveItems(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+
+    // ============================
+    // LOTES + RATEIO DE CUSTO
+    // ============================
+    function getLotById(id){
+      return lots.find(l=>l.id===id) || lots[0] || { id:"lote-1", nome:"Lote 1", total: DEFAULT_TOTAL_LOTE_1 };
+    }
+
+    function recalcLotCosts(loteId){
+      const lot = getLotById(loteId);
+      const inLot = items.filter(i=>i.loteId === loteId);
+      const qty = inLot.length;
+      const unit = qty ? (safe(lot.total) / qty) : 0;
+
+      items = items.map(i=>{
+        if(i.loteId !== loteId) return i;
+        return { ...i, custoProduto: unit };
+      });
+      saveItems();
+    }
+
+    // ============================
+    // TABS
+    // ============================
+    function setTab(tab){
+      document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      ["visao","estoque","vendas","financeiro","graficos","local","lixeira","config"].forEach(id => $(id).classList.toggle("hidden", id!==tab));
+      render();
+    }
+
+    function paymentDateLabel(iso){
+      if(!iso) return "—";
+      const d = new Date(iso + "T00:00:00");
+      if(!Number.isFinite(d.getTime())) return "—";
+      return d.toLocaleDateString("pt-BR");
+    }
+
+    function buildPaymentRows(){
+      const rows = [];
+      items.filter(i=>i.vendido && safe(i.valorVenda) > 0).forEach(it=>{
+        const pay = normalizePagamento(it.pagamento);
+        if(pay.tipo === "parcelado"){
+          if(pay.parcelas.length){
+            pay.parcelas.forEach((p, idx)=>{
+              rows.push({
+                itemId: it.id,
+                key: `parcela:${idx}`,
+                kind: "parcela",
+                parcelaIdx: idx,
+                parcelaLabel: `${idx+1}/${pay.parcelas.length}`,
+                status: p.recebidoEm ? "recebido" : "pendente",
+                dueISO: p.data || it.dataVendaISO || "",
+                receivedISO: p.recebidoEm || "",
+                valor: safe(p.valor),
+                forma: pay.forma,
+                codigo: it.codigo,
+                nomeProduto: it.nomeProduto,
+                quemVendeu: it.quemVendeu || "—"
+              });
+            });
+          } else {
+            rows.push({
+              itemId: it.id,
+              key: "unico",
+              kind: "unico",
+              parcelaIdx: 0,
+              parcelaLabel: "Única",
+              status: pay.recebimentoUnicoEm ? "recebido" : "pendente",
+              dueISO: it.dataVendaISO || "",
+              receivedISO: pay.recebimentoUnicoEm || "",
+              valor: safe(it.valorVenda),
+              forma: pay.forma,
+              codigo: it.codigo,
+              nomeProduto: it.nomeProduto,
+              quemVendeu: it.quemVendeu || "—"
+            });
+          }
+        } else {
+          const receivedISO = pay.recebidoAvistaEm || it.dataVendaISO || "";
+          rows.push({
+            itemId: it.id,
+            key: "avista",
+            kind: "avista",
+            parcelaIdx: 0,
+            parcelaLabel: "À vista",
+            status: receivedISO ? "recebido" : "pendente",
+            dueISO: it.dataVendaISO || "",
+            receivedISO,
+            valor: safe(it.valorVenda),
+            forma: pay.forma,
+            codigo: it.codigo,
+            nomeProduto: it.nomeProduto,
+            quemVendeu: it.quemVendeu || "—"
+          });
+        }
+      });
+
+      const today = nowISO();
+      rows.forEach(r=>{
+        r.isOverdue = r.status === "pendente" && !!r.dueISO && r.dueISO < today;
+      });
+
+      rows.sort((a,b)=>{
+        if(a.status !== b.status) return a.status === "pendente" ? -1 : 1;
+        const da = a.dueISO || "9999-12-31";
+        const db = b.dueISO || "9999-12-31";
+        return da.localeCompare(db);
+      });
+
+      return rows;
+    }
+
+    function computeFinanceiro(rows){
+      const recebido = rows.filter(r=>r.status==="recebido").reduce((acc,r)=>acc + safe(r.valor),0);
+      const aReceber = rows.filter(r=>r.status!=="recebido").reduce((acc,r)=>acc + safe(r.valor),0);
+      const pendentes = rows.filter(r=>r.status!=="recebido");
+      const vencidas = pendentes.filter(r=>r.isOverdue);
+      const proximas = pendentes.filter(r=>r.dueISO && !r.isOverdue).sort((a,b)=>a.dueISO.localeCompare(b.dueISO));
+      return {
+        recebido,
+        aReceber,
+        caixa: recebido,
+        qtdParcelas: rows.length,
+        qtdPendentes: pendentes.length,
+        qtdVencidas: vencidas.length,
+        proximoRecebimento: proximas[0] || null
+      };
+    }
+
+    function renderFinanceiro(){
+      const rows = buildPaymentRows();
+      const m = computeFinanceiro(rows);
+
+      const grid = $("kpiFinanceiro");
+      grid.innerHTML = "";
+      [
+        { label:"Já recebi", value:brl(m.recebido), hint:"Total confirmado" },
+        { label:"Tenho a receber", value:brl(m.aReceber), hint:"Parcelas pendentes" },
+        { label:"Em caixa", value:brl(m.caixa), hint:"Baseado nos recebimentos" },
+        { label:"Parcelas", value:String(m.qtdParcelas), hint:`${m.qtdPendentes} pendentes • ${m.qtdVencidas} vencidas` }
+      ].forEach(k=>{
+        const div = document.createElement("div");
+        div.className = "kpi";
+        div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+        grid.appendChild(div);
+      });
+
+      $("financeSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="chip">💳 Pendentes: <b>${m.qtdPendentes}</b></span>
+          <span class="chip">🚨 Vencidas: <b>${m.qtdVencidas}</b></span>
+          <span class="chip">📅 Próximo: <b>${m.proximoRecebimento ? paymentDateLabel(m.proximoRecebimento.dueISO) : "—"}</b></span>
+        </div>
+      `;
+
+      const tb = $("tbFinanceiro");
+      tb.innerHTML = "";
+      if(!rows.length){
+        tb.innerHTML = `<tr><td colspan="10" class="muted">Nenhum recebimento encontrado. Marque itens como vendidos para gerar cobranças.</td></tr>`;
+        return;
+      }
+
+      rows.forEach(r=>{
+        const tr = document.createElement("tr");
+        const statusChip = r.status === "recebido"
+          ? `<span class="chip" style="background:rgba(90,255,170,.14); border-color:rgba(90,255,170,.35)">✅ Recebido</span>`
+          : r.isOverdue
+            ? `<span class="chip" style="background:rgba(255,90,90,.14); border-color:rgba(255,90,90,.35)">⚠️ Vencido</span>`
+            : `<span class="chip">⏳ Pendente</span>`;
+        tr.innerHTML = `
+          <td>${statusChip}</td>
+          <td>${paymentDateLabel(r.dueISO)}</td>
+          <td>${paymentDateLabel(r.receivedISO)}</td>
+          <td><b>${escapeHtml(r.codigo || "—")}</b></td>
+          <td>${escapeHtml(r.nomeProduto || "—")}</td>
+          <td>${escapeHtml(r.parcelaLabel)}</td>
+          <td>${brl(safe(r.valor))}</td>
+          <td>${escapeHtml(r.forma || "—")}</td>
+          <td>${escapeHtml(r.quemVendeu || "—")}</td>
+          <td>
+            <button class="btn small ${r.status === "recebido" ? "warn" : "ok"}" type="button" onclick="toggleRecebimento('${r.itemId}','${r.kind}',${r.parcelaIdx})">
+              ${r.status === "recebido" ? "↩️ Desfazer" : "💰 Receber"}
+            </button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+    }
+
+    // ============================
+    // FILTRO (SEM "tudo/estoque/vendas")
+    // ============================
+    function getFiltered(){
+      const q = ($("q").value || "").trim().toLowerCase();
+      let base = items;
+
+      if(!q) return base;
+
+      return base.filter(i=>{
+        const hay = [
+          i.codigo,
+          i.nomeProduto,
+          i.tipoProduto,
+          i.localEstoque,
+          (i.canaisAnuncio||[]).join(" "),
+          (i.canaisVenda||[]).join(" "),
+          i.quemVendeu,
+          i.formaEntrega,
+          i.loteId,
+          i.observacoes
+        ].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    // ============================
+    // COMPUTE KPIs
+    // ============================
+    function compute(){
+      const sold = items.filter(i => i.vendido && safe(i.valorVenda) > 0);
+      const totalVendas = sold.length;
+
+      const faturamento = sold.reduce((a,i)=>a+safe(i.valorVenda),0);
+      const custoProdutos = sold.reduce((a,i)=>a+safe(i.custoProduto),0);
+      const custoEntregas = sold.reduce((a,i)=>a+safe(i.custoEntrega),0);
+      const lucroFinal = sold.reduce((a,i)=>a + safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega),0);
+
+      const ticketMedio = totalVendas ? faturamento/totalVendas : 0;
+      const lucroMedio = totalVendas ? lucroFinal/totalVendas : 0;
+
+      const margemLucro = faturamento ? lucroFinal/faturamento : 0;
+      const entregaPct = faturamento ? custoEntregas/faturamento : 0;
+      const roiProdutos = custoProdutos ? lucroFinal/custoProdutos : 0;
+
+      const tempos = sold.map(i => daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO)).filter(d => typeof d==="number");
+      const tempoMedio = tempos.length ? (tempos.reduce((a,b)=>a+b,0)/tempos.length) : null;
+
+      const totalItens = items.length;
+      const totalEstoque = items.filter(i => !i.vendido).length;
+      const taxaVenda = totalItens ? totalVendas/totalItens : 0;
+
+      const valorAnunciadoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.valorAnuncio),0);
+      const custoEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+safe(i.custoProduto),0);
+      const potencialLucroEstoque = items.filter(i=>!i.vendido).reduce((a,i)=>a+(safe(i.valorAnuncio)-safe(i.custoProduto)),0);
+
+      return {
+        totalVendas,faturamento,custoProdutos,custoEntregas,lucroFinal,
+        ticketMedio,lucroMedio,margemLucro,entregaPct,roiProdutos,
+        tempoMedio,totalItens,totalEstoque,taxaVenda,
+        valorAnunciadoEstoque,custoEstoque,potencialLucroEstoque
+      };
+    }
+
+    function renderKPIs(m){
+      const groups = {
+        kpiVendas: [
+          { label:"Faturamento", value:brl(m.faturamento), hint:"Soma do valor de venda" },
+          { label:"Lucro final", value:brl(m.lucroFinal), hint:"Venda − custo − entrega" },
+          { label:"Margem", value:pct(m.margemLucro), hint:"Lucro / faturamento" },
+          { label:"Ticket médio", value:brl(m.ticketMedio), hint:"Faturamento / vendas" },
+          { label:"Lucro médio", value:brl(m.lucroMedio), hint:"Lucro / vendas" },
+        ],
+        kpiCustos: [
+          { label:"Custo produtos (vendidos)", value:brl(m.custoProdutos), hint:"Custo rateado (vendidos)" },
+          { label:"Custo entregas", value:brl(m.custoEntregas), hint:"Soma entrega (vendidos)" },
+          { label:"% entrega", value:pct(m.entregaPct), hint:"Entrega / faturamento" },
+          { label:"ROI", value:pct(m.roiProdutos), hint:"Lucro / custo produtos" },
+        ],
+        kpiEstoque: [
+          { label:"Em estoque", value:String(m.totalEstoque), hint:"Itens não vendidos" },
+          { label:"Custo do estoque", value:brl(m.custoEstoque), hint:"Soma do custo (estoque)" },
+          { label:"Valor anunciado (estoque)", value:brl(m.valorAnunciadoEstoque), hint:"Soma do anúncio (estoque)" },
+          { label:"Potencial lucro (estoque)", value:brl(m.potencialLucroEstoque), hint:"(Anúncio − custo) no estoque" },
+        ],
+        kpiOperacao: [
+          { label:"Total de vendas", value:String(m.totalVendas), hint:"Itens vendidos com valor" },
+          { label:"Taxa de venda", value:pct(m.taxaVenda), hint:"Vendas / itens" },
+          { label:"Tempo médio", value:(m.tempoMedio===null?"—":Math.round(m.tempoMedio)+" d"), hint:"Anúncio → venda" },
+          { label:"Itens cadastrados", value:String(m.totalItens), hint:"Total na base" },
+        ],
+      };
+
+      Object.entries(groups).forEach(([gridId, list])=>{
+        const grid = $(gridId);
+        grid.innerHTML = "";
+        list.forEach(k=>{
+          const div = document.createElement("div");
+          div.className = "kpi";
+          div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+          grid.appendChild(div);
+        });
+      });
+    }
+
+    function renderQuick(m){
+      const estoque = items.filter(i=>!i.vendido).length;
+      $("quickSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <span class="chip">🧾 Vendas: <b>${m.totalVendas}</b></span>
+          <span class="chip">💰 Faturamento: <b>${brl(m.faturamento)}</b></span>
+          <span class="chip">✅ Lucro: <b>${brl(m.lucroFinal)}</b></span>
+          <span class="chip">📦 Estoque: <b>${estoque}</b></span>
+          <span class="chip">⏱ Tempo médio: <b>${m.tempoMedio===null?"—":Math.round(m.tempoMedio)+"d"}</b></span>
+        </div>
+      `;
+    }
+
+    // ============================
+    // ORDENAÇÃO
+    // ============================
+    function normText(v){ return String(v ?? "").toLowerCase(); }
+
+    function sortKeyExtra(item, key){
+      if(key === "lucroProj") return safe(item.valorAnuncio) - safe(item.custoProduto);
+      if(key === "lucroFinal") return safe(item.valorVenda) - safe(item.custoProduto) - safe(item.custoEntrega);
+      if(key === "tempoVenda") return daysBetweenISO(item.dataAnuncioISO, item.dataVendaISO) ?? -1;
+      if(key === "canaisAnuncio") return (item.canaisAnuncio||[]).join(", ");
+      if(key === "canaisVenda") return (item.canaisVenda||[]).join(", ");
+      if(key === "pagamentoResumo"){
+        const p = item.pagamento || {};
+        const tipo = p.tipo==="parcelado" ? "parcelado" : "avista";
+        const forma = p.forma || "";
+        return `${tipo}-${forma}`;
+      }
+      return null;
+    }
+
+    function getSortValue(item, key, type){
+      if(key === "codigo"){
+        const n = extractCodigoNumber(item.codigo);
+        return n === null ? 1e15 : n;
+      }
+      const extra = sortKeyExtra(item, key);
+      if(extra !== null) return type==="number" ? safe(Number(extra)) : normText(extra);
+
+      const v = item[key];
+      if(type === "number") return safe(Number(v));
+      if(type === "date") return dateValue(v) ?? -1;
+      return normText(v);
+    }
+
+    function sortList(list, tableName){
+      const st = sortState[tableName];
+      const dirMul = st.dir === "asc" ? 1 : -1;
+      return [...list].sort((a,b)=>{
+        const va = getSortValue(a, st.key, st.type);
+        const vb = getSortValue(b, st.key, st.type);
+        if(st.type === "text"){
+          if(va < vb) return -1*dirMul;
+          if(va > vb) return  1*dirMul;
+          return 0;
+        }
+        return (va - vb) * dirMul;
+      });
+    }
+
+    function setSortIndicator(tableName){
+      document.querySelectorAll(`[data-ind^="${tableName}:"]`).forEach(el => el.textContent = "↕");
+      const st = sortState[tableName];
+      const ind = document.querySelector(`[data-ind="${tableName}:${st.key}"]`);
+      if(ind) ind.textContent = st.dir === "asc" ? "▲" : "▼";
+    }
+
+    function photoCount(it){
+      const arr = Array.isArray(it.photos) ? it.photos : ["","",""];
+      return arr.filter(Boolean).length;
+    }
+
+    // ============================
+    // DUPLICAR
+    // ============================
+    function nextCopyCode(baseCode){
+      const b = String(baseCode || "").trim();
+      if(!b) return "COPIA-1";
+      const prefix = b + "-";
+      const existing = items
+        .map(x=>String(x.codigo||""))
+        .filter(c=>c.startsWith(prefix))
+        .map(c=>{
+          const tail = c.slice(prefix.length);
+          const n = Number(tail);
+          return Number.isFinite(n) ? n : null;
+        })
+        .filter(n=>n!==null);
+      const next = (existing.length ? Math.max(...existing) : 0) + 1;
+      return `${b}-${next}`;
+    }
+
+    window.duplicateItem = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+
+      const copy = JSON.parse(JSON.stringify(it));
+      copy.id = uid();
+      copy.codigo = nextCopyCode(it.codigo);
+
+      copy.vendido = false;
+      copy.valorVenda = 0;
+      copy.canaisVenda = [];
+      copy.dataVendaISO = "";
+      copy.quemVendeu = "";
+      copy.formaEntrega = "";
+      copy.custoEntrega = 0;
+      copy.pagamento = { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"" };
+
+      items.unshift(normalizeItemShape(copy));
+      saveItems();
+      recalcLotCosts(copy.loteId);
+      render();
+      window.openEdit(copy.id);
+    }
+
+    // ============================
+    // TABELAS
+    // ============================
+    function pagamentoResumo(it){
+      const p = it.pagamento || {};
+      const tipo = p.tipo==="parcelado" ? "Parcelado" : "À vista";
+      const forma = p.forma ? (p.forma==="pix"?"Pix":p.forma==="dinheiro"?"Dinheiro":"Cartão") : "—";
+      const parc = Array.isArray(p.parcelas) ? p.parcelas.length : 0;
+      return p.tipo==="parcelado" ? `${tipo} (${parc}x) • ${forma}` : `${tipo} • ${forma}`;
+    }
+
+    function renderTables(filtered){
+      const estoqueBase = filtered.filter(i=>!i.vendido);
+      const vendasBase  = filtered.filter(i=>i.vendido);
+
+      const estoque = sortList(estoqueBase, "estoque");
+      const vendas  = sortList(vendasBase, "vendas");
+
+      setSortIndicator("estoque");
+      setSortIndicator("vendas");
+
+      const tbE = $("tbEstoque");
+      tbE.innerHTML = "";
+      if(!estoque.length){
+        tbE.innerHTML = `<tr><td colspan="11" class="muted">Nenhum item em estoque com a busca atual.</td></tr>`;
+      } else {
+        estoque.forEach(i=>{
+          const lucroProj = safe(i.valorAnuncio) - safe(i.custoProduto);
+          const pc = photoCount(i);
+          const lote = getLotById(i.loteId);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(i.codigo)}</b></td>
+            <td>
+              <button class="prod-link" type="button" onclick="openPhoto('${i.id}')">${escapeHtml(i.nomeProduto)}</button>
+              ${pc ? `<span class="muted2" style="margin-left:8px;">📷 ${pc}/3</span>` : ``}
+            </td>
+            <td>${escapeHtml(i.tipoProduto || "—")}</td>
+            <td>${escapeHtml(i.localEstoque || "—")}</td>
+            <td>${escapeHtml(lote?.nome || i.loteId)}</td>
+            <td>${escapeHtml((i.canaisAnuncio||[]).join(", ") || "—")}</td>
+            <td>${i.dataAnuncioISO || "—"}</td>
+            <td>${brl(safe(i.custoProduto))}</td>
+            <td>${brl(safe(i.valorAnuncio))}</td>
+            <td>${brl(lucroProj)}</td>
+            <td>
+              <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
+              <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
+              <button class="btn small ok" type="button" onclick="startSellFlow('${i.id}')">✅ Vender</button>
+              <button class="btn small danger" type="button" onclick="trashItem('${i.id}')">🗑 Excluir</button>
+            </td>
+          `;
+          tbE.appendChild(tr);
+        });
+      }
+
+      const tbV = $("tbVendas");
+      tbV.innerHTML = "";
+      if(!vendas.length){
+        tbV.innerHTML = `<tr><td colspan="13" class="muted">Nenhuma venda com a busca atual.</td></tr>`;
+      } else {
+        vendas.forEach(i=>{
+          const lucroFinal = safe(i.valorVenda) - safe(i.custoProduto) - safe(i.custoEntrega);
+          const tempo = daysBetweenISO(i.dataAnuncioISO, i.dataVendaISO);
+          const pc = photoCount(i);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><b>${escapeHtml(i.codigo)}</b></td>
+            <td>
+              <button class="prod-link" type="button" onclick="openPhoto('${i.id}')">${escapeHtml(i.nomeProduto)}</button>
+              ${pc ? `<span class="muted2" style="margin-left:8px;">📷 ${pc}/3</span>` : ``}
+            </td>
+            <td>${escapeHtml(i.tipoProduto || "—")}</td>
+            <td>${brl(safe(i.valorVenda))}</td>
+            <td>${brl(safe(i.custoProduto))}</td>
+            <td>${brl(safe(i.custoEntrega))}</td>
+            <td><b>${brl(lucroFinal)}</b></td>
+            <td>${escapeHtml((i.canaisVenda||[]).join(", ") || "—")}</td>
+            <td>${i.dataVendaISO || "—"}</td>
+            <td>${tempo===null ? "—" : tempo}</td>
+            <td>${escapeHtml(i.quemVendeu || "—")}</td>
+            <td>${escapeHtml(pagamentoResumo(i) || "—")}</td>
+            <td>
+              <button class="btn small" type="button" onclick="openEdit('${i.id}')">✏️ Editar</button>
+              <button class="btn small" type="button" onclick="markSold('${i.id}', false)">↩️ Voltar estoque</button>
+              <button class="btn small" type="button" onclick="duplicateItem('${i.id}')">🧬 Duplicar</button>
+              <button class="btn small danger" type="button" onclick="trashItem('${i.id}')">🗑 Excluir</button>
+            </td>
+          `;
+          tbV.appendChild(tr);
+        });
+      }
+    }
+
+    // ============================
+    // LIXEIRA
+    // ============================
+    window.trashItem = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+
+      if(!confirm("Tem certeza que deseja excluir este item? Ele irá para a Lixeira por 30 dias.")) return;
+
+      trash.unshift({ deletedAt: isoNow(), item: normalizeItemShape(it) });
+      saveTrash();
+
+      items = items.filter(x=>x.id!==id);
+      saveItems();
+
+      recalcLotCosts(it.loteId);
+
+      render();
+    }
+
+    window.restoreFromTrash = function(idx){
+      const row = trash[idx];
+      if(!row) return;
+
+      items.unshift(normalizeItemShape(row.item));
+      saveItems();
+
+      trash.splice(idx, 1);
+      saveTrash();
+
+      recalcLotCosts(row.item.loteId);
+
+      render();
+    }
+
+    window.deleteForever = function(idx){
+      const row = trash[idx];
+      if(!row) return;
+      if(!confirm("Excluir definitivamente? Esta ação não pode ser desfeita.")) return;
+      trash.splice(idx, 1);
+      saveTrash();
+      render();
+    }
+
+    function renderTrash(){
+      purgeTrash();
+      const tb = $("tbTrash");
+      tb.innerHTML = "";
+      if(!trash.length){
+        tb.innerHTML = `<tr><td colspan="8" class="muted">Lixeira vazia.</td></tr>`;
+        return;
+      }
+      trash.forEach((t, idx)=>{
+        const it = t.item;
+        const dt = new Date(t.deletedAt);
+        const nice = Number.isFinite(dt.getTime()) ? dt.toLocaleString("pt-BR") : t.deletedAt;
+        const lote = getLotById(it.loteId);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(nice)}</td>
+          <td><b>${escapeHtml(it.codigo)}</b></td>
+          <td>${escapeHtml(it.nomeProduto || "—")}</td>
+          <td>${escapeHtml(it.tipoProduto || "—")}</td>
+          <td>${escapeHtml(it.localEstoque || "—")}</td>
+          <td>${escapeHtml(lote?.nome || it.loteId)}</td>
+          <td>${it.vendido ? "Sim" : "Não"}</td>
+          <td>
+            <button class="btn small ok" type="button" onclick="restoreFromTrash(${idx})">♻ Restaurar</button>
+            <button class="btn small danger" type="button" onclick="deleteForever(${idx})">🗑 Definitivo</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+    }
+
+    // ============================
+    // POR LOCAL
+    // ============================
+    function makeLocalKPIs(local){
+      const stock = items.filter(i=>!i.vendido && i.localEstoque===local);
+      const sold = items.filter(i=>i.vendido && i.localEstoque===local && safe(i.valorVenda)>0);
+
+      const fatur = sold.reduce((a,i)=>a+safe(i.valorVenda),0);
+      const lucro = sold.reduce((a,i)=>a + safe(i.valorVenda)-safe(i.custoProduto)-safe(i.custoEntrega),0);
+      const custoEst = stock.reduce((a,i)=>a+safe(i.custoProduto),0);
+      const valEst = stock.reduce((a,i)=>a+safe(i.valorAnuncio),0);
+
+      return [
+        { label:"Estoque", value:String(stock.length), hint:"Itens não vendidos" },
+        { label:"Custo estoque", value:brl(custoEst), hint:"Soma custo (estoque)" },
+        { label:"Valor anunciado", value:brl(valEst), hint:"Soma anúncio (estoque)" },
+        { label:"Vendas", value:String(sold.length), hint:"Itens vendidos" },
+        { label:"Faturamento", value:brl(fatur), hint:"Soma vendas" },
+        { label:"Lucro", value:brl(lucro), hint:"Venda − custo − entrega" },
+      ];
+    }
+
+    function renderLocal(){
+      const locals = config.locaisEstoque || ["Fábio","Tom"];
+      const fab = locals[0] || "Fábio";
+      const tom = locals[1] || "Tom";
+
+      const k1 = $("kpiLocalFabio");
+      const k2 = $("kpiLocalTom");
+      k1.innerHTML = "";
+      k2.innerHTML = "";
+
+      makeLocalKPIs(fab).forEach(k=>{
+        const div = document.createElement("div");
+        div.className = "kpi";
+        div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+        k1.appendChild(div);
+      });
+
+      makeLocalKPIs(tom).forEach(k=>{
+        const div = document.createElement("div");
+        div.className = "kpi";
+        div.innerHTML = `<div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div>`;
+        k2.appendChild(div);
+      });
+
+      const totalStock = items.filter(i=>!i.vendido).length;
+      const byLocal = locals.map(l=>{
+        const c = items.filter(i=>!i.vendido && i.localEstoque===l).length;
+        return { l, c, pct: totalStock ? (c/totalStock) : 0 };
+      });
+
+      $("localSummary").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          ${byLocal.map(x=>`<span class="chip">📍 ${escapeHtml(x.l)}: <b>${x.c}</b> (${pct(x.pct)})</span>`).join("")}
+        </div>
+      `;
+    }
+
+    // ============================
+    // MODAL (PRODUTO/VENDA)
+    // ============================
+    function openModal(title){
+      $("modalTitle").textContent = title;
+
+      // remove compact por padrão (ativamos só no "Novo item")
+      const modalEl = $("backdrop").querySelector(".modal");
+      modalEl.classList.remove("compact");
+
+      $("backdrop").style.display = "grid";
+    }
+    function closeModal(){
+      $("backdrop").style.display = "none";
+      editingId = null;
+      $("deleteBtn").style.display = "none";
+      $("requiredHint").style.display = "none";
+      parcelasDraft = [];
+      renderParcelasTable();
+    }
+
+    function clearSaleFields(){
+      $("fVenda").value = "";
+      $("fDataVenda").value = "";
+      $("fVendedor").value = "";
+      $("fEntrega").value = "";
+      $("fCustoEntrega").value = "";
+      setMultiSelected("venda", []);
+      $("fPagamentoTipo").value = "avista";
+      $("fPagamentoForma").value = "pix";
+      $("fPagamentoObs").value = "";
+      parcelasDraft = [];
+      renderParcelasTable();
+      toggleParcelasBlock();
+    }
+
+    function toggleSalesBlock(show){
+      $("salesBlock").style.display = show ? "block" : "none";
+      ["fVenda","fDataVenda","fVendedor","fEntrega","fCustoEntrega","fPagamentoTipo","fPagamentoForma","fPagamentoObs"].forEach(id=>{
+        $(id).disabled = !show;
+      });
+      $("fCanaisVenda").style.pointerEvents = show ? "auto" : "none";
+      $("fCanaisVenda").style.opacity = show ? "1" : "0.6";
+      toggleParcelasBlock();
+    }
+
+    function toggleParcelasBlock(){
+      const show = $("fVendido").value === "sim" && $("fPagamentoTipo").value === "parcelado";
+      $("parcelasBlock").style.display = show ? "block" : "none";
+    }
+
+    function resetForm(){
+      $("fCodigo").value = "";
+      $("fProduto").value = "";
+      $("fTipoProduto").value = "";
+      $("fLocalEstoque").value = config.locaisEstoque?.[0] || "Fábio";
+      $("fLote").value = lots[0]?.id || "lote-1";
+
+      $("fCusto").value = brl(0);
+      $("fAnuncio").value = "";
+
+      setMultiSelected("anuncio", []);
+      $("fDataAnuncio").value = "";
+
+      $("fVendido").value = "nao";
+      $("fObs").value = "";
+
+      inlineActiveSlot = 0;
+      renderInlinePhotoGrid({ photos:["","",""], nomeProduto:"", codigo:"", localEstoque:"" });
+
+      clearSaleFields();
+      toggleSalesBlock(false);
+      updateCalcPreview();
+    }
+
+    function openCreate(){
+      editingId = null;
+      $("deleteBtn").style.display = "none";
+      resetForm();
+
+      $("fCodigo").disabled = false;
+      $("nextCodeBtn").disabled = false;
+      setNextCodigoIntoField();
+
+      // custo automático do lote selecionado (considerando +1 item novo)
+      syncAutoCostPreviewForSelectedLot(true);
+
+      // ✅ modo compacto só no NOVO ITEM
+      const modalEl = $("backdrop").querySelector(".modal");
+      modalEl.classList.add("compact");
+
+      openModal("Novo item");
+      focusFirstField();
+      scrollToSection("secProduto");
+    }
+
+    window.openEdit = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      editingId = id;
+
+      // ✅ editar = modal normal
+      const modalEl = $("backdrop").querySelector(".modal");
+      modalEl.classList.remove("compact");
+
+      $("deleteBtn").style.display = "inline-flex";
+
+      $("fCodigo").disabled = true;
+      $("nextCodeBtn").disabled = true;
+
+      $("fCodigo").value = it.codigo || "";
+      $("fProduto").value = it.nomeProduto || "";
+      $("fTipoProduto").value = it.tipoProduto || (config.tiposProduto?.[0] || "");
+      $("fLocalEstoque").value = it.localEstoque || (config.locaisEstoque?.[0] || "Fábio");
+      $("fLote").value = it.loteId || (lots[0]?.id || "lote-1");
+
+      $("fCusto").value = brl(safe(it.custoProduto));
+      $("fAnuncio").value = String(safe(it.valorAnuncio)).replace(".",",");
+
+      setMultiSelected("anuncio", it.canaisAnuncio || []);
+      $("fDataAnuncio").value = it.dataAnuncioISO || "";
+      $("fObs").value = it.observacoes || "";
+
+      inlineActiveSlot = 0;
+      renderInlinePhotoGrid(it);
+
+      const sold = !!it.vendido;
+      $("fVendido").value = sold ? "sim" : "nao";
+      toggleSalesBlock(sold);
+
+      if(sold){
+        $("fVenda").value = it.valorVenda ? String(safe(it.valorVenda)).replace(".",",") : "";
+        $("fDataVenda").value = it.dataVendaISO || "";
+        $("fVendedor").value = it.quemVendeu || "";
+        $("fEntrega").value = it.formaEntrega || "";
+        $("fCustoEntrega").value = String(safe(it.custoEntrega)).replace(".",",");
+
+        setMultiSelected("venda", it.canaisVenda || []);
+
+        $("fPagamentoTipo").value = it.pagamento?.tipo || "avista";
+        $("fPagamentoForma").value = it.pagamento?.forma || "pix";
+        $("fPagamentoObs").value = it.pagamento?.obs || "";
+        parcelasDraft = Array.isArray(it.pagamento?.parcelas) ? it.pagamento.parcelas.map(p=>({ data:p.data, valor:safe(p.valor), recebidoEm: String(p.recebidoEm||"") })) : [];
+        renderParcelasTable();
+        toggleParcelasBlock();
+      } else {
+        clearSaleFields();
+      }
+
+      $("requiredHint").style.display = "none";
+      updateCalcPreview();
+      openModal("Editar item");
+      scrollToSection("secProduto");
+      setTimeout(()=>$("fProduto").focus(), 50);
+    }
+
+    function readForm(){
+      const anuncio = parseMoney($("fAnuncio").value);
+      const vendido = $("fVendido").value === "sim";
+
+      const venda = parseMoney($("fVenda").value);
+      const custoEntrega = parseMoney($("fCustoEntrega").value);
+
+      const itemAtual = editingId ? items.find(x=>x.id===editingId) : null;
+
+      const loteId = ($("fLote").value || (lots[0]?.id || "lote-1")).trim();
+      const custoAuto = computeAutoCostForLot(loteId, editingId ? 0 : 1);
+
+      const pagAtual = normalizePagamento(itemAtual?.pagamento);
+      const pagamento = vendido ? {
+        tipo: $("fPagamentoTipo").value === "parcelado" ? "parcelado" : "avista",
+        forma: $("fPagamentoForma").value,
+        obs: $("fPagamentoObs").value || "",
+        recebidoAvistaEm: pagAtual.recebidoAvistaEm || ($("fPagamentoTipo").value === "avista" ? ($("fDataVenda").value || "") : ""),
+        recebimentoUnicoEm: pagAtual.recebimentoUnicoEm || "",
+        parcelas: parcelasDraft.map((p,idx)=>({
+          data: String(p.data||""),
+          valor: safe(Number(p.valor)),
+          recebidoEm: String(p.recebidoEm || pagAtual.parcelas?.[idx]?.recebidoEm || "")
+        }))
+      } : { tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"" };
+
+      return {
+        id: editingId || uid(),
+        codigo: ($("fCodigo").value || "").trim(),
+        nomeProduto: ($("fProduto").value || "").trim(),
+        tipoProduto: ($("fTipoProduto").value || "").trim(),
+        localEstoque: ($("fLocalEstoque").value || "").trim(),
+        loteId,
+
+        custoProduto: custoAuto,
+
+        valorAnuncio: anuncio,
+        canaisAnuncio: getMultiSelected("anuncio"),
+        dataAnuncioISO: ($("fDataAnuncio").value || "").trim(),
+        observacoes: ($("fObs").value || ""),
+
+        vendido,
+        valorVenda: vendido ? venda : 0,
+        canaisVenda: vendido ? getMultiSelected("venda") : [],
+        dataVendaISO: vendido ? ($("fDataVenda").value || "").trim() : "",
+        quemVendeu: vendido ? ($("fVendedor").value || "").trim() : "",
+        formaEntrega: vendido ? ($("fEntrega").value || "").trim() : "",
+        custoEntrega: vendido ? custoEntrega : 0,
+
+        pagamento,
+
+        photos: itemAtual?.photos ? itemAtual.photos.slice(0,3) : ["","",""]
+      };
+    }
+
+    function validateProduct(it){
+      if(!it.codigo) return "Preencha o Código.";
+      if(!it.nomeProduto) return "Preencha o Nome do produto.";
+      if(!it.loteId) return "Selecione o Lote.";
+
+      const codeNorm = String(it.codigo).trim().toLowerCase();
+      const dup = items.some(x => x.id !== it.id && String(x.codigo||"").trim().toLowerCase() === codeNorm);
+      if(dup) return "Este Código já existe. Use outro (ou clique em 🔁 Próximo no Novo item).";
+
+      return null;
+    }
+
+    function validateSaleIfNeeded(it){
+      if(!it.vendido) return null;
+      if(!(it.valorVenda > 0)) return "Preencha o Valor da venda.";
+      if(!it.canaisVenda || !it.canaisVenda.length) return "Selecione ao menos 1 Canal da venda.";
+      if(!it.dataVendaISO) return "Preencha a Data da venda.";
+      if(!it.quemVendeu) return "Preencha Quem vendeu.";
+      if(!it.formaEntrega) return "Preencha a Forma de entrega.";
+      const raw = ($("fCustoEntrega").value || "").trim();
+      if(raw === "") return "Preencha o Custo entrega (pode ser 0).";
+      return null;
+    }
+
+    function updateCalcPreview(){
+      const anuncio = parseMoney($("fAnuncio").value);
+      const venda = parseMoney($("fVenda").value);
+      const custoEntrega = parseMoney($("fCustoEntrega").value);
+
+      const custoAuto = parseMoney(($("fCusto").value||"0").replace("R$","").trim());
+      const lucroProj = anuncio - custoAuto;
+      const lucroFinal = venda - custoAuto - custoEntrega;
+      const tempo = daysBetweenISO($("fDataAnuncio").value, $("fDataVenda").value);
+
+      $("calcPreview").innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span class="chip">📦 Custo (lote): <b>${brl(custoAuto)}</b></span>
+          <span class="chip">📣 Lucro projetado: <b>${brl(lucroProj)}</b></span>
+          <span class="chip">✅ Lucro final: <b>${brl(lucroFinal)}</b></span>
+          <span class="chip">⏱ Tempo venda: <b>${tempo===null ? "—" : (tempo+" dias")}</b></span>
+        </div>
+        <div class="muted2" style="margin-top:10px;">
+          Fórmulas: custo por item = total do lote ÷ qtd itens do lote • lucro proj = anúncio − custo • lucro final = venda − custo − entrega
+        </div>
+      `;
+    }
+
+    function upsert(it){
+      const idx = items.findIndex(x=>x.id===it.id);
+      if(idx>=0) items[idx]=normalizeItemShape(it); else items.unshift(normalizeItemShape(it));
+
+      saveItems();
+      recalcLotCosts(it.loteId);
+      render();
+    }
+
+    function trashEditing(){
+      if(!editingId) return;
+      const it = items.find(x=>x.id===editingId);
+      if(!it) return;
+
+      if(!confirm("Tem certeza que deseja excluir este item? Ele irá para a Lixeira por 30 dias.")) return;
+      trash.unshift({ deletedAt: isoNow(), item: normalizeItemShape(it) });
+      saveTrash();
+
+      items = items.filter(x=>x.id!==editingId);
+      saveItems();
+
+      recalcLotCosts(it.loteId);
+
+      closeModal();
+      render();
+    }
+
+    window.markSold = function(id, sold){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        if(sold) return x;
+        return {
+          ...x,
+          vendido:false,
+          valorVenda:0,
+          canaisVenda:[],
+          dataVendaISO:"",
+          quemVendeu:"",
+          formaEntrega:"",
+          custoEntrega:0,
+          pagamento:{ tipo:"avista", forma:"pix", obs:"", parcelas:[], recebidoAvistaEm:"", recebimentoUnicoEm:"" }
+        };
+      });
+      saveItems();
+      render();
+    }
+
+    window.startSellFlow = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      window.openEdit(id);
+      $("fVendido").value = "sim";
+      toggleSalesBlock(true);
+      if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+      updateCalcPreview();
+      scrollToSection("secVenda");
+      setTimeout(()=>$("fVenda").focus(), 50);
+    }
+
+
+    window.toggleRecebimento = function(itemId, kind, parcelaIdx){
+      const hoje = nowISO();
+      items = items.map(it=>{
+        if(it.id !== itemId) return it;
+        const pagamento = normalizePagamento(it.pagamento);
+
+        if(kind === "avista"){
+          pagamento.recebidoAvistaEm = pagamento.recebidoAvistaEm ? "" : hoje;
+        } else if(kind === "unico"){
+          pagamento.recebimentoUnicoEm = pagamento.recebimentoUnicoEm ? "" : hoje;
+        } else if(kind === "parcela"){
+          const idx = Number(parcelaIdx);
+          if(Number.isFinite(idx) && pagamento.parcelas[idx]){
+            pagamento.parcelas[idx].recebidoEm = pagamento.parcelas[idx].recebidoEm ? "" : hoje;
+          }
+        }
+
+        return { ...it, pagamento };
+      });
+      saveItems();
+      render();
+    }
+
+    // ============================
+    // EXPORT/IMPORT
+    // ============================
+    function exportJSON(){
+      const payload = {
+        version: 6,
+        exportedAt: isoNow(),
+        config,
+        lots,
+        items,
+        trash
+      };
+      const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "renova-lotes-backup-" + new Date().toISOString().slice(0,10) + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function toCSVRow(arr){
+      return arr.map(v=>{
+        const s = String(v ?? "");
+        const escaped = s.replaceAll('"','""');
+        return `"${escaped}"`;
+      }).join(",");
+    }
+
+    function exportCSV(){
+      const header = [
+        "id","codigo","nomeProduto","tipoProduto","localEstoque","lote","custoProduto","valorAnuncio","canaisAnuncio","dataAnuncioISO",
+        "vendido","valorVenda","canaisVenda","dataVendaISO","quemVendeu","formaEntrega","custoEntrega",
+        "pag_tipo","pag_forma","pag_obs","pag_parcelas",
+        "observacoes","photo1","photo2","photo3"
+      ];
+      const rows = items.map(i=>{
+        const lote = getLotById(i.loteId);
+        const pag = i.pagamento || {};
+        const parc = Array.isArray(pag.parcelas) ? pag.parcelas.map(p=>`${p.data}:${safe(p.valor)}`).join("|") : "";
+        return [
+          i.id, i.codigo, i.nomeProduto, i.tipoProduto, i.localEstoque, (lote?.nome || i.loteId),
+          safe(i.custoProduto), safe(i.valorAnuncio), (i.canaisAnuncio||[]).join("; "), i.dataAnuncioISO,
+          i.vendido ? "sim" : "nao",
+          safe(i.valorVenda), (i.canaisVenda||[]).join("; "), i.dataVendaISO, i.quemVendeu, i.formaEntrega, safe(i.custoEntrega),
+          pag.tipo||"", pag.forma||"", (pag.obs||"").replaceAll("\n"," "),
+          parc,
+          (i.observacoes || "").replaceAll("\n"," "),
+          i.photos?.[0] ? "[base64]" : "",
+          i.photos?.[1] ? "[base64]" : "",
+          i.photos?.[2] ? "[base64]" : ""
+        ];
+      });
+      const csv = [toCSVRow(header), ...rows.map(toCSVRow)].join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "renova-lotes-" + new Date().toISOString().slice(0,10) + ".csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSON(file){
+      if(!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try{
+          const parsed = JSON.parse(String(r.result||""));
+
+          if(parsed && typeof parsed === "object" && (parsed.items || parsed.config || parsed.lots)){
+            if(parsed.config){
+              const pc = parsed.config;
+              config = {
+                canaisAnuncio: normalizeArray(pc.canaisAnuncio).length ? normalizeArray(pc.canaisAnuncio) : DEFAULT_CONFIG.canaisAnuncio,
+                canaisVenda:   normalizeArray(pc.canaisVenda).length ? normalizeArray(pc.canaisVenda) : DEFAULT_CONFIG.canaisVenda,
+                entregas:      normalizeArray(pc.entregas).length ? normalizeArray(pc.entregas) : DEFAULT_CONFIG.entregas,
+                tiposProduto:  normalizeArray(pc.tiposProduto).length ? normalizeArray(pc.tiposProduto) : DEFAULT_CONFIG.tiposProduto,
+                locaisEstoque: normalizeArray(pc.locaisEstoque).length ? normalizeArray(pc.locaisEstoque) : DEFAULT_CONFIG.locaisEstoque,
+                vendedores:    normalizeArray(pc.vendedores).length ? normalizeArray(pc.vendedores) : DEFAULT_CONFIG.vendedores
+              };
+            }
+            if(Array.isArray(parsed.lots) && parsed.lots.length){
+              lots = parsed.lots.map(l=>({
+                id: String(l.id||uid()),
+                nome: String(l.nome||"Lote"),
+                total: safe(Number(l.total)),
+                criadoEm: String(l.criadoEm||isoNow())
+              }));
+            }
+            if(Array.isArray(parsed.items)){
+              items = parsed.items.map(normalizeItemShape);
+            }
+            if(Array.isArray(parsed.trash)){
+              trash = parsed.trash.map(t=>({ deletedAt: String(t.deletedAt||isoNow()), item: normalizeItemShape(t.item||{}) }));
+            }
+
+            saveConfig();
+            saveItems();
+            saveTrash();
+
+            lots.forEach(l=>recalcLotCosts(l.id));
+
+            mountDynamicSelectors();
+            render();
+            alert("Importado com sucesso (v6).");
+            return;
+          }
+
+          if(Array.isArray(parsed)){
+            items = parsed.map(normalizeItemShape);
+            saveItems();
+            lots.forEach(l=>recalcLotCosts(l.id));
+            render();
+            alert("Importado com sucesso (lista de itens).");
+          } else {
+            alert("JSON inválido.");
+          }
+        }catch(e){
+          alert("Falha ao importar JSON.");
+        }
+      };
+      r.readAsText(file);
+    }
+
+    // ============================
+    // FOTOS (MODAL SEPARADO)
+    // ============================
+    function openPhotoModal(){ $("photoBackdrop").style.display = "grid"; }
+    function closePhotoModal(){
+      $("photoBackdrop").style.display = "none";
+      $("photoFile").value = "";
+      photoEditingId = null;
+      activePhotoSlot = 0;
+    }
+
+    function renderPhotoGrid(it){
+      const grid = $("photoGrid");
+      grid.innerHTML = "";
+      const photos = it.photos || ["","",""];
+
+      for(let idx=0; idx<3; idx++){
+        const slot = document.createElement("div");
+        slot.className = "photo-slot" + (idx===activePhotoSlot ? " active" : "");
+        slot.onclick = () => { activePhotoSlot = idx; renderPhotoGrid(it); };
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = `Foto ${idx+1}`;
+
+        slot.appendChild(badge);
+
+        if(photos[idx]){
+          const img = document.createElement("img");
+          img.src = photos[idx];
+          img.alt = `Foto ${idx+1}`;
+          slot.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Sem foto";
+          slot.appendChild(empty);
+        }
+
+        grid.appendChild(slot);
+      }
+    }
+
+    window.openPhoto = function(id){
+      const it = items.find(x=>x.id===id);
+      if(!it) return;
+      photoEditingId = id;
+      activePhotoSlot = 0;
+
+      $("photoTitle").textContent = `Fotos — ${it.nomeProduto || "Produto"}`;
+      $("photoMetaLine").textContent = `Código: ${it.codigo || "—"} • Local: ${it.localEstoque || "—"}`;
+
+      renderPhotoGrid(it);
+      openPhotoModal();
+    }
+
+    function setPhotoAtSlot(id, slotIndex, dataUrl){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = dataUrl;
+        return { ...x, photos };
+      });
+      saveItems();
+      render();
+    }
+
+    function removePhotoAtSlot(id, slotIndex){
+      items = items.map(x=>{
+        if(x.id!==id) return x;
+        const photos = Array.isArray(x.photos) ? x.photos.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        photos[slotIndex] = "";
+        return { ...x, photos };
+      });
+      saveItems();
+      render();
+    }
+
+    // ============================
+    // FOTOS INLINE (NO CADASTRO)
+    // ============================
+    function renderInlinePhotoGrid(it){
+      $("inlinePhotoMeta").textContent = `Código: ${it.codigo || $("fCodigo").value || "—"} • Produto: ${it.nomeProduto || $("fProduto").value || "—"}`;
+      const grid = $("inlinePhotoGrid");
+      grid.innerHTML = "";
+
+      const photos = it.photos || ["","",""];
+
+      for(let idx=0; idx<3; idx++){
+        const slot = document.createElement("div");
+        slot.className = "photo-slot" + (idx===inlineActiveSlot ? " active" : "");
+        slot.onclick = () => { inlineActiveSlot = idx; renderInlinePhotoGrid({ ...it, photos }); };
+
+        const badge = document.createElement("div");
+        badge.className = "badge";
+        badge.textContent = `Foto ${idx+1}`;
+        slot.appendChild(badge);
+
+        if(photos[idx]){
+          const img = document.createElement("img");
+          img.src = photos[idx];
+          img.alt = `Foto ${idx+1}`;
+          slot.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "Sem foto";
+          slot.appendChild(empty);
+        }
+
+        grid.appendChild(slot);
+      }
+    }
+
+    function setInlinePhoto(dataUrl){
+      if(!editingId){
+        const buf = getInlinePhotosBuffer();
+        buf[inlineActiveSlot] = dataUrl;
+        setInlinePhotosBuffer(buf);
+        renderInlinePhotoGrid({ photos: buf, nomeProduto: $("fProduto").value, codigo: $("fCodigo").value, localEstoque: $("fLocalEstoque").value });
+        return;
+      }
+
+      setPhotoAtSlot(editingId, inlineActiveSlot, dataUrl);
+      const it = items.find(x=>x.id===editingId);
+      if(it) renderInlinePhotoGrid(it);
+    }
+
+    function removeInlinePhoto(){
+      if(!editingId){
+        const buf = getInlinePhotosBuffer();
+        buf[inlineActiveSlot] = "";
+        setInlinePhotosBuffer(buf);
+        renderInlinePhotoGrid({ photos: buf, nomeProduto: $("fProduto").value, codigo: $("fCodigo").value, localEstoque: $("fLocalEstoque").value });
+        return;
+      }
+      removePhotoAtSlot(editingId, inlineActiveSlot);
+      const it = items.find(x=>x.id===editingId);
+      if(it) renderInlinePhotoGrid(it);
+    }
+
+    function getInlinePhotosBuffer(){
+      try{
+        const raw = $("inlinePhotoGrid").dataset.buf || "[]";
+        const arr = JSON.parse(raw);
+        const photos = Array.isArray(arr) ? arr.slice(0,3) : ["","",""];
+        while(photos.length<3) photos.push("");
+        return photos;
+      }catch(e){
+        return ["","",""];
+      }
+    }
+    function setInlinePhotosBuffer(arr){
+      const photos = Array.isArray(arr) ? arr.slice(0,3) : ["","",""];
+      while(photos.length<3) photos.push("");
+      $("inlinePhotoGrid").dataset.buf = JSON.stringify(photos);
+    }
+
+    // ============================
+    // MULTI-SELECT (CANAIS)
+    // ============================
+    const multiState = { anuncio: [], venda: [] };
+
+    function setMultiSelected(kind, arr){
+      multiState[kind] = normalizeArray(arr);
+      renderMulti(kind);
+    }
+    function getMultiSelected(kind){
+      return normalizeArray(multiState[kind]);
+    }
+    function togglePick(kind, value){
+      const cur = new Set(getMultiSelected(kind));
+      if(cur.has(value)) cur.delete(value); else cur.add(value);
+      setMultiSelected(kind, [...cur]);
+      updateCalcPreview();
+    }
+
+    function renderMulti(kind){
+      const wrap = kind === "anuncio" ? $("fCanaisAnuncio") : $("fCanaisVenda");
+      const list = kind === "anuncio" ? (config.canaisAnuncio||[]) : (config.canaisVenda||[]);
+      const selected = new Set(getMultiSelected(kind));
+
+      wrap.innerHTML = "";
+      list.forEach(v=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "pick" + (selected.has(v) ? " active" : "");
+        b.textContent = v;
+        b.onclick = ()=>togglePick(kind, v);
+        wrap.appendChild(b);
+      });
+
+      if(!list.length){
+        const span = document.createElement("span");
+        span.className = "muted2";
+        span.textContent = "Sem opções. Configure em Configurações.";
+        wrap.appendChild(span);
+      }
+    }
+
+    // ============================
+    // AUTO COST PREVIEW (LOTE)
+    // ============================
+    function computeAutoCostForLot(loteId, plusCount){
+      const lot = getLotById(loteId);
+      const qty = items.filter(i=>i.loteId===loteId).length + (plusCount||0);
+      const unit = qty ? (safe(lot.total)/qty) : 0;
+      return unit;
+    }
+    function syncAutoCostPreviewForSelectedLot(isNew){
+      const loteId = ($("fLote").value || lots[0]?.id || "lote-1");
+      const unit = computeAutoCostForLot(loteId, isNew ? 1 : 0);
+      $("fCusto").value = brl(unit);
+      updateCalcPreview();
+    }
+
+    // ============================
+    // PARCELAS (PAGAMENTO)
+    // ============================
+    function renderParcelasTable(){
+      const tb = $("tbParcelas");
+      tb.innerHTML = "";
+      if(!parcelasDraft.length){
+        tb.innerHTML = `<tr><td colspan="3" class="muted">Nenhuma parcela cadastrada.</td></tr>`;
+        return;
+      }
+      parcelasDraft.forEach((p, idx)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input type="date" value="${escapeHtml(p.data||"")}" data-idx="${idx}" data-k="data" style="width:170px;"></td>
+          <td><input type="text" value="${String(safe(p.valor)).replace(".",",")}" data-idx="${idx}" data-k="valor" style="width:170px;"></td>
+          <td><button class="btn small danger" type="button" onclick="removeParcela(${idx})">Remover</button></td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      tb.querySelectorAll("input").forEach(inp=>{
+        inp.addEventListener("input", ()=>{
+          const idx = Number(inp.dataset.idx);
+          const k = inp.dataset.k;
+          if(!Number.isFinite(idx) || !parcelasDraft[idx]) return;
+          if(k==="data"){
+            parcelasDraft[idx].data = inp.value || "";
+          } else {
+            parcelasDraft[idx].valor = parseMoney(inp.value);
+          }
+        });
+      });
+    }
+
+    window.removeParcela = function(idx){
+      parcelasDraft.splice(idx, 1);
+      renderParcelasTable();
+    }
+
+    // ============================
+    // CONFIG UI
+    // ============================
+    function badgeList(containerId, list, removeFn){
+      const wrap = $(containerId);
+      wrap.innerHTML = "";
+      (list||[]).forEach(v=>{
+        const d = document.createElement("span");
+        d.className = "badge-x";
+        d.innerHTML = `<span>${escapeHtml(v)}</span><button class="xbtn" type="button">x</button>`;
+        d.querySelector("button").onclick = ()=>removeFn(v);
+        wrap.appendChild(d);
+      });
+      if(!(list||[]).length){
+        const span = document.createElement("span");
+        span.className = "muted2";
+        span.textContent = "—";
+        wrap.appendChild(span);
+      }
+    }
+
+    function renderConfig(){
+      const lotsWrap = $("lotsList");
+      lotsWrap.innerHTML = "";
+      lots.forEach(l=>{
+        const d = document.createElement("div");
+        d.className = "badge-x";
+        d.style.gap = "10px";
+        d.innerHTML = `
+          <span><b>${escapeHtml(l.nome)}</b> • Total: ${brl(safe(l.total))}</span>
+          <button class="xbtn" type="button">x</button>
+        `;
+        d.querySelector("button").onclick = ()=>{
+          if(lots.length<=1){
+            alert("Você precisa ter pelo menos 1 lote.");
+            return;
+          }
+          if(items.some(i=>i.loteId===l.id)){
+            alert("Não dá para remover: existem itens neste lote. Mova os itens para outro lote primeiro.");
+            return;
+          }
+          if(!confirm(`Remover "${l.nome}"?`)) return;
+          lots = lots.filter(x=>x.id!==l.id);
+          saveConfig();
+          mountDynamicSelectors();
+          render();
+        };
+        lotsWrap.appendChild(d);
+      });
+
+      badgeList("canalAnuncioList", config.canaisAnuncio, (v)=>{
+        if(!confirm(`Remover canal de anúncio "${v}"?`)) return;
+        config.canaisAnuncio = (config.canaisAnuncio||[]).filter(x=>x!==v);
+        items = items.map(it=>({ ...it, canaisAnuncio: (it.canaisAnuncio||[]).filter(x=>x!==v) }));
+        saveItems();
+        saveConfig();
+        mountDynamicSelectors();
+        render();
+      });
+
+      badgeList("canalVendaList", config.canaisVenda, (v)=>{
+        if(!confirm(`Remover canal de venda "${v}"?`)) return;
+        config.canaisVenda = (config.canaisVenda||[]).filter(x=>x!==v);
+        items = items.map(it=>({ ...it, canaisVenda: (it.canaisVenda||[]).filter(x=>x!==v) }));
+        saveItems();
+        saveConfig();
+        mountDynamicSelectors();
+        render();
+      });
+
+      badgeList("entregaList", config.entregas, (v)=>{
+        if(!confirm(`Remover forma de entrega "${v}"?`)) return;
+        config.entregas = (config.entregas||[]).filter(x=>x!==v);
+        items = items.map(it=> it.formaEntrega===v ? { ...it, formaEntrega:"" } : it);
+        saveItems();
+        saveConfig();
+        mountDynamicSelectors();
+        render();
+      });
+
+      badgeList("tipoList", config.tiposProduto, (v)=>{
+        if(!confirm(`Remover categoria "${v}"?`)) return;
+        config.tiposProduto = (config.tiposProduto||[]).filter(x=>x!==v);
+        items = items.map(it=> it.tipoProduto===v ? { ...it, tipoProduto:"" } : it);
+        saveItems();
+        saveConfig();
+        mountDynamicSelectors();
+        render();
+      });
+
+      badgeList("locaisList", config.locaisEstoque, (v)=>{
+        if(!confirm(`Remover local "${v}"?`)) return;
+        config.locaisEstoque = (config.locaisEstoque||[]).filter(x=>x!==v);
+        items = items.map(it=> it.localEstoque===v ? { ...it, localEstoque:"" } : it);
+        saveItems();
+        saveConfig();
+        mountDynamicSelectors();
+        render();
+      });
+
+      badgeList("vendedoresList", config.vendedores, (v)=>{
+        if(!confirm(`Remover vendedor "${v}"?`)) return;
+        config.vendedores = (config.vendedores||[]).filter(x=>x!==v);
+        items = items.map(it=> it.quemVendeu===v ? { ...it, quemVendeu:"" } : it);
+        saveItems();
+        saveConfig();
+        mountDynamicSelectors();
+        render();
+      });
+    }
+
+    // ============================
+    // SELECTS / MOUNTS
+    // ============================
+    function fillSelect(id, list, allowEmpty=false){
+      const s = $(id);
+      s.innerHTML = "";
+      if(allowEmpty){
+        const opt = document.createElement("option");
+        opt.value = ""; opt.textContent = "—";
+        s.appendChild(opt);
+      }
+      (list||[]).forEach(v=>{
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = v;
+        s.appendChild(opt);
+      });
+    }
+
+    function fillLotsSelect(){
+      const s = $("fLote");
+      s.innerHTML = "";
+      lots.forEach(l=>{
+        const opt = document.createElement("option");
+        opt.value = l.id;
+        opt.textContent = `${l.nome} (${brl(safe(l.total))})`;
+        s.appendChild(opt);
+      });
+    }
+
+    function mountDynamicSelectors(){
+      fillSelect("fTipoProduto", config.tiposProduto, true);
+      fillSelect("fLocalEstoque", config.locaisEstoque, false);
+      fillLotsSelect();
+      fillSelect("fVendedor", config.vendedores, true);
+      fillSelect("fEntrega", config.entregas, true);
+
+      renderMulti("anuncio");
+      renderMulti("venda");
+      renderConfig();
+      saveConfig();
+    }
+
+    // ============================
+    // GRÁFICOS (Canvas)
+    // ============================
+    function getSoldItems(){
+      return items.filter(i=>i.vendido && safe(i.valorVenda)>0 && i.dataVendaISO);
+    }
+
+    function salesSeriesLast30(){
+      const sold = getSoldItems();
+      const mapCount = new Map();
+      const mapRevenue = new Map();
+      sold.forEach(i=>{
+        mapCount.set(i.dataVendaISO, (mapCount.get(i.dataVendaISO)||0) + 1);
+        mapRevenue.set(i.dataVendaISO, (mapRevenue.get(i.dataVendaISO)||0) + safe(i.valorVenda));
+      });
+
+      const n=30;
+      const labels = [];
+      const counts = [];
+      const revenue = [];
+      const today = new Date(nowISO()+"T00:00:00");
+      for(let i=n-1;i>=0;i--){
+        const d = new Date(today);
+        d.setDate(d.getDate()-i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        const iso = `${yyyy}-${mm}-${dd}`;
+        labels.push(`${dd}/${mm}`);
+        counts.push(mapCount.get(iso)||0);
+        revenue.push(mapRevenue.get(iso)||0);
+      }
+      return { labels, counts, revenue };
+    }
+
+    function clearCanvas(ctx, w, h){
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = "rgba(0,0,0,.0)";
+      ctx.fillRect(0,0,w,h);
+    }
+    function drawAxes(ctx, w, h, pad){
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad, pad);
+      ctx.lineTo(pad, h-pad);
+      ctx.lineTo(w-pad, h-pad);
+      ctx.stroke();
+    }
+
+    function drawLineChart(canvasId, labels, values){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+
+      const max = Math.max(1, ...values);
+      const min = Math.min(0, ...values);
+
+      const xStep = (w - pad*2) / Math.max(1, (values.length-1));
+      const yScale = (h - pad*2) / (max - min || 1);
+
+      ctx.strokeStyle = "rgba(140,160,255,.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      values.forEach((v,i)=>{
+        const x = pad + i*xStep;
+        const y = (h-pad) - (v - min)*yScale;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      values.forEach((v,i)=>{
+        const x = pad + i*xStep;
+        const y = (h-pad) - (v - min)*yScale;
+        ctx.beginPath();
+        ctx.arc(x,y,2.2,0,Math.PI*2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      for(let i=0;i<labels.length;i+=5){
+        const x = pad + i*xStep;
+        ctx.fillText(labels[i], x-12, h-12);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText(String(Math.round(min*100)/100), 6, h-pad);
+    }
+
+    function drawBarChart(canvasId, labels, values){
+      const c = $(canvasId);
+      if(!c) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      const pad = 36;
+
+      clearCanvas(ctx,w,h);
+      drawAxes(ctx,w,h,pad);
+
+      const max = Math.max(1, ...values);
+      const barW = (w - pad*2) / Math.max(1, labels.length);
+
+      for(let i=0;i<labels.length;i++){
+        const v = values[i];
+        const x = pad + i*barW + 6;
+        const bh = (h - pad*2) * (v / max);
+        const y = (h - pad) - bh;
+
+        ctx.fillStyle = "rgba(90,255,170,.35)";
+        ctx.fillRect(x, y, Math.max(6, barW-12), bh);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "11px ui-sans-serif, system-ui";
+      labels.forEach((lab,i)=>{
+        const x = pad + i*barW + 6;
+        if(labels.length <= 8){
+          ctx.fillText(lab, x, h-12);
+        } else if(i % 2 === 0){
+          ctx.fillText(lab, x, h-12);
+        }
+      });
+
+      ctx.fillStyle = "rgba(255,255,255,.60)";
+      ctx.fillText(String(Math.round(max*100)/100), 6, pad+4);
+      ctx.fillText("0", 10, h-pad);
+    }
+
+    function stockAgingBuckets(){
+      const today = new Date(nowISO()+"T00:00:00").getTime();
+      const stock = items.filter(i=>!i.vendido && i.dataAnuncioISO);
+      const buckets = { "0–6d":0, "7–14d":0, "15–30d":0, "30+d":0 };
+      stock.forEach(i=>{
+        const t = dateValue(i.dataAnuncioISO);
+        if(!t) return;
+        const days = Math.round((today - t)/(1000*60*60*24));
+        if(days <= 6) buckets["0–6d"]++;
+        else if(days <= 14) buckets["7–14d"]++;
+        else if(days <= 30) buckets["15–30d"]++;
+        else buckets["30+d"]++;
+      });
+      return buckets;
+    }
+
+    function renderCharts(){
+      const sold = getSoldItems();
+      const { labels, counts, revenue } = salesSeriesLast30();
+
+      drawLineChart("cSales30", labels, counts);
+      drawLineChart("cRevenue30", labels, revenue);
+
+      const salesByChannel = new Map();
+      const profitByChannel = new Map();
+
+      sold.forEach(it=>{
+        const chans = (it.canaisVenda && it.canaisVenda.length) ? it.canaisVenda : ["—"];
+        const profit = safe(it.valorVenda) - safe(it.custoProduto) - safe(it.custoEntrega);
+
+        chans.forEach(ch=>{
+          salesByChannel.set(ch, (salesByChannel.get(ch)||0) + 1);
+          profitByChannel.set(ch, (profitByChannel.get(ch)||0) + profit);
+        });
+      });
+
+      const channels1 = [...salesByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cSalesByChannel", channels1.map(x=>x[0]), channels1.map(x=>x[1]));
+
+      const channels2 = [...profitByChannel.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+      drawBarChart("cProfitByChannel", channels2.map(x=>x[0]), channels2.map(x=>Math.round(x[1]*100)/100));
+
+      const aging = stockAgingBuckets();
+      drawBarChart("cStockAging", Object.keys(aging), Object.values(aging));
+    }
+
+    // ============================
+    // RENDER GERAL
+    // ============================
+    function render(){
+      const filtered = getFiltered();
+      const m = compute();
+
+      if(!$("visao").classList.contains("hidden")){
+        renderKPIs(m);
+        renderQuick(m);
+      }
+
+      renderTables(filtered);
+
+      if(!$("financeiro").classList.contains("hidden")){
+        renderFinanceiro();
+      }
+
+      if(!$("graficos").classList.contains("hidden")){
+        renderCharts();
+      }
+
+      if(!$("local").classList.contains("hidden")){
+        renderLocal();
+      }
+
+      if(!$("lixeira").classList.contains("hidden")){
+        renderTrash();
+      }
+
+      if(!$("config").classList.contains("hidden")){
+        renderConfig();
+      }
+    }
+
+    // ============================
+    // EVENTOS
+    // ============================
+    document.querySelectorAll(".tab").forEach(btn=>{
+      btn.addEventListener("click", () => setTab(btn.dataset.tab));
+    });
+
+    $("homeLogo").addEventListener("click", ()=> setTab("visao"));
+
+    $("q").addEventListener("input", render);
+    $("newBtn").addEventListener("click", openCreate);
+
+    $("nextCodeBtn").addEventListener("click", ()=>{
+      if(editingId) return;
+      setNextCodigoIntoField();
+    });
+
+    $("exportBtn").addEventListener("click", exportJSON);
+    $("exportCsvBtn").addEventListener("click", exportCSV);
+    $("importFile").addEventListener("change", (e)=> importJSON(e.target.files?.[0]));
+
+    document.addEventListener("click", (e)=>{
+      const th = e.target.closest("th.sortable");
+      if(!th) return;
+      const table = th.dataset.table;
+      const key = th.dataset.sortKey;
+      const type = th.dataset.sortType;
+
+      const st = sortState[table];
+      if(st.key === key){
+        st.dir = st.dir === "asc" ? "desc" : "asc";
+      } else {
+        st.key = key;
+        st.type = type;
+        st.dir = (type === "date") ? "desc" : "asc";
+      }
+      render();
+    });
+
+    $("closeModal").addEventListener("click", closeModal);
+    $("cancelBtn").addEventListener("click", closeModal);
+
+    $("fVendido").addEventListener("change", ()=>{
+      const isSold = $("fVendido").value === "sim";
+      toggleSalesBlock(isSold);
+      if(!isSold){
+        clearSaleFields();
+        $("requiredHint").style.display = "none";
+      } else {
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        // 🔥 quando marcar vendido, já vai pro bloco de venda
+        setTimeout(()=>scrollToSection("secVenda"), 60);
+        setTimeout(()=>$("fVenda").focus(), 120);
+      }
+      updateCalcPreview();
+    });
+
+    $("fPagamentoTipo").addEventListener("change", ()=>{
+      toggleParcelasBlock();
+    });
+
+    $("addParcelaBtn").addEventListener("click", ()=>{
+      parcelasDraft.push({ data: "", valor: 0 });
+      renderParcelasTable();
+    });
+
+    $("clearParcelasBtn").addEventListener("click", ()=>{
+      if(!confirm("Limpar parcelas?")) return;
+      parcelasDraft = [];
+      renderParcelasTable();
+    });
+
+    $("saveBtn").addEventListener("click", () => {
+      const it = readForm();
+      const errP = validateProduct(it);
+      if(errP){ alert(errP); return; }
+
+      const errS = validateSaleIfNeeded(it);
+      if(errS){
+        $("requiredHint").style.display = "block";
+        alert(errS);
+        return;
+      }
+
+      if(!editingId){
+        const buf = getInlinePhotosBuffer();
+        it.photos = buf.slice(0,3);
+        setInlinePhotosBuffer(["","",""]);
+      }
+
+      $("requiredHint").style.display = "none";
+      upsert(it);
+      closeModal();
+    });
+
+    $("deleteBtn").addEventListener("click", trashEditing);
+
+    $("fLote").addEventListener("change", ()=>{
+      syncAutoCostPreviewForSelectedLot(!editingId);
+    });
+
+    ["fAnuncio","fVenda","fCustoEntrega","fDataAnuncio","fDataVenda"].forEach(id=>{
+      $(id).addEventListener("input", updateCalcPreview);
+      $(id).addEventListener("change", updateCalcPreview);
+    });
+
+    $("backdrop").addEventListener("click", (e)=>{
+      if(e.target === $("backdrop")) closeModal();
+    });
+
+    // Fotos modal separado
+    $("closePhoto").addEventListener("click", closePhotoModal);
+    $("closePhoto2").addEventListener("click", closePhotoModal);
+    $("photoBackdrop").addEventListener("click", (e)=>{
+      if(e.target === $("photoBackdrop")) closePhotoModal();
+    });
+
+    $("photoFile").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file || !photoEditingId) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        setPhotoAtSlot(photoEditingId, activePhotoSlot, dataUrl);
+        const it = items.find(x=>x.id===photoEditingId);
+        if(it) renderPhotoGrid(it);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    $("removeSelectedPhotoBtn").addEventListener("click", ()=>{
+      if(!photoEditingId) return;
+      removePhotoAtSlot(photoEditingId, activePhotoSlot);
+      const it = items.find(x=>x.id===photoEditingId);
+      if(it) renderPhotoGrid(it);
+    });
+
+    // Fotos inline (no cadastro)
+    $("inlinePhotoFile").addEventListener("change", (e)=>{
+      const file = e.target.files?.[0];
+      if(!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => setInlinePhoto(String(reader.result||""));
+      reader.readAsDataURL(file);
+    });
+
+    $("inlineRemovePhotoBtn").addEventListener("click", removeInlinePhoto);
+
+    // ============================
+    // 🔥 Fastbar events (cadastro rápido)
+    // ============================
+    $("goProduto").addEventListener("click", ()=>scrollToSection("secProduto"));
+    $("goFotos").addEventListener("click", ()=>scrollToSection("secFotos"));
+    $("goVenda").addEventListener("click", ()=>{
+      if($("fVendido").value !== "sim"){
+        $("fVendido").value = "sim";
+        toggleSalesBlock(true);
+        if(!$("fDataVenda").value) $("fDataVenda").value = nowISO();
+        updateCalcPreview();
+      }
+      scrollToSection("secVenda");
+      setTimeout(()=>$("fVenda").focus(), 80);
+    });
+    $("jumpCalc").addEventListener("click", ()=>scrollToSection("secCalc"));
+
+    // Ctrl+Enter salva (modal)
+    document.addEventListener("keydown", (e)=>{
+      if(!isModalOpen()) return;
+
+      if((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+        e.preventDefault();
+        $("saveBtn").click();
+        return;
+      }
+    });
+
+    // Enter avança para o próximo campo (exceto textarea)
+    document.addEventListener("keydown", (e)=>{
+      if(!isModalOpen()) return;
+      const t = e.target;
+      if(!t) return;
+      const tag = (t.tagName || "").toLowerCase();
+      if(tag === "textarea") return;
+
+      if(e.key === "Enter"){
+        // não travar botões e selects
+        if(tag === "button") return;
+        e.preventDefault();
+
+        const modal = $("backdrop").querySelector(".modal");
+        const focusables = Array.from(modal.querySelectorAll("input, select, textarea, button"))
+          .filter(el => !el.disabled && el.type !== "hidden" && el.offsetParent !== null);
+
+        const idx = focusables.indexOf(t);
+        if(idx >= 0 && idx < focusables.length - 1){
+          focusables[idx + 1].focus();
+        }
+      }
+    });
+
+    // ============================
+    // CONFIG EVENTS
+    // ============================
+    $("addLotBtn").addEventListener("click", ()=>{
+      const name = ($("newLotName").value||"").trim();
+      const total = parseMoney($("newLotTotal").value);
+      if(!name) return alert("Informe o nome do lote.");
+      if(!(total > 0)) return alert("Informe o total do lote (ex: 6050).");
+      const newLot = { id: "lote-" + uid(), nome: name, total, criadoEm: isoNow() };
+      lots.push(newLot);
+      $("newLotName").value = "";
+      $("newLotTotal").value = "";
+      saveConfig();
+      mountDynamicSelectors();
+      render();
+    });
+
+    function addToList(key, inputId){
+      const val = ($(inputId).value||"").trim();
+      if(!val) return;
+      const list = config[key] || [];
+      if(list.some(x=>String(x).toLowerCase()===val.toLowerCase())){
+        alert("Já existe.");
+        return;
+      }
+      config[key] = [...list, val];
+      $(inputId).value = "";
+      saveConfig();
+      mountDynamicSelectors();
+      render();
+    }
+
+    $("addCanalAnuncioBtn").addEventListener("click", ()=>addToList("canaisAnuncio","newCanalAnuncio"));
+    $("addCanalVendaBtn").addEventListener("click",   ()=>addToList("canaisVenda","newCanalVenda"));
+    $("addEntregaBtn").addEventListener("click",      ()=>addToList("entregas","newEntrega"));
+    $("addTipoBtn").addEventListener("click",         ()=>addToList("tiposProduto","newTipo"));
+    $("addLocalBtn").addEventListener("click",        ()=>addToList("locaisEstoque","newLocal"));
+    $("addVendedorBtn").addEventListener("click",     ()=>addToList("vendedores","newVendedor"));
+
+    // ============================
+    // BOOT
+    // ============================
+    loadConfig();
+    loadTrash();
+    loadItems();
+    purgeTrash();
+
+    const existingLotIds = new Set(lots.map(l=>l.id));
+    items = items.map(it=>{
+      if(!existingLotIds.has(it.loteId)) return { ...it, loteId: lots[0]?.id || "lote-1" };
+      return it;
+    });
+
+    lots.forEach(l=>recalcLotCosts(l.id));
+
+    mountDynamicSelectors();
+
+    setMultiSelected("anuncio", []);
+    setMultiSelected("venda", []);
+    syncAutoCostPreviewForSelectedLot(true);
+
+    updateCalcPreview();
+    render();
+  </script>
+
+  <!-- Supabase CDN — necessário para sincronização em nuvem -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <!-- Resolução de conflitos de dados -->
+  <script src="js/modules/conflict-resolver.js"></script>
+  <!-- Detecção de conflitos com notificações para o usuário -->
+  <script src="js/utils/conflict-detector.js"></script>
+  <!-- Gerenciador de sincronização offline com IndexedDB -->
+  <script src="js/modules/offline-sync.js"></script>
+  <!-- Fila de sincronização de alto nível -->
+  <script src="js/sync-queue.js"></script>
+  <!-- Sincronização entre abas via Storage Events -->
+  <script src="js/cross-tab-sync.js"></script>
+  <!-- Sincronização em tempo real via Supabase Realtime -->
+  <script src="js/realtime-sync.js"></script>
+  <!-- Módulo de sincronização localStorage ↔ Supabase -->
+  <script src="js/modules/sync-cloud.js"></script>
+  <!-- Inicialização do cliente Supabase (configure credenciais neste arquivo) -->
+  <script src="js/config/supabase-init.js"></script>
+  <!-- Autenticação de usuários via Supabase Auth -->
+  <script src="js/modules/auth.js"></script>
+  <!-- Orquestrador principal da integração Supabase -->
+  <script src="js/app.js"></script>
+  <!-- Indicador de status online/offline e integração CRM -->
+  <script>
+    (function () {
+      var badge      = document.getElementById('syncStatusBadge');
+      var dot        = document.getElementById('syncStatusDot');
+      var label      = document.getElementById('syncStatusText');
+      var queueEl    = document.getElementById('syncQueueCount');
+      var lastSyncEl = document.getElementById('syncLastTime');
+      var conflictEl = document.getElementById('syncConflictBadge');
+      var conflictCt = document.getElementById('syncConflictCount');
+
+      function updateStatus(online, syncing) {
+        if (!badge) return;
+        badge.className = syncing ? 'syncing' : (online ? 'online' : 'offline');
+        if (dot)   dot.textContent   = syncing ? '🔄' : (online ? '🟢' : '🔴');
+        if (label) label.textContent = syncing ? 'Sincronizando…' : (online ? 'Online' : 'Offline');
+      }
+
+      function updateQueueCount() {
+        if (!queueEl) return;
+        if (typeof SyncQueue !== 'undefined') {
+          SyncQueue.getQueueStatus().then(function (s) {
+            queueEl.textContent = s.pendingCount;
+            if (s.lastProcessedAt && lastSyncEl) {
+              var diff = Math.round((Date.now() - new Date(s.lastProcessedAt).getTime()) / 1000);
+              lastSyncEl.textContent = diff < 60 ? diff + 's atrás' : Math.round(diff / 60) + 'min atrás';
+            }
+          }).catch(function () {});
+        }
+      }
+
+      function updateConflictCount(total) {
+        if (!conflictEl || !conflictCt) return;
+        conflictCt.textContent = total;
+        conflictEl.style.display = total > 0 ? '' : 'none';
+      }
+
+      updateStatus(navigator.onLine, false);
+
+      window.addEventListener('offline', function () { updateStatus(false, false); });
+
+      window.addEventListener('online', function () {
+        updateStatus(true, true);
+        /* Usa SyncQueue/OfflineSync para sinalizar fim da sincronização */
+        var finalize = function () { updateStatus(true, false); updateQueueCount(); };
+        if (typeof SyncQueue !== 'undefined') {
+          SyncQueue.processQueue().then(finalize).catch(finalize);
+        } else if (typeof OfflineSync !== 'undefined') {
+          OfflineSync.processQueue().then(finalize).catch(finalize);
+        } else {
+          finalize();
+        }
+      });
+
+      /* Atualiza contagem ao processar fila */
+      window.addEventListener('syncQueueChanged', function (e) {
+        if (e && e.detail && queueEl) queueEl.textContent = e.detail.pendingCount;
+        if (e && e.detail && e.detail.lastProcessedAt && lastSyncEl) {
+          var diff = Math.round((Date.now() - new Date(e.detail.lastProcessedAt).getTime()) / 1000);
+          lastSyncEl.textContent = diff < 60 ? diff + 's atrás' : Math.round(diff / 60) + 'min atrás';
+        }
+      });
+
+      /* Atualiza ao receber dados do Realtime */
+      window.addEventListener('syncStatusUpdated', function (e) {
+        if (!e || !e.detail) return;
+        if (queueEl && e.detail.queueCount !== undefined) queueEl.textContent = e.detail.queueCount;
+        if (lastSyncEl && e.detail.lastSync) {
+          var diff2 = Math.round((Date.now() - new Date(e.detail.lastSync).getTime()) / 1000);
+          lastSyncEl.textContent = diff2 < 60 ? diff2 + 's atrás' : Math.round(diff2 / 60) + 'min atrás';
+        }
+        if (e.detail.conflictCount !== undefined) updateConflictCount(e.detail.conflictCount);
+      });
+
+      /* Atualiza contador de conflitos */
+      window.addEventListener('conflictDetected', function (e) {
+        var total = e && e.detail && e.detail.total ? e.detail.total : 0;
+        updateConflictCount(total);
+      });
+
+      /* Re-renderiza quando items são atualizados por outra aba ou Realtime */
+      window.addEventListener('itemsUpdated', function (e) {
+        try {
+          var newData = e && e.detail;
+          if (Array.isArray(newData)) {
+            items = newData.map(normalizeItemShape);
+          } else {
+            var raw = localStorage.getItem('renova_lotes_html_v6');
+            if (raw) items = JSON.parse(raw).map(normalizeItemShape);
+          }
+          render();
+        } catch (err) { console.warn('[itemsUpdated] Erro ao re-renderizar:', err); }
+      });
+
+      /* Re-renderiza quando config é atualizada por outra aba ou Realtime */
+      window.addEventListener('configUpdated', function (e) {
+        try {
+          loadConfig();
+          render();
+        } catch (err) { console.warn('[configUpdated] Erro ao re-renderizar:', err); }
+      });
+
+      /* Re-renderiza quando lixeira é atualizada por outra aba */
+      window.addEventListener('trashUpdated', function (e) {
+        try {
+          loadTrash();
+          render();
+        } catch (err) { console.warn('[trashUpdated] Erro ao re-renderizar:', err); }
+      });
+
+      /* Inicializa CrossTabSync para a aba principal */
+      if (typeof CrossTabSync !== 'undefined') {
+        CrossTabSync.watchStorageChanges();
+      }
+
+      /* Inicializa RealtimeSync se Supabase estiver configurado */
+      document.addEventListener('DOMContentLoaded', function () {
+        var client = typeof supabaseClient !== 'undefined' ? supabaseClient : null;
+        if (typeof RealtimeSync !== 'undefined' && client) {
+          RealtimeSync.initRealtimeSync(client);
+        }
+        updateQueueCount();
+      });
+
+      /* Registro do Service Worker */
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function (err) {
+          console.warn('[SW] Falha no registro:', err);
+        });
+      }
+    })();
+  </script>
+    <!-- Existing content -->
+    <script src="main.js"></script>
+</body>
+</html>
+</html>
